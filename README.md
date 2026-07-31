@@ -20,7 +20,7 @@ Most agent “prompts” either stay private or leak the author’s machine and 
 
 1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), or **file** tickets from a human description (`/issue` / `/issues`).
 2. **Solve** unblocked tickets onto a long-lived local `dev` branch with an implement→review loop.
-3. **Ship** `dev` → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
+3. **Ship** `dev` → **local code review gate** (closed-loop Linear fix if needed) → push → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
 
 The skills assume a professional full-stack product shop—not a single demo app. They are stack-aware when *your* docs say so, but they do not hard-code one company’s board or hoster.
 
@@ -39,7 +39,8 @@ The skills assume a professional full-stack product shop—not a single demo app
    /solve   ──► implement on short-lived branch → merge local dev only
         │         (/solve N · /solve all · /solve all fast)
         ▼
-   /prb     ──► push origin/dev → PR main←dev → babysit CI → migrate? → merge
+   /prb     ──► local review gate → (issue+solve loop) → push origin/dev
+                → PR main←dev → babysit CI → migrate? → merge
 ```
 
 | Skill | Role | Default git effect |
@@ -48,7 +49,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
-| [`prb/`](./prb/) | Ship finished `dev` work to **origin** and merge to **main** when green | Push + PR + merge |
+| [`prb/`](./prb/) | Local review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
 
@@ -94,6 +95,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
 - **Production migrations** discovered per repo at ship time (`/prb`)—never invent a stack, never `db:push` to prod by default.
+- **Local code review gate** on `/prb` before push: closed-loop `/issue` + `/solve` on local `dev` until the ship set is clean.
 
 ### Platform supersession (multi-ticket runs)
 
@@ -165,20 +167,21 @@ Selects the next unblocked leaf (or drains the board), runs the full implement�
 
 ---
 
-### `/prb` — push `dev`, PR to `main`, babysit, migrate, merge
+### `/prb` — local review gate, push `dev`, PR to `main`, babysit, migrate, merge
 
 **Path:** [`prb/`](./prb/)
 
 Ship **already finished** session work:
 
 1. Refresh `origin/main` into local `main` and merge into local `dev` (**hard rule before any push**).
-2. Push `origin/dev`.
-3. Open/reuse PR `main` ← `dev`.
-4. Babysit CI/bots (default every **5** minutes for **15** minutes).
-5. If the ship includes schema/data migrations, discover and run **this repo’s** production migrate path (see [`prb/references/db-migrations.md`](./prb/references/db-migrations.md)).
-6. Merge when quiet + green + migrations done (unless `--no-merge`).
+2. **Local Code Review Gate** on `origin/main...dev` (high-signal findings only; load `## Code Review Rules` from AGENTS.md). If actionable findings exist: create Linear issues via `/issue`, fix on local `dev` via `/solve`, re-review in a closed loop until clean (default max **5** cycles). **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
+3. Push `origin/dev`.
+4. Open/reuse PR `main` ← `dev`.
+5. Babysit CI/bots (default every **5** minutes for **15** minutes).
+6. If the ship includes schema/data migrations, discover and run **this repo’s** production migrate path (see [`prb/references/db-migrations.md`](./prb/references/db-migrations.md)).
+7. Merge when quiet + green + migrations done (unless `--no-merge`).
 
-**Useful flags:** `--no-merge`, `--skip-migrations`, `--watch-minutes N`, `--interval-minutes M`
+**Useful flags:** `--no-merge`, `--skip-migrations`, `--skip-review`, `--exhaustive-review` / `--no-exhaustive`, `--max-fix-cycles N`, `--watch-minutes N`, `--interval-minutes M`
 
 ---
 
@@ -260,7 +263,7 @@ My Product Launch
 │   └── references/
 └── prb/
     ├── SKILL.md
-    └── references/
+    └── references/          # local-code-review, db-migrations
 ```
 
 ---

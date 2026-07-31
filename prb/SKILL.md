@@ -2,15 +2,17 @@
 name: prb
 description: >
   Ship session work: fetch origin/main into local main, merge origin/main into
-  local dev, then push to origin/dev; open a PR from dev into main; babysit
-  CI/bot feedback on a 5-minute cadence for up to 15 minutes; auto-merge into
-  main only if no useful automated comments or CI failures appear. When the ship
-  includes DB migrations, discover and run this project's production migration
-  procedure at the correct pre-merge gate (never invent a stack; never db:push
-  to prod by default). Use when the user runs /prb, says "push dev and PR to
-  main", "ship session work", "babysit then merge to main", "promote dev to main
-  with CI watch", or production migrate-on-ship.
-argument-hint: "[--no-merge] [--skip-migrations] [--watch-minutes N] [--interval-minutes M]"
+  local dev, run a Local Code Review Gate on the ship set (with closed-loop
+  Linear /issue + /solve fixes on local dev until clean), then push to
+  origin/dev; open a PR from dev into main; babysit CI/bot feedback on a
+  5-minute cadence for up to 15 minutes; auto-merge into main only if no useful
+  automated comments or CI failures appear. When the ship includes DB
+  migrations, discover and run this project's production migration procedure at
+  the correct pre-merge gate (never invent a stack; never db:push to prod by
+  default). Use when the user runs /prb, says "push dev and PR to main", "ship
+  session work", "babysit then merge to main", "promote dev to main with CI
+  watch", or production migrate-on-ship.
+argument-hint: "[--no-merge] [--skip-migrations] [--skip-review] [--exhaustive-review|--no-exhaustive] [--max-fix-cycles N] [--watch-minutes N] [--interval-minutes M]"
 ---
 
 # /prb — Push `dev` → PR into `main` → babysit → migrate (if needed) → merge
@@ -19,25 +21,30 @@ Ship **this session’s finished work** by:
 
 1. Identifying commits/changes that belong on local **`dev`**
 2. **Refreshing from remote first:** `git fetch origin`, update local **`main`** from **`origin/main`**, then **merge `origin/main` into local `dev`** so `dev` has the latest trunk **before any push**
-3. Pushing **`dev`** to **`origin/dev`** (only after step 2 succeeds with a clean merge)
-4. Opening (or reusing) a PR: **base `main` ← head `dev`**
-5. Babysitting every **5 minutes** for up to **15 minutes** total for CI + useful automated comments
-6. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
-7. **Merging the PR into `main`** only if the watch window ends with no useful automated feedback, CI is green (or never failed), and required production migrations have succeeded
+3. **Local Code Review Gate (Phase 1.5):** review `origin/main...dev`; if actionable findings exist, create Linear issues via `/issue`, fix them on local `dev` via `/solve`, re-review — **closed loop until clean** (or cycle cap / `--skip-review`)
+4. Pushing **`dev`** to **`origin/dev`** only after step 2 succeeds with a clean merge **and** step 3 is clean (or explicitly skipped)
+5. Opening (or reusing) a PR: **base `main` ← head `dev`**
+6. Babysitting every **5 minutes** for up to **15 minutes** total for CI + useful automated comments
+7. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
+8. **Merging the PR into `main`** only if the watch window ends with no useful automated feedback, CI is green (or never failed), and required production migrations have succeeded
 
 Default delivery **does** merge when the quiet window passes. Use `--no-merge` to stop after the watch without merging (and without applying production migrations unless the user explicitly asks).
+
+The quiet babysit window and auto-merge logic start **only after** a clean local review (or `--skip-review`) + push + PR.
 
 ## Operating contract
 
 - **Branches (fixed names, lowercase):** integration branch is **`dev`**; trunk is **`main`**. Never use capital-`D` `Dev`.
 - **Always refresh trunk before push (hard rule):** **never** `git push origin dev` until you have (1) `git fetch origin`, (2) updated local **`main`** to match **`origin/main`** (ff-only when possible), and (3) **merged `origin/main` into local `dev`** with conflicts resolved. Pushing a stale `dev` that is missing latest `main` is a skill failure.
-- **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb`.
+- **Local Code Review Gate before push (hard rule):** **never** `git push origin dev` and **never** open a PR until Phase 1.5 reports **zero actionable findings**, unless the user explicitly passed `--skip-review`. Full procedure: [`references/local-code-review.md`](references/local-code-review.md).
+- **Closed-loop fixes on local `dev` only:** when the gate finds issues, file Linear tickets via `/issue` and implement via `/solve` onto **local `dev`**. Do not push mid-loop. Prefer one Linear issue per distinct problem. Cap full review→issue→solve cycles (default **5**, override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push.
+- **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb` outside the review closed-loop fixes.
 - **No force-push to `main`.** Prefer normal push to `dev`. If `dev` needs rewrite, use `--force-with-lease` only after a clear reason and never against `main`.
 - **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them.
 - **Secrets:** never print Doppler/tokens/connection strings; never commit `.env`.
 - **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Auto-merge is forbidden while those exist.
 - **Human veto:** if the user says stop/don’t merge in-session, cancel scheduled watches and do not merge.
-- **Linear:** if commits mention issue IDs (e.g. `TEAM-123`), add the PR URL as a comment on those issues when practical. Do not invent Linear state changes beyond optional “In Review” if still open.
+- **Linear:** if commits mention issue IDs (e.g. `TEAM-123`), add the PR URL as a comment on those issues when practical. Do not invent Linear state changes beyond optional “In Review” if still open. Phase 1.5 may create and solve additional Linear issues for review findings — track those IDs in the final report.
 - **DB migrations follow the project (hard rule):** when the ship set includes schema/data migrations, discover and run **this repo’s** production migrate path from `AGENTS.md` / migration docs / `package.json` — do **not** invent Drizzle/Prisma/psql commands, Doppler project names, or configs. Prefer versioned `db:migrate` (or the repo’s documented equivalent). **Never** `db:push` / `drizzle-kit push` / `prisma db push` to production by default. **Never** print connection strings or Doppler secret values. **Never** auto-run content seeders as part of migrate. Full procedure: [`references/db-migrations.md`](references/db-migrations.md).
 - **Migrate before merge (default):** if production migrations are required for the ship, apply them **after** the quiet window passes and **before** `gh pr merge`, so production deploy does not race ahead of schema (additive/expand path). Destructive migrations **block** auto-merge until the user explicitly approves.
 
@@ -47,16 +54,22 @@ Default delivery **does** merge when the quiet window passes. Use `--no-merge` t
 |-----|---------|
 | `--no-merge` | Watch only; never merge even if quiet; do not apply production migrations unless the user explicitly asks |
 | `--skip-migrations` | Do not run production (or preview) migrate gates; ship may leave schema lagging — report a loud warning |
+| `--skip-review` | Skip entire Phase 1.5 Local Code Review Gate + closed-loop fix cycle (dangerous; require explicit user intent). Loud warning in report |
+| `--exhaustive-review` | Force exhaustive review passes (default already **on**) |
+| `--no-exhaustive` | Single review pass per cycle; still blocks on any actionable findings found |
+| `--max-fix-cycles N` | Cap full review→issue→solve→re-review cycles (default **5**) |
 | `--watch-minutes N` | Total watch window (default **15**) |
 | `--interval-minutes M` | Check cadence (default **5**) |
 
 Parse these from the user message; ignore unknown tokens after logging them.
 
+Record for the run: `SKIP_REVIEW`, `EXHAUSTIVE_REVIEW` (default true), `MAX_FIX_CYCLES` (default 5), plus review exit fields from [`references/local-code-review.md`](references/local-code-review.md).
+
 ---
 
 ## Phase 0 — Repo + session work inventory
 
-1. Confirm git root; read `AGENTS.md` / `README.md` only if needed for push/PR conventions.
+1. Confirm git root; read `AGENTS.md` / `README.md` only if needed for push/PR conventions (Phase 1.5 will re-read AGENTS for Code Review Rules).
 2. `gh auth status` — if not authenticated, stop.
 3. Record:
    - `OWNER/REPO` via `gh repo view --json nameWithOwner --jq '.nameWithOwner'`
@@ -74,9 +87,9 @@ Unrelated dirty paths (leave alone): `.cursor/hooks/**`, `.deepsec/`, local env 
 
 ---
 
-## Phase 1 — Refresh `origin/main` → local `dev`, then push `origin/dev`
+## Phase 1 — Refresh `origin/main` → local `dev` (no push)
 
-**Hard gate:** Do **not** push anything to remote until local `dev` contains the latest `origin/main`.
+**Hard gate:** Do **not** push anything to remote until local `dev` contains the latest `origin/main` **and** Phase 1.5 is clean (or `--skip-review`).
 
 ### 1A. Fetch and update local `main` from `origin/main`
 
@@ -114,7 +127,7 @@ git merge origin/main -m "Merge origin/main into dev before /prb push"
 Rules for this merge:
 
 - Always merge **`origin/main`** (not a stale local `main` pointer, though they should match after 1A).
-- If merge conflicts: resolve them fully, run the repo’s relevant verify commands for touched files, commit the merge, then continue. **Do not push** until the merge is complete and clean.
+- If merge conflicts: resolve them fully, run the repo’s relevant verify commands for touched files, commit the merge, then continue. **Do not push** until the merge is complete and clean **and** Phase 1.5 has passed.
 - If the merge would destroy session work, stop and report; never drop session commits to “make the merge easy.”
 - Optionally also merge `origin/dev` into local `dev` if remote dev is ahead and you need those commits: `git merge origin/dev` — still only after `origin/main` is in.
 
@@ -123,13 +136,94 @@ Rules for this merge:
 - Fast-forward or merge the session issue branch into `dev` if that work is not on `dev` yet.
 - Re-verify `git log origin/main..dev --oneline` lists the intended ship set.
 
-### 1D. Push local `dev` to `origin/dev` (only after 1A–1C)
+**Stop here.** Do **not** push yet. Proceed to Phase 1.5.
+
+---
+
+## Phase 1.5 — Local Code Review Gate + Closed-Loop Fix Cycle
+
+**Authority:** [`references/local-code-review.md`](references/local-code-review.md).
+
+**When:** after Phase 1 (1A–1C); **before** any `git push origin dev` and **before** Phase 2.
+
+### Skip
+
+If `--skip-review`: log a **loud** warning, set `REVIEW_EXIT=skipped`, skip 1.5A–1.5C, proceed to Phase 1D. Do not invent this flag.
+
+### 1.5A — Run Local Code Review
+
+1. Compute the ship set:
+   ```bash
+   git log origin/main..dev --oneline
+   git -c core.quotepath=false diff origin/main...dev
+   git -c core.quotepath=false diff --name-only origin/main...dev
+   ```
+2. Load root + nested `AGENTS.md` for changed paths; apply every **`## Code Review Rules`** section. **Cite the rule** when flagging a violation.
+3. Review thoroughly for **high-signal** issues only:
+   - correctness / regressions
+   - security
+   - performance
+   - maintainability (high impact)
+   - missing tests for new behavior
+   - repository-specific invariants
+4. Prefer **critical** and **serious** findings. Avoid low-value nits (nits do **not** block the gate).
+5. **Exhaustive mode (default on):** unless `--no-exhaustive`, keep looking within the pass until no *new* high-priority issues appear or the inner round limit (default 3) is hit. `--exhaustive-review` forces on.
+6. Produce structured findings (file + line range, short explanation, severity, AGENTS.md rule if applicable) + overall correctness verdict + confidence. Persist under a private scratch dir (see reference). Prefer a read-only `[reviewer]` subagent for non-trivial diffs; orchestrator owns the gate decision.
+
+**Actionable** = `critical` / `serious` / high-signal `medium` correctness-security-regression. **Nits are non-blocking.**
+
+**Gate pass:** zero actionable findings → set `REVIEW_EXIT=clean` (or update after cycles) → Phase 1D.
+
+### 1.5B — Closed-loop fix cycle (when actionable findings exist)
+
+```text
+cycle = 0
+while actionable findings remain:
+  if cycle >= MAX_FIX_CYCLES:   # default 5
+    STOP — do not push; do not open PR; report outstanding findings + Linear ids
+  cycle += 1
+
+  For each distinct actionable finding (or tightly related group):
+    1. Spawn subagent → /issue  (file/line, severity, AGENTS rule, context)
+    2. Capture TEAM-### 
+    3. Spawn subagent → /solve TEAM-###  (fix lands on local dev only; no push)
+       Prefer sequential solves so merges to dev do not race.
+
+  Re-run 1.5A on updated origin/main...dev
+  Repeat until zero actionable findings
+```
+
+Rules:
+
+- **One Linear issue per distinct problem** — not one giant issue for unrelated defects.
+- All fixes merge to **local `dev` only**. Never push inside the loop.
+- After solves: stay on `dev`; if `origin/main` may have moved, re-fetch and re-merge Phase 1A–1B before re-review/push.
+- If `/issue` fails (Linear down): `REVIEW_EXIT=blocked-tooling`; report drafts; **do not push**.
+- If `/solve` fails: do not pretend fixed; deny push while actionable remain after re-review.
+- Track `LINEAR_ISSUES_CREATED`, `LINEAR_ISSUES_SOLVED`, `FINDINGS_FIXED_COUNT`, `REVIEW_CYCLES_USED`.
+
+### 1.5C — Safety limits
+
+| Limit | Default |
+|-------|---------|
+| Full review→issue→solve cycles | **5** (`--max-fix-cycles N`) |
+| Exhaustive inner rounds per review pass | **3** |
+| Issues per problem | one distinct issue (tight groups only) |
+
+On cycle cap with remaining findings: **stop**, report, **do not push**, **do not open PR**.
+
+Only when the gate is **clean** (or skipped) may the skill proceed to Phase 1D.
+
+---
+
+## Phase 1D — Push local `dev` to `origin/dev` (only after 1A–1C + clean 1.5)
 
 ```bash
 # Pre-push checklist (all must pass):
 # - main == origin/main
 # - dev contains origin/main (merge-base --is-ancestor origin/main dev)
 # - working tree has no unresolved conflict markers from the main merge
+# - Phase 1.5 CLEAN or --skip-review
 git merge-base --is-ancestor origin/main dev   # exit 0 required
 
 git push -u origin dev
@@ -138,12 +232,15 @@ git push -u origin dev
 Rules:
 
 - **Never** push to `origin/dev` if `origin/main` is not an ancestor of local `dev`.
-- If push rejected non-ff, carefully merge `origin/dev` into local `dev` **without** dropping session commits, **re-run** `git merge origin/main` if main moved, then re-push. Use `--force-with-lease` only if the branch is exclusively this user’s integration branch and divergence is understood; prefer merge commit otherwise.
+- **Never** push if Phase 1.5 still has actionable findings (unless `--skip-review`).
+- If push rejected non-ff, carefully merge `origin/dev` into local `dev` **without** dropping session commits, **re-run** `git merge origin/main` if main moved, **re-run Phase 1.5** if the ship set changed, then re-push. Use `--force-with-lease` only if the branch is exclusively this user’s integration branch and divergence is understood; prefer merge commit otherwise.
 - After push, confirm: `git rev-parse dev` == `git rev-parse origin/dev`.
 
 ---
 
 ## Phase 2 — Open or reuse PR: `main` ← `dev`
+
+**Prerequisite:** Phase 1D succeeded (push completed after clean review or skip).
 
 ```bash
 # Existing open PR with head dev and base main?
@@ -168,6 +265,7 @@ gh pr create --base main --head dev \
 ## Notes
 - Head: `dev` → Base: `main`
 - Opened by `/prb`
+- Local Code Review Gate: clean | skipped (--skip-review)
 EOF
 )"
 ```
@@ -176,9 +274,11 @@ Title/body must be complete sentences and reflect **actual** commits (`git log o
 
 If `MIGRATIONS_IN_SHIP=yes`, include a PR body bullet such as: pending production migrate via the repo’s documented command (will run at `/prb` pre-merge gate unless `--skip-migrations`).
 
+If Phase 1.5 created Linear issues, optionally list them in the PR body under Notes.
+
 Store `PR_NUMBER` and `PR_URL`.
 
-Optional: comment on related Linear issues with `PR_URL`.
+Optional: comment on related Linear issues with `PR_URL` (session commit issues + Phase 1.5 issues when practical).
 
 ---
 
@@ -216,7 +316,10 @@ At t=0 immediately after PR open/push, and every **interval** minutes until **wa
 
 - **Do not merge**
 - Fix in a worktree or on `dev` as appropriate (prefer worktree isolation for multi-file fixes if using subagents)
-- Before re-pushing: `git fetch origin`, ensure local `main` matches `origin/main`, **merge `origin/main` into local `dev` again**, then `git push origin dev`
+- Before re-pushing:
+  1. `git fetch origin`, ensure local `main` matches `origin/main`, **merge `origin/main` into local `dev` again**
+  2. **Re-run Phase 1.5** on the updated ship set (unless `--skip-review` for the whole run)
+  3. Only then `git push origin dev`
 - **Reset or extend** the quiet clock: require a fresh quiet window of the full `watch-minutes` **or** at least one clean interval after the fix push—default: **restart the 15-minute quiet timer** from the fix push time
 - Continue babysitting; never merge with open useful threads or red CI
 
@@ -242,7 +345,7 @@ Also support resume:
 
 ### 3D. Optional deeper babysit
 
-If CI fails or useful comments appear, you may reuse patterns from the `pr-babysit` skill (worktree fixes, reply to threads with commit SHAs). Cap automated code-fix attempts sensibly (e.g. 3 per cycle) and always re-push `dev`.
+If CI fails or useful comments appear, you may reuse patterns from the `pr-babysit` skill (worktree fixes, reply to threads with commit SHAs). Cap automated code-fix attempts sensibly (e.g. 3 per cycle) and always re-merge main, **re-run Phase 1.5** when the ship set changed, then re-push `dev`.
 
 ### 3E. Preview DB (optional, only when migrations are in the ship)
 
@@ -319,7 +422,7 @@ Report clearly:
 
 - PR URL
 - Why blocked (failed check names, comment excerpts, conflicts, **failed/pending production migrate**, destructive migration awaiting approval)
-- Next action (`/prb check`, fix + push `dev`, complete migrate, or human merge)
+- Next action (`/prb check`, fix + Phase 1.5 + push `dev`, complete migrate, or human merge)
 
 Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned).
 
@@ -330,9 +433,11 @@ Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned
 ```markdown
 ** /prb complete**
 **Repo:** owner/repo
-**Pushed:** origin/dev @ <sha>
-**PR:** #N — <url> (base main ← head dev)
-**Watch:** <minutes>m @ <interval>m checks
+**Review:** local clean after N cycles | local fixed M findings across K Linear issues | skipped (--skip-review) | blocked at cycle cap (remaining …) | blocked (Linear/solve failure)
+**Linear issues created & solved:** TEAM-123, TEAM-124, … | none
+**Pushed:** origin/dev @ <sha> | not pushed (<reason>)
+**PR:** #N — <url> (base main ← head dev) | not opened (<reason>)
+**Watch:** <minutes>m @ <interval>m checks | n/a
 **Useful feedback:** none | <summary>
 **Migrations:** none in ship | applied production (`<config>`) @ <time> | blocked (<reason>) | skipped (--skip-migrations|--no-merge)
 **Migrate:** <stack/command shape, no secrets> | n/a
@@ -341,11 +446,15 @@ Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned
 **Local:** main/dev synced notes
 ```
 
+If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: not pushed`, `PR: not opened`, and full Review / Linear lines so the user can continue manually.
+
 ---
 
 ## Safety guardrails
 
 - **Never push to `origin/dev` until `origin/main` is merged into local `dev`** (verify with `git merge-base --is-ancestor origin/main dev`)
+- **Never push to `origin/dev` or open a PR until Phase 1.5 is clean** (zero actionable findings), unless `--skip-review` was explicit
+- **Never push while the closed-loop fix cycle still has open actionable findings** or while under `blocked-at-cap` / `blocked-tooling`
 - Always `git fetch origin` and ff-update local `main` from `origin/main` before that merge
 - Never merge on red CI or with unresolved useful review threads
 - Never force-push `main`
@@ -356,10 +465,17 @@ Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned
 - **Never merge a ship that includes DB migrations without completing Phase 3.5** (unless `--skip-migrations` or explicit user waiver)
 - **Never invent** migrate commands or Doppler production config names; follow the project under the current git root
 - **Never** `db:push` / schema push to production by default; never print `DATABASE_URL` or Doppler secrets; never auto-seed CMS/content as part of `/prb`
+- Prefer one Linear issue per distinct review finding; all closed-loop fixes land on local `dev` only
 
 ## Anti-patterns
 
 - Pushing `dev` without first pulling/merging latest `origin/main` into local `dev`
+- Pushing `dev` or opening a PR without a clean Local Code Review Gate (unless `--skip-review`)
+- Skipping re-review after `/solve` closed-loop fixes
+- Bundling unrelated review findings into one mega Linear issue
+- Fixing review findings only on a remote branch / PR without landing on local `dev` first
+- Treating nits as ship-blockers — or treating critical/serious findings as optional nits
+- Infinite review→fix loops without honoring `--max-fix-cycles`
 - Merging a stale local `main` that was never ff’d to `origin/main`
 - Pushing an issue branch as `dev` by renaming without merging history
 - Merging at t=0 without watching when the user asked for the default babysit window
@@ -370,11 +486,14 @@ Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned
 - Using another repo’s Doppler project/config or a hardcoded migrate one-liner that is not in this repo’s docs/scripts
 - Auto-running destructive `DROP`/`RENAME` migrations without explicit user approval
 - Printing connection strings while “verifying” migrate readiness
+- Re-pushing babysit fixes without re-running Phase 1.5 when the ship set changed
 
 ## Relation to other skills
 
 | Skill | Difference |
 |-------|------------|
-| `/solve` | Implements Linear issue(s) onto **local** `dev` (`/solve [N\|all]`, default 1; no push/PR by default) |
+| `/issue` | Files thorough Linear tickets only; Phase 1.5 spawns it per actionable finding |
+| `/solve` | Implements Linear issue(s) onto **local** `dev` (`/solve [N\|all]`, default 1; no push/PR by default); Phase 1.5 spawns it to close the review loop |
+| `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |
-| `/prb` | End-to-end: session → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge |
+| `/prb` | End-to-end: session → **local review gate + closed-loop fix** → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge |
