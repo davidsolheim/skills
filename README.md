@@ -18,7 +18,7 @@ These packages are **sanitized for open use**: no client brands as required defa
 
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
-1. **File** implementation-ready Linear tickets from a short description (or a whole backlog dump).
+1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), or **file** tickets from a human description (`/issue` / `/issues`).
 2. **Solve** unblocked tickets onto a long-lived local `dev` branch with an implement→review loop.
 3. **Ship** `dev` → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
 
@@ -29,11 +29,11 @@ The skills assume a professional full-stack product shop—not a single demo app
 ## The delivery loop
 
 ```text
-  idea / bug report
+  idea / bug report / “audit this product”
         │
-        ▼
-   /issue   ──► one Linear ticket (deep code map + AC)
-   /issues  ──► many tickets (optional epic / blockedBy)
+        ├─► /project-review  ──► agent invents findings → many solve-ready tickets
+        ├─► /issue           ──► one Linear ticket (deep code map + AC)
+        └─► /issues          ──► many tickets from a human dump
         │
         ▼
    /solve   ──► implement on short-lived branch → merge local dev only
@@ -44,6 +44,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 
 | Skill | Role | Default git effect |
 |-------|------|--------------------|
+| [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
@@ -88,9 +89,10 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/solve` closeout comments).
+- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
+- **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
 - **Production migrations** discovered per repo at ship time (`/prb`)—never invent a stack, never `db:push` to prod by default.
 
 ### Platform supersession (multi-ticket runs)
@@ -100,6 +102,25 @@ These skills are intentionally portable, but they were shaped around the stacks 
 ---
 
 ## Skill catalog
+
+### `/project-review` — agentic discovery → solve-ready Linear queue
+
+**Path:** [`project-review/`](./project-review/)
+
+The agent **invents** findings (completeness, bugs, UI consistency, taste→concrete AC, a11y, edge cases, cross-feature consistency)—no human laundry list required. Files atomic **solve-ready** leaves (optional epic) that `/solve` can claim. Discovery and Linear publish only; never implements or ships.
+
+| Mode | Behavior |
+|------|----------|
+| **`fast`** | High-signal single-agent pass; prefer P0/P1 on primary journeys |
+| **`deep`** (default) | Exhaustive multi-agent inventory + workers → local `issue-candidates/` → one Linear publish |
+
+**Useful flags:** `--draft`, `--file`, `--p0-p1-only`, `--include-p2`, `--no-epic`, `--concurrency N`, `--scope-only`, `--url URL`, surface paths
+
+**Triggers:** `/project-review`, “review this project”, “quality pass”, “UI audit”, “bug hunt”, “find issues for solve”…
+
+**Needs:** Linear MCP (unless `--draft`) · git workspace · optional live app URL · optional browser tools
+
+---
 
 ### `/issue` — investigate & file one ticket
 
@@ -117,7 +138,7 @@ Rapid-fire intake. One short human description → deep, read-only codebase inve
 
 **Path:** [`issues/`](./issues/)
 
-Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic **solve-ready** leaves, optional epic / `blockedBy` / `relatedTo`. Same quality bar as `/issue`.
+Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic **solve-ready** leaves, optional epic / `blockedBy` / `relatedTo`. Same quality bar as `/issue`. Prefer `/project-review` when the agent must invent the finding list.
 
 **Useful flags:** `--draft`, `--plan-only`, `--no-epic`, `--epic "Title"`, `--max N`
 
@@ -170,7 +191,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/solve skills/prb ~/.grok/skills/
+cp -R skills/issue skills/issues skills/project-review skills/solve skills/prb ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -183,7 +204,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/issue`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -225,6 +246,9 @@ My Product Launch
 .
 ├── README.md
 ├── .linear-project          # tracking for this skills repo itself (optional for consumers)
+├── project-review/
+│   ├── SKILL.md
+│   └── references/          # deep mode, candidates, templates, …
 ├── issue/
 │   ├── SKILL.md
 │   └── references/

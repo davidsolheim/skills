@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "project-review-inventory",
+  "title": "Project review inventory and coverage",
+  "type": "object",
+  "required": ["run_id", "repo_root", "units", "created_at"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "repo_root": { "type": "string" },
+    "created_at": { "type": "string", "description": "ISO-8601 timestamp" },
+    "mode": { "type": "string", "enum": ["fast", "deep"] },
+    "scope_only": { "type": "boolean", "default": false },
+    "surface_bias": { "type": "string" },
+    "packages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "apps/* and packages/* roots discovered"
+    },
+    "units": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/review_unit" }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "by_kind": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "review_unit": {
+      "type": "object",
+      "required": ["unit_id", "kind", "title", "paths"],
+      "properties": {
+        "unit_id": {
+          "type": "string",
+          "description": "Stable id, e.g. apps-web-route-dashboard"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "route",
+            "ui_view",
+            "component",
+            "api",
+            "data",
+            "auth",
+            "job",
+            "nav",
+            "docs_intent"
+          ]
+        },
+        "title": { "type": "string" },
+        "package": { "type": "string" },
+        "paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "route": {
+          "type": ["string", "null"],
+          "description": "URL path when kind is route/ui_view/nav"
+        },
+        "auth_required": { "type": ["boolean", "null"] },
+        "priority": {
+          "type": "string",
+          "enum": ["primary", "secondary"],
+          "default": "primary"
+        },
+        "must_review": { "type": "boolean", "default": true },
+        "related_unit_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "coverage_file": {
+      "type": "object",
+      "description": "Shape of coverage.json (sibling file)",
+      "required": ["run_id", "units"],
+      "properties": {
+        "run_id": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "units": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["unit_id", "status"],
+            "properties": {
+              "unit_id": { "type": "string" },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "in_review",
+                  "reviewed",
+                  "blocked_auth",
+                  "out_of_scope",
+                  "failed"
+                ]
+              },
+              "slice_id": { "type": ["string", "null"] },
+              "worker_task_id": { "type": ["string", "null"] },
+              "lenses_completed": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "findings_count": { "type": "integer", "minimum": 0 },
+              "notes": { "type": "string" }
+            }
+          }
+        },
+        "slices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "slice_id": { "type": "string" },
+              "unit_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "in_progress", "done", "failed"]
+              },
+              "worker_task_id": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "pending": { "type": "integer" },
+            "in_review": { "type": "integer" },
+            "reviewed": { "type": "integer" },
+            "blocked_auth": { "type": "integer" },
+            "out_of_scope": { "type": "integer" },
+            "failed": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}
