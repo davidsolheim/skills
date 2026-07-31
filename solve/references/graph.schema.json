@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "solve-batch-graph",
+  "title": "Solve batch dependency and supersession graph",
+  "type": "object",
+  "required": [
+    "run_id",
+    "project",
+    "team",
+    "created_at",
+    "concurrency",
+    "count_mode",
+    "guidance_md",
+    "issues",
+    "waves",
+    "execution_order"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "project": { "type": "string" },
+    "team": { "type": "string" },
+    "created_at": { "type": "string", "description": "ISO-8601 timestamp" },
+    "mode": {
+      "type": "string",
+      "enum": ["sequential", "fast"]
+    },
+    "concurrency": { "type": "integer", "minimum": 1, "maximum": 8 },
+    "count_mode": {
+      "oneOf": [
+        { "type": "string", "const": "all" },
+        { "type": "integer", "minimum": 1 }
+      ]
+    },
+    "effort": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "guidance_md": {
+      "type": "string",
+      "description": "Absolute path to guidance.md (batch authority)"
+    },
+    "architecture_md": {
+      "type": "string",
+      "description": "Deprecated alias: same as guidance_md when present"
+    },
+    "inventory_json": {
+      "type": "string",
+      "description": "Absolute path to inventory.json"
+    },
+    "state_json": {
+      "type": "string",
+      "description": "Absolute path to state.json"
+    },
+    "repo_root": { "type": "string" },
+    "canonical_platforms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "abandoned_platforms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "direction_confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "wave_base_sha": {
+      "type": ["string", "null"],
+      "description": "dev HEAD SHA used as base for the current wave"
+    },
+    "execution_order": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Issue ids in implement order (skips omitted)"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "hard_deps",
+          "wave",
+          "merge_order",
+          "order_rank"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z]+-\\d+$" },
+          "title": { "type": "string" },
+          "url": { "type": "string" },
+          "parent_epic": { "type": ["string", "null"] },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "claimed",
+              "implementing",
+              "ready_to_merge",
+              "merged",
+              "failed",
+              "skipped"
+            ]
+          },
+          "issue_class": {
+            "type": "string",
+            "enum": [
+              "feature",
+              "migration",
+              "foundation",
+              "ops",
+              "docs",
+              "unknown"
+            ]
+          },
+          "platform_tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "action": {
+            "type": "string",
+            "enum": ["normal", "promote", "rescope", "skip", "cancel", "duplicate"],
+            "description": "Batch classification action"
+          },
+          "hard_deps": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "soft_deps": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "depends_on_direction": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Migration/foundation issue ids that must merge first"
+          },
+          "supersedes": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "superseded_by": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "supersede_mode": {
+            "type": "string",
+            "enum": ["full", "partial", "none"]
+          },
+          "override_scope": {
+            "type": "object",
+            "properties": {
+              "paths": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "behaviors": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "do_not_preserve": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "preserve": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "rescope_summary": {
+            "type": ["string", "null"],
+            "description": "Rewritten AC when action=rescope"
+          },
+          "primary_paths": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "order_rank": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1 = first to implement among non-skipped"
+          },
+          "wave": { "type": "integer", "minimum": 0 },
+          "merge_order": { "type": "integer", "minimum": 1 },
+          "skip_reason": { "type": ["string", "null"] },
+          "worktree_path": { "type": ["string", "null"] },
+          "worktree_cleaned": { "type": "boolean" },
+          "branch": { "type": ["string", "null"] },
+          "base_sha": { "type": ["string", "null"] },
+          "commit_sha": { "type": ["string", "null"] },
+          "worker_task_id": { "type": ["string", "null"] },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "conflict_zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["paths", "serialize"],
+        "properties": {
+          "paths": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "serialize": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Issue ids in forced serial order"
+          }
+        }
+      }
+    },
+    "supersession_edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["superseder", "superseded", "mode"],
+        "properties": {
+          "superseder": { "type": "string" },
+          "superseded": { "type": "string" },
+          "mode": { "type": "string", "enum": ["full", "partial"] },
+          "override_scope": { "type": "object" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "waves": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Issue ids in this wave (parallel-safe once hard deps merged)"
+      }
+    }
+  }
+}
