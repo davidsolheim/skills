@@ -6,6 +6,7 @@ Public, portable **[Grok](https://x.ai/)** agent skills used by [David Solheim](
 |---|---|
 | **Author** | [David Solheim](https://davidsolheim.com) |
 | **Site** | [davidsolheim.com](https://davidsolheim.com) |
+| **X** | [@davidtsolheim](https://x.com/davidtsolheim) |
 | **Repo** | [github.com/davidsolheim/skills](https://github.com/davidsolheim/skills) |
 | **Audience** | Anyone running agent-driven engineering with Linear + git |
 
@@ -243,6 +244,7 @@ My Product Launch
 ## Related
 
 - **Portfolio & contact:** [davidsolheim.com](https://davidsolheim.com)
+- **X:** [@davidtsolheim](https://x.com/davidtsolheim)
 - **This repository:** [github.com/davidsolheim/skills](https://github.com/davidsolheim/skills)
 - **xAI / Grok:** [x.ai](https://x.ai/)
 
