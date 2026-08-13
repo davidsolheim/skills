@@ -69,3 +69,7 @@ Another worker may steal if the latest `claimed-by:` comment is older than **60 
 ## Bot identity (later)
 
 Claim comments + optional `claimed/<bot>` labels work with one David token. Separate Linear users per Dev Bot are nicer later; not required for this patch.
+
+## Fast-mode delivery (2026-08-13)
+
+Workers push `origin/solve/<run>/<ISSUE>` (never agent-named). Orchestrator opens **one PR per wave into origin/dev**, merges when CI is acceptable for `dev`, sets Linear **In Review**. Next wave rebases on `origin/dev`. `/prb` still closes Done after `main`. Procedure: `solve/references/fast-mode.md`.

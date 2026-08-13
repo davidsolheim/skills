@@ -2,51 +2,61 @@
 
 Canonical procedure when `FAST_MODE` is true. Sequential `/solve` (no `fast`) ignores this file.
 
-Parent skill: [`../SKILL.md`](../SKILL.md)  
-Architecture template: [`architecture-guidance-template.md`](architecture-guidance-template.md)  
-Graph schema: [`graph.schema.json`](graph.schema.json)  
+Parent skill: [`../SKILL.md`](../SKILL.md)
+Batch guidance: [`batch-guidance.md`](batch-guidance.md)
+Claims / Linear states: [`multiplayer-linear.md`](multiplayer-linear.md)
 Git baseline: [`git-dev-workflow.md`](git-dev-workflow.md)
 
 ---
 
 ## Purpose
 
-Run multiple eligible Linear leaf issues **in parallel** (worktree-isolated workers), after publishing a shared **batch guidance** package so implementations:
+Run many eligible Linear leaves **in parallel** without losing work or double-claiming.
 
-1. Do not diverge or thrash when merging into local **`dev`**
-2. Respect **platform / architectural direction** (e.g. Neon over ClickHouse/Convex)
-3. **Skip or re-scope** obsolete open tickets
-4. Run **migrations/foundations before** features that would be rewritten on an abandoned stack
+1. Inventory + batch guidance (IA, supersession, conflict waves).
+2. **One** orchestrator per Linear project. Extra CLIs only take unclaimed leaves; they never start a second drain.
+3. Workers implement in **worktrees**, then **push an origin issue branch** so a dead CLI does not eat the wave.
+4. Orchestrator lands **one PR per wave into `origin/dev`**. Linear **In Review** after that merge.
+5. Next wave **rebases on the new `origin/dev`**. `/prb` still owns `main` + prod migrations.
 
-Canonical analysis procedure: [`batch-guidance.md`](batch-guidance.md).  
-Template: [`batch-guidance-template.md`](batch-guidance-template.md).  
-The older [`architecture-guidance-template.md`](architecture-guidance-template.md) is a supplement for tech intersections / conflict zones only.
+Linear is the claim board (`claimed-by:` CAS). Git branches are backup + merge surface — **never named after an agent**.
 
 ---
 
 ## Constants
 
 | Name | Value |
-|------|--------|
+| --- | --- |
 | `DEFAULT_CONCURRENCY` | `4` when count mode is `all` |
 | `MAX_CONCURRENCY` | `8` |
 | Integer-mode concurrency | `min(N, MAX_CONCURRENCY)` unless `--concurrency` set |
 | `--concurrency M` | Override width; clamp to `1..MAX_CONCURRENCY` |
-| Soft worker timeout | ~45–60 minutes; then kill worker, mark issue failed, cleanup |
-| Integration branch | local `dev` only |
-| Push / PR | never (unless user explicitly asked this session) |
+| Soft worker timeout | ~45–60 minutes; then kill, fail, cleanup, unclaim |
+| Issue branch | `solve/<RUN_ID>/<ISSUE>` (e.g. `solve/a1b2c3d4/KEC-780`) |
+| Wave branch | `solve/<RUN_ID>/wave-<n>` |
+| Integration | **`origin/dev` via wave PR** (not local-only merge) |
+| `main` / prod | never under fast-mode. That is `/prb` |
 
 ### Count vs concurrency
 
 | Invocation | Issues this run | Max concurrent workers |
-|------------|-----------------|-------------------------|
+| --- | --- | --- |
 | `/solve fast` | 1 | 1 |
-| `/solve 5 fast` | up to **5 issues** (count mode integer) | up to `min(5, 8)` |
-| `/solve all fast` | **all** eligible (no soft cap; concurrency 4 ≠ solve 4) | `DEFAULT_CONCURRENCY` (4) |
-| `/solve all fast --concurrency 5` | **all** eligible (width 5 ≠ solve 5) | 5 |
-| `/solve 12 fast --concurrency 3` | up to 12 | 3 |
+| `/solve 5 fast` | up to **5 issues** | up to `min(5, 8)` |
+| `/solve all fast` | **all** eligible (no soft cap) | `DEFAULT_CONCURRENCY` (4) |
+| `/solve all fast --concurrency 5` | **all** eligible | 5 |
 
-**Critical:** default concurrency **4** and default implement effort **5** are **not** issue counts. `/solve all fast` must drain every eligible leaf (refill + end drain gate).
+Default concurrency **4** and implement effort **5** are **not** issue counts.
+
+---
+
+## Branch rules
+
+- **Do not** name branches after the bot/CLI (`grok-3`, `codex`, `cursor`). Those identities collide (everyone is David on Linear/GitHub).
+- Issue branch is always `solve/<RUN_ID>/<ISSUE>` with the Linear identifier (uppercase as Linear shows it).
+- Wave branch is `solve/<RUN_ID>/wave-<n>` (`n` starts at 0).
+- Never force-push `dev` or `main`. `--force-with-lease` only on a `solve/<RUN_ID>/*` branch this run created, and only to update after rebase onto a moved `origin/dev`.
+- If `origin/dev` is missing, create it from `main` once (`git push -u origin dev`) before the first wave.
 
 ---
 
@@ -55,298 +65,216 @@ The older [`architecture-guidance-template.md`](architecture-guidance-template.m
 After normal Phase 0–1 bootstrap:
 
 1. Set `FAST_MODE = true`.
-2. Resolve `CONCURRENCY` (table above).
-3. Generate `RUN_ID`:
-
-```bash
-python3 -c "import uuid; print(uuid.uuid4().hex[:8])"
-```
-
-4. Scratch directory (absolute; inline into all paths — do not rely on env vars surviving across shell calls):
+2. Resolve `CONCURRENCY`.
+3. `RUN_ID` = `python3 -c "import uuid; print(uuid.uuid4().hex[:8])"`.
+4. Scratch dir:
 
 ```bash
 scratch_dir="${TMPDIR:-/tmp}/grok-$(id -u)/solve-fast-${RUN_ID}"
 mkdir -p "$scratch_dir/workers" && chmod 700 "${TMPDIR:-/tmp}/grok-$(id -u)" "$scratch_dir"
-echo "$scratch_dir"
 ```
 
-5. Paths:
-   - `GUIDANCE_MD` = `$scratch_dir/guidance.md` (authority; also accept legacy name `architecture.md` as alias)
-   - `ARCHITECTURE_MD` = same as `GUIDANCE_MD` (legacy alias for worker prompts)
-   - `INVENTORY_JSON` = `$scratch_dir/inventory.json`
-   - `GRAPH_JSON` = `$scratch_dir/graph.json`
-   - `STATE_JSON` = `$scratch_dir/state.json`
-   - `WORKER_SUMMARY(id)` = `$scratch_dir/workers/<id>.md`
+5. Paths: `GUIDANCE_MD`, `INVENTORY_JSON`, `GRAPH_JSON`, `STATE_JSON`, `WORKER_SUMMARY(id)` under scratch (same as before).
+6. `git fetch origin`. Refresh local `main` from `origin/main`. Checkout/create local `dev`, merge `origin/main` into it, **push `origin/dev` if it did not exist**. Record `dev_tip = $(git rev-parse origin/dev)`.
+7. Trackers: `SOLVED`, `FAILED`, `SKIPPED`, `WORKTREES_CLEANED`, `BRANCHES_DELETED`, `WAVE_PRS`, `in_progress`.
 
-6. Refresh `main` and local `dev` once (git-dev-workflow) **before** any worker starts. Record `dev_tip = $(git rev-parse dev)`.
-
-7. Trackers: `SOLVED`, `FAILED`, `SKIPPED`, `WORKTREES_CLEANED`, `BRANCHES_DELETED`, `in_progress` map.
+If In Progress on this project already has **foreign live `claimed-by:`** comments: **do not drain**. Report and stop, or work around with `/solve N` on unclaimed leaves only.
 
 ---
 
 ## F1 — Full eligible inventory
 
-Unlike pure sequential single-issue mode, **pre-scan** the project using **Phase S0 / batch-guidance.md**:
+Pre-scan via **Phase S0 / batch-guidance.md**:
 
-1. Page Linear `list_issues` for team/project (open/actionable states).
-2. Apply eligibility (Phase 2B), blocked (2D), epic expansion (2E) → **leaf** set only.
-3. Tag platforms, class, supersedes; resolve canonical vs abandoned platforms.
-4. Drop **skip**/full-obsolete leaves from the implement set (record in `skipped`).
-5. Order remaining by `order_rank` (migrations/foundations first; lowest number is tie-breaker only).
-6. Respect count mode: if integer `N`, inventory all eligible for guidance context; implement only until `N` successful merges.
-7. Preferred `TEAM-123` (if any): include if eligible and not guidance-skipped; may pin early only if independent of direction deps.
-8. Do **not** comment on ordinary scan skips; **do** comment once when canceling/skipping full-obsolete supersedes.
+1. Page Linear `list_issues` for team/project (open/actionable).
+2. Eligibility (2B), blocked (2D), epic expand (2E) → **leaves** only.
+3. Tag platforms, class, supersedes; skip full-obsolete.
+4. Order by `order_rank` (migrations first; lowest number is tie-break).
+5. Integer `N`: inventory all for guidance; implement until `N` successful **wave merges to origin/dev**.
+6. Do **not** comment ordinary scan skips. Do comment once when canceling a full-obsolete supersede.
 
-After each wave of merges, **re-scan** Linear for newly unblocked leaves, **patch guidance**, and fold into the graph (append waves). Do not freeze F1 forever.
+After each wave lands on `origin/dev`, **re-scan** Linear, patch guidance, append waves. Do not freeze F1.
 
 ---
 
-## F2 — Batch guidance package
+## F2 — Batch guidance + waves
 
-### Build graph
+Same graph fields as before (`hard_deps`, `conflict_zones`, `primary_paths`, supersession).
 
-For each leaf (see `batch-guidance.md` + `graph.schema.json`):
-
-| Field | Source |
-|-------|--------|
-| `hard_deps` | Linear unfinished `blockedBy` + `depends_on_direction` (migration before re-scoped features) |
-| `soft_deps` | Optional related links (informational; do not block start unless promoted) |
-| `primary_paths` | Issue body / code map / labels + light `grep` / path inference |
-| `platform_tags` / `issue_class` / `action` | S0 tagging |
-| `supersedes` / `superseded_by` / `override_scope` | Explicit body + inferred edges |
-| `order_rank` / `execution_order` | Migration-first ranking |
-| `conflict_zones` | Overlapping `primary_paths` → force serialize listed issues |
-
-**Wave assignment** (execute-plan style):
+**Wave assignment:**
 
 ```text
-level(issue) = 0 if hard_deps empty (among unfinished) and not waiting on conflict serialize
+level(issue) = 0 if no unfinished hard_deps and not waiting on conflict serialize
 level(issue) = max(level(dep) for dep in hard_deps ∪ serialize_predecessors) + 1
 ```
 
-Within a wave, `merge_order` follows `order_rank`, then lowest issue number.
+Within a wave, `merge_order` = `order_rank`, then lowest issue number.
 
-### Write artifacts
+Waves are **heuristics**. Overlapping `primary_paths` serialize. A “non-overlapping” wave can still conflict at PR time — rebase/resolve or fail that leaf; do not force `dev`.
 
-1. Fill [`batch-guidance-template.md`](batch-guidance-template.md) → `GUIDANCE_MD` (also write/copy as `architecture.md` if workers expect that name).
-2. Write `INVENTORY_JSON`, `GRAPH_JSON` conforming to [`graph.schema.json`](graph.schema.json).
-3. Write `STATE_JSON`:
-
-```json
-{
-  "run_id": "<RUN_ID>",
-  "status": "planning|running|completed|stopped",
-  "concurrency": 4,
-  "count_mode": "all",
-  "effort": 5,
-  "guidance_md": "/abs/...",
-  "architecture_md": "/abs/...",
-  "inventory_json": "/abs/...",
-  "graph_json": "/abs/...",
-  "canonical_platforms": ["neon", "postgres"],
-  "abandoned_platforms": ["clickhouse"],
-  "dev_tip_at_start": "<sha>",
-  "solved": [],
-  "failed": [],
-  "skipped": [],
-  "worktrees_cleaned": 0,
-  "branches_deleted": 0
-}
-```
-
-### Optional quality boost
-
-Spawn one `plan` or `explore` subagent (read-only) with the issue dump + repo layout to propose tech intersections, shared contracts, conflict edges, and **platform supersession** candidates. **Orchestrator validates and filters** into the package; never trust agent output for eligibility or Linear state.
-
-### Gate
-
-Do **not** start workers until `GUIDANCE_MD` and `GRAPH_JSON` exist, direction confidence is not a blocking **low**, and waves are non-empty (or inventory empty → Phase 9 empty report). Do **not** spawn workers for `status=skipped` / abandoned-platform leaves.
+Do **not** start workers until `GUIDANCE_MD` and `GRAPH_JSON` exist and direction confidence is not blocking **low**.
 
 ---
 
 ## F3 — User report (non-blocking)
 
 ```text
-Fast plan: K implementable · S skipped · W waves · concurrency C · effort E · run <RUN_ID>
-Canonical: neon/postgres · Abandoned: clickhouse
+Fast plan: K implementable · S skipped · W waves · concurrency C · run <RUN_ID>
 Wave 0: TEAM-123 (migration)
-Wave 1: TEAM-80 (rescope after TEAM-123)
+Wave 1: TEAM-80, TEAM-91 (independent)
 Skip: TEAM-67 (abandoned platform)
-Guidance: <GUIDANCE_MD>
+Delivery: origin issue branches → one PR per wave into origin/dev → In Review
+main/prod: /prb (not this run)
 ```
 
-Proceed without waiting for confirmation (unless direction confidence is low or user asked for dry-run only).
+Proceed unless direction confidence is low or the user asked for dry-run.
 
 ---
 
 ## F4 — Worker loop
 
-### Claim (orchestrator only)
+### Claim (orchestrator only, CAS)
 
-Before spawn, for each issue about to launch:
+Before spawn, follow [`multiplayer-linear.md`](multiplayer-linear.md):
 
-1. Assign to me if unassigned.
-2. Set **In Progress**.
-3. Start comment (note `fast run <RUN_ID>`, wave, architecture path, implement→review, local `dev` only).
-4. Parent epic brief comment when expanded.
-5. Mark graph status `claimed` → `implementing`.
+1. Confirm unclaimed (no foreign live `claimed-by:`).
+2. Assign to me if unassigned; set **In Progress**.
+3. Claim comment, first line:
+   `claimed-by: solve-fast · session <id> · worktree <path> · run <RUN_ID> · branch solve/<RUN_ID>/<ISSUE>`
+   Then: wave, plan, verify, delivery = origin issue branch then wave PR to `origin/dev` (not Done).
+4. **Re-read immediately.** If another run’s claim is newer, abort this leaf.
+5. Graph status `claimed` → `implementing`.
 
-### Launch worker
+Workers **must not** set Linear state.
 
-`spawn_subagent`:
+### Branch + worktree
 
-| Param | Value |
-|-------|--------|
-| `subagent_type` | `general-purpose` |
-| `isolation` | `worktree` |
-| `background` | `true` |
-| `description` | `[solve-fast] TEAM-123: <title>` |
-| capability | full (default general-purpose) |
+- `wave_base_sha` = `git rev-parse origin/dev` at wave start (after `git fetch`).
+- `issue_branch = solve/<RUN_ID>/<ISSUE>`
+- `git branch <issue_branch> <wave_base_sha>` then spawn `isolation: worktree` on that branch.
 
-**Branch prep (orchestrator, main repo, no checkout of issue work on main tree if avoidable):**
-
-- `wave_base_sha` = `git rev-parse dev` at wave start (after prior merges).
-- Create branch: prefer Linear `gitBranchName`; else `feat/<team-lower>-<number>-short-slug`.
-- `git branch <issue-branch> <wave_base_sha>` (or create from `dev` tip).
-- After spawn, push ref into worktree if needed:
-
-```bash
-git push <worktree_path> refs/heads/<issue-branch>:refs/heads/<issue-branch>
-```
-
-Record `worktree_path`, `worker_task_id`, `base_sha`, `branch` in graph/state.
-
-### Worker prompt (required sections)
+### Worker prompt (required)
 
 ```markdown
-You are a solve-fast **worker** for a single Linear leaf issue.
+You are a solve-fast **worker** for a single Linear leaf.
 
-## Fast-mode constraints (hard)
-- Batch guidance (read fully): <GUIDANCE_MD abs>
-- Graph JSON: <GRAPH_JSON abs> — your issue id: <TEAM-N>
-- Canonical platforms / abandoned platforms from guidance — **guidance wins** on stack
-- Your action: normal|rescope|promote — apply re-scope / override scope from graph
-- Obey shared contracts; do not invent parallel APIs/schemas or abandoned stacks
-- Worktree only; checkout branch: <issue-branch>
-- Base must be wave base / this branch tip; do not merge other issues
-- Run full /implement loop (load IMPLEMENT_SKILL_MD) with effort <E>
-- Inject custom-implement-instructions.md verbatim
-- Verify per AGENTS / issue verification; commit on issue branch:
-  <TEAM-N>: short imperative summary
-- Write summary to: <WORKER_SUMMARY abs> (include supersession/rescope compliance)
-- Do **not** merge to dev/main, push, open PR, or set Linear state (orchestrator claims + In Review)
+## Hard constraints
+- Read guidance fully: <GUIDANCE_MD>
+- Graph JSON: <GRAPH_JSON> — your id: <ISSUE>
+- Guidance wins on stack / rescope
+- Worktree only; branch: solve/<RUN_ID>/<ISSUE>
+- Base is this wave’s origin/dev tip. Do not merge other issues.
+- Full /implement loop + custom-implement-instructions.md
+- Verify per AGENTS / issue AC; commit on the issue branch:
+  <ISSUE>: short imperative summary
+- Write summary to <WORKER_SUMMARY>
+- **Push** (or leave HEAD ready for orchestrator push):
+  git push -u origin HEAD:solve/<RUN_ID>/<ISSUE>
+- Do **not** merge origin/dev or main, do **not** open a PR, do **not** set Linear state
 - Do **not** discard unrelated dirty files
-- Scope: this leaf only (possibly re-scoped AC)
-
-## Linear issue
-- Id, title, url, parent epic, full body, acceptance criteria
-
-## User constraints
-<extra>
-
-## Custom solve implement instructions
-<verbatim>
+- Scope: this leaf only
 ```
 
-Worker runs implement→review until 0 open issues, verifies, commits, writes summary, exits.
+If the worker cannot push (auth/network), it must still commit and exit successfully. The **orchestrator MUST push** that worktree HEAD to `origin/solve/<RUN_ID>/<ISSUE>` before treating the leaf as durable. An unpushed successful worker is **not** done.
 
 ### Ready-queue
 
 ```text
-while solved_count < N (or all) and work remains:
-  ready = leaves with status pending/claimed, hard_deps all merged,
-          conflict predecessors merged, under concurrency budget
-  while len(in_progress) < CONCURRENCY and ready non-empty:
-    claim + launch next ready (prefer lowest merge_order / issue number)
-  wait_any(in_progress task ids)  # long timeout
-  for each completed task:
-    if success → status ready_to_merge; enqueue merge
-    if fail → status failed; cleanup worktree+branch; cascade-skip dependents;
-              continue other work (do NOT hard-stop whole run)
-  process merge queue in merge_order (F5) before starting issues that depend on merged tips
+while work remains:
+  ready = pending/claimed leaves whose hard_deps and conflict predecessors
+          are **merged to origin/dev**, under concurrency budget
+  launch until CONCURRENCY
+  on worker success → push origin issue branch if missing → status ready_to_merge
+  on worker fail → cleanup local WT; comment Linear; leave In Progress/Blocked;
+                   cascade-skip dependents; continue independents
+  when the current wave’s launched issues are all ready_to_merge or failed → F5 wave PR
 ```
 
-**Launch rule:** never exceed `CONCURRENCY` live worktrees. Prefer **clean-then-launch**: a finished worker should be merged+cleaned (or failed+cleaned) so disk does not accumulate.
-
-### Failure policy (fast ≠ sequential)
-
-| Event | Sequential | Fast |
-|-------|------------|------|
-| Implement/merge fail | Hard-stop batch | Fail issue; **cascade-skip dependents**; continue independents |
-| Worker timeout | n/a | Kill; fail; cleanup; cascade-skip deps |
+Never exceed `CONCURRENCY` live worktrees. Prefer clean-then-launch.
 
 ---
 
-## F5 — Merge into local `dev` (orchestrator only)
+## F5 — Wave PR into `origin/dev` (orchestrator only)
 
-Subagent Worktree Protocol (same spirit as `/execute-plan`):
+Do **not** merge issue branches into **local** `dev` as the ship. Local `dev` may track `origin/dev` after the PR merges.
 
-### Success path
+### When
+
+All issues in the current wave are `ready_to_merge` or `failed`, and at least one is `ready_to_merge`. Independent waves never share a PR.
+
+### Build the wave branch
 
 ```bash
-# 1. Capture commits from worktree
-git fetch <worktree_path> HEAD --no-tags
-commit_sha=$(git -C <worktree_path> rev-parse HEAD)
-git cat-file -t "$commit_sha"   # must be commit
+git fetch origin
+git checkout -B solve/<RUN_ID>/wave-<n> origin/dev
 
-# 2. Integrate on main workspace
+# merge_order among ready_to_merge only
+for ISSUE in $MERGE_ORDER; do
+  git merge --no-ff origin/solve/<RUN_ID>/$ISSUE \
+    -m "Merge solve/<RUN_ID>/$ISSUE into wave $n"
+  # conflict: abort that merge, mark ISSUE failed, Linear comment, continue others
+done
+
+git push -u origin solve/<RUN_ID>/wave-<n>
+```
+
+If **every** merge in the wave conflicts, stop the wave, report, do not open an empty PR.
+
+### Open PR (base `dev`)
+
+```bash
+gh pr create --base dev --head solve/<RUN_ID>/wave-<n> \
+  --title "solve-fast wave <n> (<RUN_ID>)" \
+  --body "$(cat <<EOF
+Wave <n> of \`/solve all fast\` run <RUN_ID>.
+
+Issues:
+- ISSUE — title — origin/solve/<RUN_ID>/ISSUE
+
+Integration target: **origin/dev** (not main).
+Prod migrations / main merge: **/prb** after this lands.
+EOF
+)"
+```
+
+Reuse an open PR for the same head if one exists. Record URL in `WAVE_PRS`.
+
+### Merge to `origin/dev` (no user approval)
+
+`origin/dev` does **not** need approval. Merge when CI is green enough to ship to `dev` (failed required checks → do not merge; comment the failing issues).
+
+```bash
+gh pr merge <PR> --merge
+git fetch origin
 git checkout dev
-# Prefer merge of branch if ref exists in main repo:
-git merge <issue-branch> -m "Merge branch '<issue-branch>' into dev"
-# Or: git cherry-pick <base_sha>..<commit_sha> --allow-empty
-
-# 3. Verify on dev (repo AGENTS / issue verification)
-# 4. Linear In Review + completion comment (Phase 8; never Done)
-# 5. Epic rollup if applicable
-# 6. Mandatory cleanup (below)
+git merge --ff-only origin/dev || git reset --hard origin/dev  # only if local dev has no unique work
 ```
 
-Merge **only** in global `merge_order` among `ready_to_merge` issues. Do not merge a later-order issue first if an earlier ready one is waiting.
+Never `gh pr merge` into `main` here.
 
-On merge conflict: attempt resolve if straightforward; else abort merge, mark issue failed, cleanup, cascade-skip dependents.
+### Linear closeout (after `origin/dev` has the wave)
 
-### Cleanup contract (mandatory)
+For each issue that landed in the merged PR:
 
-**After successful merge + verify + Linear closeout**, immediately:
+1. Completion comment: origin issue branch, wave PR URL, `origin/dev` SHA, verify evidence.
+2. **In Review** (or stay In Progress if the team has no In Review). **Never Done.**
+3. Epic rollup only when all children are terminal.
 
-```text
-1. kill_command_or_subagent(worker_task_id) if still alive
-2. if worktree_path set and dir exists:
-     grok worktree rm --force <worktree_path>
-   worktree_cleaned = true
-   WORKTREES_CLEANED += 1
-3. git branch -d <issue-branch>   # or -D if already on dev and -d refuses
-   never delete dev or main
-   BRANCHES_DELETED += 1
-4. Clear worktree_path in graph; keep commit_sha for the run log
-5. status = merged; append to SOLVED
-```
+Issues that failed merge stay In Progress/Blocked with a failure comment. Do not steal foreign claims.
 
-**Failed / abandoned** (worktree was created):
+### Preview
+
+If the repo has a `dev`/preview deployment, note the preview URL in the wave closeout when it is knowable. Do not promote production.
+
+### Cleanup (mandatory after wave merge or fail)
 
 ```text
-1. kill worker if running
-2. grok worktree rm --force
-3. git branch -D <issue-branch> if exists
-4. Linear failure comment; leave In Progress or Blocked
-5. cascade-skip dependents still pending
-```
-
-**Never** leave worktrees up “for inspection.” Missed cleanup is a bug.
-
-### Live cap
-
-| Moment | Max worktrees |
-|--------|----------------|
-| Steady state | ≤ `CONCURRENCY` |
-| After each successful merge | that issue’s worktree is gone |
-| End of run | **0** leftover solve-fast worktrees for this `RUN_ID` |
-
-### End-of-run sweep
-
-```text
-for each issue with worktree_path and not worktree_cleaned:
-  kill + grok worktree rm --force + delete local issue branch if appropriate
+1. kill worker if still alive
+2. grok worktree rm --force <worktree_path>
+3. delete **local** issue branch (never delete origin/dev or main)
+4. optional: delete origin issue branch after it is in origin/dev (`git push origin --delete solve/<RUN_ID>/<ISSUE>`)
+   Keep origin issue branches if the wave PR did not merge yet (durability)
+5. End of run: 0 leftover solve-fast worktrees for this RUN_ID
 ```
 
 Do not remove unrelated user worktrees.
@@ -355,88 +283,71 @@ Do not remove unrelated user worktrees.
 
 ## F6 — Refill
 
-After merges (and after wave completions):
+After a wave is on `origin/dev`:
 
-1. Re-list Linear for newly unblocked eligible leaves (**all pages**).
-2. Update `hard_deps` / waves for new leaves; patch guidance + graph.
-3. Continue until:
-   - **integer `N`:** `len(SOLVED) >= N`, or
-   - **`all`:** no eligible implementable leaves remain **and** drain gate passes, or
-   - no progress possible (every remaining open ticket is blocked, other-assignee, failed-this-run with no independent peers left, or guidance-skip).
+1. `git fetch origin` — next wave base is `origin/dev`.
+2. Re-list Linear (all pages). Patch guidance + graph.
+3. Continue until integer `N` met, `all` drain gate passes, or nothing eligible remains.
 
-### Drain gate (`all` only — before Phase 9)
+### Drain gate (`all` only)
 
-```text
-1. Fresh list_issues for team/project (complete pagination)
-2. Apply eligibility / blocked / epic expand / guidance skip
-3. If any implementable leaf remains → resume F4 ready-queue (do NOT Phase 9)
-4. Only when zero implementable leaves → Phase 9 with "Drain verified"
-```
-
-**Forbidden in `all`:** stopping after ~5 solves, after the first inventory empties without re-scan, or because concurrency/effort defaults look like a cap.
+Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remains → resume F4. Do not Phase 9.
 
 ---
 
 ## Phase 9 — Fast summary
 
-**When `count_mode = all`:** emit only after F6 drain gate passes.
+**`all`:** only after drain gate.
 
 ```markdown
-**Batch (fast):** solved K of target <N|all> · attempted A · failed F · skipped S
-**Mode:** /solve <N|all> fast · concurrency C · effort E · run <RUN_ID>
-**Team/project:** …
-**Architecture:** `<ARCHITECTURE_MD>`
-**Waves:** W · max parallelism used: P
-**Cleanup:** worktrees removed K · branches deleted K · remaining solve worktrees: 0
-**Drain (all only):** verified — no eligible unblocked implementable leaves remain
+**Batch (fast):** solved K of <N|all> · failed F · skipped S
+**Mode:** /solve <N|all> fast · concurrency C · run <RUN_ID>
+**Delivery:** wave PRs → origin/dev
+**Wave PRs:** #… (merged) · #… (open)
+**origin/dev:** <sha>
+**Cleanup:** worktrees 0 remaining
+**Drain (all):** verified — no eligible unblocked unclaimed leaves
 
-### Solved
-1. [TEAM-123](url) — title · merged → local `dev` · verify pass
+### Solved (In Review on origin/dev)
+1. [TEAM-123](url) — wave PR #N · origin/dev <sha>
 
 ### Failed
-- [TEAM-125](url) — reason (left In Progress; dependents skipped: …)
+- [TEAM-125](url) — reason · branch origin/solve/<RUN_ID>/TEAM-125 (if pushed)
 
-### Remaining
-- Implementable eligible still open: **none** (required for all after drain gate)
-  <!-- integer N may list leftovers -->
-**Push/PR:** none (default)
+**main/prod:** not shipped — run `/prb` when ready
 ```
-
-Do **not** tell the user to re-run `/solve all fast` to finish work this run should have drained.
 
 ---
 
 ## Anti-patterns (fast-specific)
 
-- Starting workers before guidance.md + graph.json exist
-- Spawning workers for guidance-skipped / abandoned-platform tickets
-- Implementing old-stack features before migration deps are **merged** to `dev`
-- Worker merges to `dev` or marks Linear Done / In Review
-- Two workers claiming the same issue
-- Starting a dependent before its hard deps are **merged** to `dev`
-- Leaving worktrees or issue branches after merge
-- Using `git worktree remove` only (use `grok worktree rm --force` for tool-tracked WTs)
-- Hard-stopping the entire fast run when one independent issue fails
-- Stopping `/solve all fast` after a soft count (~5) or after the first wave without refill + drain gate
-- Treating concurrency **4** or effort **5** as a solve-count cap
-- Emitting Phase 9 for `all` while implementable leaves remain
+- Second `/solve all` / `fast` drain on a project with foreign live claims
+- Naming branches after a bot/CLI
+- Starting workers before guidance.md + graph.json
+- Treating “non-overlapping” as a guarantee (skip rebase when `origin/dev` moved)
+- Worker merging `origin/dev` or `main`, opening a main PR, or setting Linear Done
+- Leaving a successful worker **unpushed** (work is not durable)
+- Merging a dependent wave before hard deps are on **origin/dev**
+- Local-only merge to `dev` as the ship (wave PR is the ship)
+- `gh pr merge` to **main** from fast-mode
+- Marking Linear **Done** from fast-mode
+- Hard-stopping the whole run when one independent leaf fails
+- Stopping `/solve all fast` after ~5 or after wave 0 without refill + drain gate
 - Exceeding `MAX_CONCURRENCY` (8)
-- Pushing remotes or opening PRs under default contract
-- Implementing epic shells instead of leaves
-- Spawning separate `grok` CLI processes (v1 uses subagents + worktrees only)
+- Implementing epic shells
+- Spawning a second top-level grok CLI drain (v1: one orchestrator; workers = subagents + worktrees)
 
 ---
 
 ## Relation to sequential mode
 
 | | Sequential | Fast |
-|--|------------|------|
-| Selection | One at a time, re-select | Inventory + waves + refill |
-| Architecture doc | No | Required before workers |
+| --- | --- | --- |
+| Selection | One at a time | Inventory + waves + refill |
+| Guidance | Required for `all` / `N≥2` | Required before workers |
 | Parallelism | None | Up to concurrency |
-| Merge owner | Same agent after each issue | Orchestrator after worker |
-| Failure (`N`) | Hard-stop batch | Cascade-skip deps; continue independents |
-| Failure (`all`) | Continue independents after fail | Cascade-skip deps; continue independents |
-| `/solve all` exit | Drain gate (re-list Linear) | F6 + drain gate |
-| Pre-queue | Allowed after S0 | Required (with refill) |
-| Branch cleanup | Optional | **Mandatory** after merge/fail |
+| Durability | Push `origin/dev` after each issue | Push `origin/solve/<run>/<issue>` then wave PR |
+| Merge owner | Same session | Orchestrator wave PR into `origin/dev` |
+| Linear | In Review after `origin/dev` | In Review after wave PR merges |
+| `main` | `/prb` | `/prb` |
+| Failure (`all`) | Continue independents | Cascade-skip deps; continue independents |

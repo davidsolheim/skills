@@ -267,21 +267,20 @@ Phase 0–1  Bootstrap + Linear project (above)
 Phase S0   Batch guidance (required for fast) — guidance.md + graph.json + inventory
 Phase F1   Align inventory with S0 (epic expand, blocked filter, skip obsolete)
 Phase F2   Ensure package complete: shared contracts, waves, conflict zones, supersession
-           Authority: batch-guidance-template / guidance.md (architecture template is supplement)
 Phase F3   Report waves/concurrency + direction/skips to user (non-blocking)
-Phase F4   Ready-queue: claim on Linear → spawn workers (isolation: worktree)
-           Each worker: full /implement + verify + commit on issue branch only
-Phase F5   Orchestrator: fetch commits → merge to local dev (merge_order) →
-           verify on dev → push origin/dev → Linear In Review → **mandatory worktree + branch cleanup**
-Phase F6   Refill inventory for newly unblocked issues; patch guidance; repeat until count/drained
-Phase 9    Fast batch summary (include cleanup counts; remaining worktrees: 0)
+Phase F4   CAS-claim → worktree workers → implement/verify/commit →
+           push origin/solve/<RUN_ID>/<ISSUE> (durable; never agent-named)
+Phase F5   Orchestrator: one PR per wave (head solve/<RUN_ID>/wave-N, base origin/dev) →
+           merge to origin/dev (no main) → Linear In Review → cleanup worktrees
+Phase F6   Fetch origin/dev; refill newly unblocked leaves; next wave rebases; drain
+Phase 9    Fast batch summary (wave PRs, origin/dev SHA, remaining worktrees: 0)
 ```
 
 ### Fast rules (non-negotiable)
 
 1. **Guidance first** — no worker starts until `guidance.md` (or equivalent architecture package with supersession/order sections) and `graph.json` exist with shared contracts, tech intersections, waves, conflict zones, **and** platform/supersession decisions.
-2. **Workers never merge `dev`, push `origin/dev`, or set Linear state** — orchestrator owns integration, claim, In Review closeout.
-3. **Hard deps must be merged to `dev`** before a dependent worker starts (not merely implemented in another worktree).
+2. **Workers never merge `origin/dev`/`main`, never open a main PR, never set Linear state.** They **do** push `origin/solve/<RUN_ID>/<ISSUE>`. Orchestrator owns CAS claim, wave PR into `origin/dev`, and In Review. See [`references/fast-mode.md`](references/fast-mode.md).
+3. **Hard deps must be merged to `origin/dev`** (wave PR merged) before a dependent worker starts (not merely implemented in another worktree).
 4. **Concurrency cap** — live worktrees ≤ `CONCURRENCY` (max 8).
 5. **Cleanup mandatory** — after each successful merge (and on failure): `kill` worker if needed → `grok worktree rm --force` → delete local issue branch. End of run: **0** leftover solve-fast worktrees for this `RUN_ID`. See cleanup contract in fast-mode.md.
 6. **Failure policy** — cascade-skip dependents of a failed issue; **continue** independent issues.
@@ -296,7 +295,7 @@ Phase 9    Fast batch summary (include cleanup counts; remaining worktrees: 0)
 | Selection | One at a time; **guidance order** when S0 ran | Inventory + waves + refill |
 | Batch guidance | **Required** for `all` / `N≥2` | **Required** before workers |
 | Parallelism | None | Up to concurrency |
-| Merge owner | Same session after each issue | Orchestrator after worker |
+| Merge owner | Same session after each issue | Orchestrator wave PR → origin/dev |
 | Failure (`N`) | Hard-stop batch | Cascade-skip deps; continue independents |
 | Failure (`all`) | Record fail; cascade-skip deps; **continue** independents | Cascade-skip deps; continue independents |
 | Pre-queue | Allowed **after** S0 (`execution_order`); re-validate each slot | Required (with refill) |
@@ -916,7 +915,7 @@ Canonical policy for status, assignee, and comments under `/solve`.
 | `/solve` | Selects Linear issue(s) + implement loop + local `dev` + **`origin/dev` push after checks**; count via `/solve [N\|all]` (default 1); optional **`fast`** parallel orchestrator |
 | `/execute-plan` | Parallel worktree implement from a design-doc PR DAG (not Linear pick/closeout) |
 | `/prb` | Promotes already-pushed `origin/dev` → PR → main/prod; **`origin/dev` is automatic**, **main/prod needs explicit user approval** |
-| GSD / linear-next-issue | Broader delivery (push/PR/deploy); do **not** assume those defaults here |
+| GSD | Broader delivery (push/PR/deploy); do **not** assume those defaults here |
 
 ---
 
