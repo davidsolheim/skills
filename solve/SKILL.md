@@ -15,16 +15,16 @@ description: >
   remaining issues in parallel after that guidance (worktree workers, orchestrator
   merges to local dev, mandatory cleanup). Always refresh from latest main, keep
   local dev updated, complete work on a short-lived branch, verify, commit, and
-  merge into local dev only—do not push or open a PR unless the user asks.
+  merge into local `dev`, run build + security/verify checks, then **push to `origin/dev`** automatically. Never merge to `main` or deploy production without explicit user approval (that is `/prb` + approval).
   Auto-resolve Linear team and project from repo context. Use when the user runs
   /solve, /solve N, /solve all, /solve all fast, says "solve the next issue",
-  "pick up the next ticket", or wants open issue(s) completed onto local dev.
+  "pick up the next ticket", or wants open issue(s) completed onto `origin/dev`.
 argument-hint: "[N|all] [fast] [--concurrency N] [--effort N] [ISSUE-ID] [extra constraints…]"
 ---
 
 # /solve — Next Unblocked Linear Issue(s) → Local `dev` (via /implement)
 
-Select unsolved, **unblocked** Linear issue(s) for the active repo’s Linear project, implement each with the **full `/implement` loop**, verify, commit, and **merge into the long-lived local `dev` branch** (lowercase). Default delivery stops there.
+Select unsolved, **unblocked** Linear issue(s) for the active repo’s Linear project, implement each with the **full `/implement` loop**, verify, commit, **merge into the long-lived local `dev` branch** (lowercase), run build + security/verify checks, then **`git push origin dev`**. Default delivery stops at **`origin/dev`** for user review. **Never** merge to `main` or production without explicit user approval.
 
 Multi-issue runs build **batch guidance** first ([`references/batch-guidance.md`](references/batch-guidance.md)) so architectural direction changes (e.g. Neon replacing ClickHouse/Convex) reorder and re-scope work before coding.
 
@@ -76,10 +76,14 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast):
   2. Keep local **`dev`** up to date with `main`
   3. Work on a short-lived issue branch off `dev`
   4. Run implement loop + verify + commit on that branch
-  5. **Merge into local `dev` only**
-  6. **Fast only:** immediately remove the worker worktree and delete the local issue branch (see cleanup contract in fast-mode.md)
-- **Do not** `git push`, open a PR, or deploy unless the user explicitly requests it in this session.
-- **Linear closeout**: after merge to local `dev` and verification pass → mark **Done** with evidence (default). No PR is required for Done under this skill. In fast mode the **orchestrator** owns claim + Done (workers must not set Linear state).
+  5. **Merge into local `dev`**
+  6. Run **build + security/verify** (no push until green)
+  7. **`git push origin dev`** (automatic; no approval)
+  8. **Fast only:** immediately remove the worker worktree and delete the local issue branch (see cleanup contract in fast-mode.md)
+- **Long-lived `dev` (hard):** every project must have a long-lived **`dev`** branch **locally and on `origin`**. Create `origin/dev` from `main` if missing (`git push -u origin dev`). Never use capital-`D` `Dev`.
+- **Delivery = `origin/dev` (automatic):** after merge to local `dev`, run the repo’s **build + security/verify** checks; only then **`git push origin dev`**. No user approval needed for `origin/dev`.
+- **Main/prod still gated:** never merge to `main`, never deploy production, never `gh pr merge` under `/solve`. Promoting `dev` → `main`/prod is **`/prb`** and requires **explicit user approval** (quiet CI is never prod authority).
+- **Linear closeout**: after merge to local `dev`, verification, and push to `origin/dev` → **In Review** (or stay In Progress if the team has no In Review) with evidence. **Do not mark Done.** `/prb` marks Done after merge to `main`. Full claim protocol: [`references/multiplayer-linear.md`](references/multiplayer-linear.md). In fast mode the **orchestrator** owns claim + In Review (workers must not set Linear state).
 - **Secrets**: never commit `.env`, print Doppler values, tokens, or connection strings.
 - **Linear MCP**: `search_tool` then `use_tool`. Read schemas before calling. Literal newlines in markdown bodies.
 - **Scope discipline**: satisfy the issue’s acceptance criteria; file follow-ups (e.g. via `/issue`) instead of expanding scope.
@@ -268,7 +272,7 @@ Phase F3   Report waves/concurrency + direction/skips to user (non-blocking)
 Phase F4   Ready-queue: claim on Linear → spawn workers (isolation: worktree)
            Each worker: full /implement + verify + commit on issue branch only
 Phase F5   Orchestrator: fetch commits → merge to local dev (merge_order) →
-           verify on dev → Linear Done → **mandatory worktree + branch cleanup**
+           verify on dev → push origin/dev → Linear In Review → **mandatory worktree + branch cleanup**
 Phase F6   Refill inventory for newly unblocked issues; patch guidance; repeat until count/drained
 Phase 9    Fast batch summary (include cleanup counts; remaining worktrees: 0)
 ```
@@ -276,7 +280,7 @@ Phase 9    Fast batch summary (include cleanup counts; remaining worktrees: 0)
 ### Fast rules (non-negotiable)
 
 1. **Guidance first** — no worker starts until `guidance.md` (or equivalent architecture package with supersession/order sections) and `graph.json` exist with shared contracts, tech intersections, waves, conflict zones, **and** platform/supersession decisions.
-2. **Workers never merge `dev` or set Linear Done** — orchestrator owns integration and closeout.
+2. **Workers never merge `dev`, push `origin/dev`, or set Linear state** — orchestrator owns integration, claim, In Review closeout.
 3. **Hard deps must be merged to `dev`** before a dependent worker starts (not merely implemented in another worktree).
 4. **Concurrency cap** — live worktrees ≤ `CONCURRENCY` (max 8).
 5. **Cleanup mandatory** — after each successful merge (and on failure): `kill` worker if needed → `grok worktree rm --force` → delete local issue branch. End of run: **0** leftover solve-fast worktrees for this `RUN_ID`. See cleanup contract in fast-mode.md.
@@ -392,12 +396,13 @@ Using Linear MCP (`list_issues`):
 Include:
 
 - Backlog, Todo, Ready, Triage, Unstarted, and team equivalents
-- **In Progress** only if **unassigned** or **assigned to me**
+- **In Progress** only if **unclaimed** (no live foreign `claimed-by:` comment < 60 min) **or** already claimed by **this run**. See [`references/multiplayer-linear.md`](references/multiplayer-linear.md)
 
 Exclude:
 
 - Done, Canceled, Cancelled, Duplicate, Completed
-- In Progress assigned to **someone else**
+- In Progress **claimed by another run** (foreign live `claimed-by:` comment)
+- In Progress assigned to **someone else** (when assignee is not this Linear user)
 - Issues whose only remaining work is explicitly “wait for external X” with X unavailable
 
 ### 2C. Sort / pick key
@@ -515,9 +520,13 @@ If this is the first selection and nothing is eligible → stop the whole `/solv
 
 Only for the **leaf** issue we are about to implement (not for skipped candidates):
 
-1. Assign to **me** if unassigned (when API allows).
-2. Set state **In Progress** on the leaf (not the parent epic, unless the epic is being rollup-closed per 2E).
-3. **Required** short start comment on the leaf: issue chosen (why this order — guidance rank and/or lowest unblocked; **epic expansion path** if any, e.g. `via epic TEAM-100`; rescope/supersede notes if any), plan in 3–6 bullets, note **implement→review loop** + verification commands, delivery = **local `dev` merge only**, and batch guidance path when S0 ran.
+1. Confirm the leaf is **unclaimed** (see [`references/multiplayer-linear.md`](references/multiplayer-linear.md)). If `/solve all` / `fast` and foreign live claims exist on this project, **do not drain** — skip to unclaimed leaves or stop and report.
+2. Assign to **me** if unassigned (when API allows).
+3. Set state **In Progress** on the leaf (not the parent epic, unless the epic is being rollup-closed per 2E).
+4. **Required claim + start comment** on the leaf. First line MUST be:
+   `claimed-by: <bot-or-cli> · session <id> · worktree <cwd> · run <RUN_ID|sequential>`
+   Then: why this order, epic expansion path if any, plan in 3–6 bullets, implement→review + verify, delivery = **`origin/dev` then In Review (not Done)**, batch guidance path when S0 ran.
+5. **Re-read the issue immediately.** If a different run's `claimed-by:` is newer, abort this leaf (do not code) and pick another.
 4. **Required** brief comment on the parent epic when expanded: `Starting child TEAM-205 (lowest eligible) under this epic.` (skip if no parent).
 5. When S0 **skips/cancels** an obsolete open ticket as full supersede: **one** comment on that ticket (superseded by …; not implemented). Do not spam other skips.
 
@@ -677,9 +686,19 @@ git merge <issue-branch>    # prefer merge commit or ff; keep history understand
 - Leave the short-lived branch locally in **sequential** mode (delete only if merge succeeded and user/repo prefers cleanup—optional).
 - **Fast mode:** always delete the local issue branch after successful merge (and remove the worktree) — see [Cleanup contract](references/fast-mode.md#cleanup-contract-mandatory).
 - Working tree on **`dev`** at end of successful run when possible.
-- **Still no push.**
+- **Then Phase 7B — verify/build/security on `dev`, then push `origin/dev`.**
 
-If merge to dev fails, do not mark Linear Done; fix or report.
+### Phase 7B — Build, security checks, push `origin/dev`
+
+After the issue branch is merged into local `dev`:
+
+1. Ensure `origin/main` is still merged into local `dev` (re-fetch if trunk moved).
+2. Run repo-required **build + verify + security** checks (from `AGENTS.md` / package scripts / documented scanners). Fail → fix via implement loop; **do not push**.
+3. `git push -u origin dev` (create `origin/dev` if missing). No user approval required.
+4. Record the `origin/dev` SHA in the Linear closeout comment.
+
+If merge to local `dev` fails, do not push and do not mark Linear Done; fix or report.
+If checks fail, do not push; leave leaf In Progress with a failure comment.
 
 ---
 
@@ -692,10 +711,10 @@ After verified merge to local `dev` for the **leaf** work issue:
    - Implement effort + review rounds (if known)
    - Verification commands + results
    - Local branches: issue branch name + **merged into local `dev`**
-   - Explicit: **not pushed** / no PR (unless user asked)
+   - Explicit: **pushed to `origin/dev`** after checks; **no** merge to `main`/prod (unless user explicitly approved a separate `/prb`)
    - Parent epic reference if this was an expanded child
    - Follow-ups filed or recommended
-2. Set state **Done** on the **leaf**.
+2. Set state **In Review** on the **leaf** if the team has that status; otherwise leave **In Progress**. Never **Done** here (`/prb` owns Done after `main`).
 3. If this leaf had a parent epic:
    - Re-list children of the parent.
    - If **any** non-terminal children remain: **required** brief progress comment on the epic (`Child TEAM-205 Done; remaining: …`).
@@ -717,12 +736,12 @@ If verification failed or dev merge failed:
 ```markdown
 **Solved:** [TEAM-123](url) — <title>
 **Via epic:** [TEAM-100](url) — <epic title>   <!-- omit if not expanded -->
-**Linear:** leaf Done (local dev); epic <left open | rollup Done>
-**Branch:** `<issue-branch>` → merged into local `dev`
-**Main:** dev updated from latest `main` before work
+**Linear:** leaf In Review (`origin/dev`); epic <left open | rollup Done only if all children terminal>
+**Branch:** `<issue-branch>` → local `dev` → **`origin/dev` @ sha** (after checks)
+**Main/prod:** not shipped (needs explicit approval)
 **Implement:** effort N · review rounds R · 0 open review issues
 **Verify:** <commands + pass/fail>
-**Push/PR:** none (default)
+**Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
 **Notes:** <one line if needed>
 ```
 
@@ -753,7 +772,7 @@ If verification failed or dev merge failed:
 - Implementable eligible still open: **none** (required for all after drain gate)
   <!-- integer N incomplete batch may list remaining and suggest re-run `/solve` / `/solve N` -->
 - Open but blocked / other-assignee / guidance-obsolete only: <ids if any>
-**Push/PR:** none (default)
+**Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
 ```
 
 ### Fast batch (`FAST_MODE`)
@@ -781,7 +800,7 @@ If verification failed or dev merge failed:
 ### Remaining
 - Implementable eligible still open: **none** (required for all after drain gate)
   <!-- integer N may list leftovers and suggest re-run -->
-**Push/PR:** none (default)
+**Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
 ```
 
 If `all` drained implementable work: state clearly that **Drain verified: no eligible unblocked implementable issues remain** (mention guidance-skipped obsolete, blocked, or other-assignee tickets separately if still open). **Do not** tell the user to re-run `/solve all` to finish work that this run should have continued.
@@ -836,7 +855,7 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - No comments on the long tail of ordinary “not next” skips during selection.
 - No mass status changes on low-confidence platform inference (escalate instead).
 - High-confidence full-obsolete supersedes may get **one** comment and Cancel/Duplicate.
-- No push/PR links in closeout by default (local `dev` only).
+- Closeout should include `origin/dev` SHA after push; still no `main`/prod ship by default.
 - No marking parent Done when only *some* children finished.
 
 ---
@@ -867,10 +886,15 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - Ignoring `custom-implement-instructions.md` or `guidance.md`
 - Using capital-`D` **`Dev`** (or any other casing) instead of lowercase **`dev`** for the integration branch
 - Creating a new branch named `Dev`
-- Pushing `dev` or opening PRs without being asked
+- Skipping build/security checks before `git push origin dev`
+- Merging to `main` or deploying/prod from `/solve` (that is `/prb` + explicit approval)
+- Leaving a repo without long-lived `dev` on local + `origin`
 - Implementing on `main` directly
 - Letting `dev` fall behind `main`
-- Marking Done without verification or without merge to `dev` (except epic rollup when all children terminal)
+- Marking **Done** from `/solve` (Done is `/prb` after `main`; exception: epic rollup when all children terminal)
+- Marking In Review without verification or without push to `origin/dev`
+- Starting a second `/solve all` / `fast` drain on a project that already has foreign live `claimed-by:` comments
+- Coding a leaf after a failed claim re-read (CAS miss)
 - Committing unrelated dirty files or secrets
 - Expanding into a rewrite when the ticket asked for a narrow fix (unless guidance re-scope requires platform rewrite)
 - Silently skipping Linear updates on issues we claimed or completed
@@ -889,8 +913,9 @@ Canonical policy for status, assignee, and comments under `/solve`.
 |-------|------------|
 | `/issue` | Files thorough tickets only |
 | `/implement` | Implement→review loop only; no Linear pick / no git delivery |
-| `/solve` | Selects Linear issue(s) + **runs implement loop** + merges to **local `dev`**; count via `/solve [N\|all]` (default 1); optional **`fast`** parallel orchestrator |
+| `/solve` | Selects Linear issue(s) + implement loop + local `dev` + **`origin/dev` push after checks**; count via `/solve [N\|all]` (default 1); optional **`fast`** parallel orchestrator |
 | `/execute-plan` | Parallel worktree implement from a design-doc PR DAG (not Linear pick/closeout) |
+| `/prb` | Promotes already-pushed `origin/dev` → PR → main/prod; **`origin/dev` is automatic**, **main/prod needs explicit user approval** |
 | GSD / linear-next-issue | Broader delivery (push/PR/deploy); do **not** assume those defaults here |
 
 ---

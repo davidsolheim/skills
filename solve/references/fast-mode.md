@@ -234,7 +234,7 @@ You are a solve-fast **worker** for a single Linear leaf issue.
 - Verify per AGENTS / issue verification; commit on issue branch:
   <TEAM-N>: short imperative summary
 - Write summary to: <WORKER_SUMMARY abs> (include supersession/rescope compliance)
-- Do **not** merge to dev/main, push, open PR, or set Linear Done/In Progress
+- Do **not** merge to dev/main, push, open PR, or set Linear state (orchestrator claims + In Review)
 - Do **not** discard unrelated dirty files
 - Scope: this leaf only (possibly re-scoped AC)
 
@@ -296,7 +296,7 @@ git merge <issue-branch> -m "Merge branch '<issue-branch>' into dev"
 # Or: git cherry-pick <base_sha>..<commit_sha> --allow-empty
 
 # 3. Verify on dev (repo AGENTS / issue verification)
-# 4. Linear Done + completion comment (Phase 8 rules)
+# 4. Linear In Review + completion comment (Phase 8; never Done)
 # 5. Epic rollup if applicable
 # 6. Mandatory cleanup (below)
 ```
@@ -411,7 +411,7 @@ Do **not** tell the user to re-run `/solve all fast` to finish work this run sho
 - Starting workers before guidance.md + graph.json exist
 - Spawning workers for guidance-skipped / abandoned-platform tickets
 - Implementing old-stack features before migration deps are **merged** to `dev`
-- Worker merges to `dev` or marks Linear Done
+- Worker merges to `dev` or marks Linear Done / In Review
 - Two workers claiming the same issue
 - Starting a dependent before its hard deps are **merged** to `dev`
 - Leaving worktrees or issue branches after merge

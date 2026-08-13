@@ -80,12 +80,23 @@ Using Linear MCP:
    - exact product name match
    - project with recent activity related to this repo
    - project already used by recent issues in this team with the same key prefix
+   - for Teton Web eng: **Teton Web Platform** over content-only / stale marketing umbrellas
 
 #### 1D. When still unresolved
 
 Ask **one** short question listing the top candidates (team + project). Do not invent a team.
 
 Cache resolution mentally for the rest of the session: if the user fires multiple `/issue` descriptions, reuse the same team/project unless they override.
+
+
+### 1E. Teton Web eng SoT (Platform)
+
+For **Teton Web Ventures** / `teton-web` / Teton Web team **engineering** work (code, build, infra, QA, perf/a11y remediations, Ops):
+
+1. Prefer Linear project **`Teton Web Platform`** as the engineering source of truth.
+2. **Do not** file new eng issues on **content-only** projects (e.g. `tetonweb.com` when its summary/description says content-only). If the only matching project is content-only, file eng on Platform instead and note the content project in the body if relevant.
+3. **Content / copy / brand / asset** tickets (no eng implementation) may still use a content project when that is the explicit home.
+4. When multiple TW projects match, prefer **Platform** for anything an implementer would `/solve`.
 
 ### Phase 2 — Duplicate / overlap / supersession check (quick)
 

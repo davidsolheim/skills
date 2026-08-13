@@ -5,8 +5,9 @@ description: >
   local dev, run a Local Code Review Gate on the ship set (with closed-loop
   Linear /issue + /solve fixes on local dev until clean), then push to
   origin/dev; open a PR from dev into main; babysit CI/bot feedback on a
-  5-minute cadence for up to 15 minutes; auto-merge into main only if no useful
-  automated comments or CI failures appear. When the ship includes DB
+  5-minute cadence for up to 15 minutes, push to **origin/dev** for user review (no approval needed for `dev`), then **stop and wait for explicit user approval**
+  before merging to **main** or running production migrate/deploy (quiet CI alone is
+  never main/prod authority). When the ship includes DB
   migrations, discover and run this project's production migration procedure at
   the correct pre-merge gate (never invent a stack; never db:push to prod by
   default). Use when the user runs /prb, says "push dev and PR to main", "ship
@@ -26,15 +27,18 @@ Ship **this session’s finished work** by:
 5. Opening (or reusing) a PR: **base `main` ← head `dev`**
 6. Babysitting every **5 minutes** for up to **15 minutes** total for CI + useful automated comments
 7. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
-8. **Merging the PR into `main`** only if the watch window ends with no useful automated feedback, CI is green (or never failed), and required production migrations have succeeded
+8. **Reporting merge-ready** after a quiet green window — then **merging the PR into `main` only after explicit user approval** (and required production migrations when approved)
 
-Default delivery **does** merge when the quiet window passes. Use `--no-merge` to stop after the watch without merging (and without applying production migrations unless the user explicitly asks).
+Default delivery **does** push **`origin/dev`** (after checks) and open/babysit the PR, but **does not** merge to `main`. After a clean quiet window, report **merge-ready for production** and **wait for explicit user approval** (e.g. "merge it", "approve merge", `/prb merge` after they said yes). Quiet CI is **never** merge authority. `--no-merge` is the default posture (redundant but allowed). Never merge to `main` or run production migrate/deploy without that approval.
 
-The quiet babysit window and auto-merge logic start **only after** a clean local review (or `--skip-review`) + push + PR.
+The quiet babysit window proves readiness only; it does **not** authorize merge. Merge/prod ship requires explicit user approval after the window.
 
 ## Operating contract
 
 - **Branches (fixed names, lowercase):** integration branch is **`dev`**; trunk is **`main`**. Never use capital-`D` `Dev`.
+- **Long-lived `dev` on every project (hard):** local + `origin/dev` must exist. If `origin/dev` is missing, create it from current `main` (`git push -u origin dev`) before shipping. Always refresh: `fetch` → local `main` = `origin/main` → **merge `origin/main` into local `dev`** → build/verify/security on the ship set → only then `git push origin dev`.
+- **`origin/dev` does not need approval:** after Phase 1.5 clean + build/security gates, push to `origin/dev` automatically so the user can review there.
+- **`main`/production always need explicit approval:** never merge the PR to `main` or run production deploy/migrate until the user clearly says so in-session.
 - **Always refresh trunk before push (hard rule):** **never** `git push origin dev` until you have (1) `git fetch origin`, (2) updated local **`main`** to match **`origin/main`** (ff-only when possible), and (3) **merged `origin/main` into local `dev`** with conflicts resolved. Pushing a stale `dev` that is missing latest `main` is a skill failure.
 - **Local Code Review Gate before push (hard rule):** **never** `git push origin dev` and **never** open a PR until Phase 1.5 reports **zero actionable findings**, unless the user explicitly passed `--skip-review`. Full procedure: [`references/local-code-review.md`](references/local-code-review.md).
 - **Closed-loop fixes on local `dev` only:** when the gate finds issues, file Linear tickets via `/issue` and implement via `/solve` onto **local `dev`**. Do not push mid-loop. Prefer one Linear issue per distinct problem. Cap full review→issue→solve cycles (default **5**, override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push.
@@ -42,17 +46,19 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 - **No force-push to `main`.** Prefer normal push to `dev`. If `dev` needs rewrite, use `--force-with-lease` only after a clear reason and never against `main`.
 - **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them.
 - **Secrets:** never print Doppler/tokens/connection strings; never commit `.env`.
-- **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Auto-merge is forbidden while those exist.
+- **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Merge is forbidden while those exist.
+- **Explicit approval required for main/prod (hard rule):** never `gh pr merge`, never merge to `main`, and never run production migrate/deploy solely because the quiet window passed or CI is green. Only proceed when the user **explicitly** approves in this session (e.g. "merge PR N", "approve merge", or `/prb merge` after they said yes). Quiet babysit = readiness report, not authority.
 - **Human veto:** if the user says stop/don’t merge in-session, cancel scheduled watches and do not merge.
-- **Linear:** if commits mention issue IDs (e.g. `TEAM-123`), add the PR URL as a comment on those issues when practical. Do not invent Linear state changes beyond optional “In Review” if still open. Phase 1.5 may create and solve additional Linear issues for review findings — track those IDs in the final report.
+- **Linear:** if commits mention issue IDs (e.g. `TEAM-123`), add the PR URL as a comment on those issues when practical. Do not invent Linear state changes at PR-open beyond optional **In Review**. After **explicit merge to `main`**, mark ship-set issues **Done** and post the production ship comment. Do not steal or close foreign In Progress. See `../solve/references/multiplayer-linear.md`. Phase 1.5 may create and solve additional Linear issues for review findings — track those IDs in the final report.
 - **DB migrations follow the project (hard rule):** when the ship set includes schema/data migrations, discover and run **this repo’s** production migrate path from `AGENTS.md` / migration docs / `package.json` — do **not** invent Drizzle/Prisma/psql commands, Doppler project names, or configs. Prefer versioned `db:migrate` (or the repo’s documented equivalent). **Never** `db:push` / `drizzle-kit push` / `prisma db push` to production by default. **Never** print connection strings or Doppler secret values. **Never** auto-run content seeders as part of migrate. Full procedure: [`references/db-migrations.md`](references/db-migrations.md).
-- **Migrate before merge (default):** if production migrations are required for the ship, apply them **after** the quiet window passes and **before** `gh pr merge`, so production deploy does not race ahead of schema (additive/expand path). Destructive migrations **block** auto-merge until the user explicitly approves.
+- **Migrate before merge (default):** if production migrations are required for the ship, apply them **after** the quiet window passes and **before** `gh pr merge`, so production deploy does not race ahead of schema (additive/expand path). Destructive migrations **block** auto-progress and still require explicit user approval before merging to main/prod.
 
 ## Args
 
 | Arg | Meaning |
 |-----|---------|
-| `--no-merge` | Watch only; never merge even if quiet; do not apply production migrations unless the user explicitly asks |
+| `--no-merge` | Default posture (redundant): watch only; never merge; do not apply production migrations unless the user explicitly asks |
+| *(explicit approval)* | Required before any merge to `main` or production migrate/deploy — user must say so in-session |
 | `--skip-migrations` | Do not run production (or preview) migrate gates; ship may leave schema lagging — report a loud warning |
 | `--skip-review` | Skip entire Phase 1.5 Local Code Review Gate + closed-loop fix cycle (dangerous; require explicit user intent). Loud warning in report |
 | `--exhaustive-review` | Force exhaustive review passes (default already **on**) |
@@ -286,7 +292,7 @@ Optional: comment on related Linear issues with `PR_URL` (session commit issues 
 
 ### 3A. Define “useful comments / feedback”
 
-Treat as **useful** (blocks auto-merge) if **any** of the following is true:
+Treat as **useful** (blocks merge — and you must still get explicit user approval before merging to main/prod).
 
 | Signal | Source |
 |--------|--------|
@@ -357,7 +363,7 @@ If a fix push mid-window adds more migrations, re-inventory and re-apply preview
 
 ## Phase 3.5 — Production migration gate (before merge)
 
-**When:** quiet window has passed (or final `/prb check` / `/prb merge` is about to merge), merge criteria below are otherwise satisfied, and you are **not** in `--no-merge` / `--skip-migrations`.
+**When:** quiet window has passed, the user has **explicitly approved** merge/production ship in this session, merge criteria are otherwise satisfied, and you are **not** in `--no-merge` / `--skip-migrations`. Without explicit approval, skip this phase and report migrations as pending approval.
 
 **Authority:** [`references/db-migrations.md`](references/db-migrations.md). Summary:
 
@@ -381,14 +387,18 @@ If a fix push mid-window adds more migrations, re-inventory and re-apply preview
 
 At `WATCH_ENDS_AT` (or final `/prb check` after the window):
 
-### Merge allowed only if **all** are true
+### Merge is never automatic
+
+At end of window, if the PR looks green/quiet: **do not merge**. Report merge-ready status and **ask for explicit user approval**. Only after the user clearly approves in this session may you run the merge checklist below.
+
+### Merge allowed only if **all** are true (and user explicitly approved)
 
 1. PR still **open**
 2. `mergeable == MERGEABLE` (not CONFLICTING)
 3. No useful comments/threads per §3A
 4. No failed/error CI checks; required checks completed successfully (or repo has no required checks and none failed)
 5. `reviewDecision` is not `CHANGES_REQUESTED`
-6. User did not pass `--no-merge` and did not veto
+6. User **explicitly approved** merge in this session (not merely silent / not merely green CI). `--no-merge` or any veto blocks merge
 7. Head is still `dev` and base is still `main`
 8. **Migrations:** either none in ship, or production migrate succeeded in Phase 3.5, or user passed `--skip-migrations` (warned), or user explicitly approved a documented alternate order that is already complete
 
@@ -424,7 +434,19 @@ Report clearly:
 - Why blocked (failed check names, comment excerpts, conflicts, **failed/pending production migrate**, destructive migration awaiting approval)
 - Next action (`/prb check`, fix + Phase 1.5 + push `dev`, complete migrate, or human merge)
 
-Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned).
+Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned). Do **not** post production ship comments or mark Done if merge did not happen.
+
+---
+
+## Phase 4.5 — Linear production closeout (after merge)
+
+After a successful merge to `main`, for each Linear id in the ship set that this ship implemented:
+
+1. Comment: PR URL, merge SHA, production deploy id/URL when known.
+2. Set state **Done**.
+3. Skip ids that are still In Progress with a **foreign** live `claimed-by:` comment (`../solve/references/multiplayer-linear.md`).
+
+Do **not** mark Done at PR open (Phase 2 comments only).
 
 ---
 
@@ -442,7 +464,8 @@ Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned
 **Migrations:** none in ship | applied production (`<config>`) @ <time> | blocked (<reason>) | skipped (--skip-migrations|--no-merge)
 **Migrate:** <stack/command shape, no secrets> | n/a
 **Risk class:** additive | data | destructive | n/a
-**Merge:** merged @ <sha> | skipped (<reason>) | blocked (<reason>)
+**Merge:** awaiting explicit approval | merged @ <sha> (user approved) | skipped (<reason>) | blocked (<reason>)
+**Linear:** PR comments | Done after merge (<ids>) | skipped foreign claims
 **Local:** main/dev synced notes
 ```
 
@@ -456,11 +479,12 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 - **Never push to `origin/dev` or open a PR until Phase 1.5 is clean** (zero actionable findings), unless `--skip-review` was explicit
 - **Never push while the closed-loop fix cycle still has open actionable findings** or while under `blocked-at-cap` / `blocked-tooling`
 - Always `git fetch origin` and ff-update local `main` from `origin/main` before that merge
+- Never merge to main/prod without explicit user approval
 - Never merge on red CI or with unresolved useful review threads
 - Never force-push `main`
 - Never commit secrets or unrelated dirty files
 - Never open a second duplicate `main`←`dev` PR if one is already open
-- Never auto-merge with `--no-merge`
+- Never merge to main/prod without explicit user approval
 - If branch protection forbids the agent merge, report the exact `gh` error and stop (do not bypass without explicit user request)
 - **Never merge a ship that includes DB migrations without completing Phase 3.5** (unless `--skip-migrations` or explicit user waiver)
 - **Never invent** migrate commands or Doppler production config names; follow the project under the current git root
@@ -478,6 +502,10 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 - Infinite review→fix loops without honoring `--max-fix-cycles`
 - Merging a stale local `main` that was never ff’d to `origin/main`
 - Pushing an issue branch as `dev` by renaming without merging history
+- Auto-merging to main/prod without explicit user approval (quiet CI is not approval)
+- Requiring user approval before `git push origin dev` after green checks (dev push is automatic)
+- Pushing `origin/dev` before build/security/verify checks pass
+- Working in a repo that lacks long-lived local + `origin` `dev` without creating it
 - Merging at t=0 without watching when the user asked for the default babysit window
 - Treating “pending CI” as “green” and merging early under required checks
 - Closing the PR instead of merging when the window is quiet
@@ -493,7 +521,7 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 | Skill | Difference |
 |-------|------------|
 | `/issue` | Files thorough Linear tickets only; Phase 1.5 spawns it per actionable finding |
-| `/solve` | Implements Linear issue(s) onto **local** `dev` (`/solve [N\|all]`, default 1; no push/PR by default); Phase 1.5 spawns it to close the review loop |
+| `/solve` | Implements Linear issue(s) onto local `dev` and **pushes `origin/dev` after checks** (`/solve [N\|all]`, default 1; no main/prod); Phase 1.5 may spawn it to close the review loop |
 | `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |
 | `/prb` | End-to-end: session → **local review gate + closed-loop fix** → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge |

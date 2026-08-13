@@ -47,6 +47,7 @@ for `/solve`. Do not implement code. Do not open a PR.
 - **Linear MCP**: `search_tool` then `use_tool`. Prefer `linear__save_issue`
   without `id` to create. Read schemas first. Literal newlines in markdown
   (not `\n` escape sequences).
+- **Teton Web eng SoT:** for Teton Web / `teton-web` engineering tickets, file on **Teton Web Platform**. Do not file new eng work on content-only projects (e.g. `tetonweb.com` when marked content-only). Content/copy/asset tickets may use content projects.
 - **Unassigned backlog only**: do not assign; do not set In Progress/Done.
 
 ## Args
