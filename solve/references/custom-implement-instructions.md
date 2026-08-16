@@ -54,6 +54,6 @@ When the orchestrator provides a **batch guidance** path (`guidance.md` from `/s
 2. If the original Linear ticket and the guidance disagree on **platform/stack**, **guidance wins**. Implement re-scoped AC when `action=rescope`.
 3. Do **not** invent parallel APIs, schemas, env keys, or patterns that conflict with the guidance or with other issues listed there.
 4. Do **not** add dependencies on **abandoned platforms** (e.g. ClickHouse client work when canonical is Neon).
-5. Stay on the assigned issue branch (and worktree in fast mode). Do **not** merge to `dev`/`main`, push, open PRs, or update Linear state (orchestrator owns those).
+5. Stay on the assigned issue branch (and worktree in fast mode). Do **not** merge to `dev`/`main`, push, open PRs, or update Linear state (**implementer** — orchestrator owns those). On Cursor cloud the orchestrator opens **one** PR into `dev` (never `main`).
 6. Prefer the smallest change that meets this leaf’s **current** (possibly re-scoped) acceptance criteria while remaining compatible with shared contracts.
 7. Document supersession/rescope compliance in the implement summary.

@@ -1,25 +1,30 @@
-# /solve fast — Orchestrator protocol
+# /solve fast — Orchestrator protocol (Mac/Grok only)
 
-Canonical procedure when `FAST_MODE` is true. Sequential `/solve` (no `fast`) ignores this file.
+**Not for Cursor cloud agents.** Cursor cloud uses [`cloud-agent-flow.md`](cloud-agent-flow.md) (Linear-named issue branch + one PR into `dev`). Do not recommend or run this wave-PR flow on Cursor cloud / Dev Bot launches.
+
+Canonical procedure when `FAST_MODE` is true **on local Grok CLI**. Sequential `/solve` (no `fast`) ignores this file. Cursor cloud ignores `fast` for delivery and follows cloud-agent-flow instead.
 
 Parent skill: [`../SKILL.md`](../SKILL.md)
 Batch guidance: [`batch-guidance.md`](batch-guidance.md)
 Claims / Linear states: [`multiplayer-linear.md`](multiplayer-linear.md)
 Git baseline: [`git-dev-workflow.md`](git-dev-workflow.md)
+Cloud default: [`cloud-agent-flow.md`](cloud-agent-flow.md)
 
 ---
 
 ## Purpose
 
-Run many eligible Linear leaves **in parallel** without losing work or double-claiming.
+Run many eligible Linear leaves **in parallel on local Grok** without losing work or double-claiming.
 
 1. Inventory + batch guidance (IA, supersession, conflict waves).
 2. **One** orchestrator per Linear project. Extra CLIs only take unclaimed leaves; they never start a second drain.
 3. Workers implement in **worktrees**, then **push an origin issue branch** so a dead CLI does not eat the wave.
 4. Orchestrator lands **one PR per wave into `origin/dev`**. Linear **In Review** after that merge.
-5. Next wave **rebases on the new `origin/dev`**. `/prb` still owns `main` + prod migrations.
+5. Next wave **rebases on the new `origin/dev`**. `/prb` Path B still owns `main` + prod migrations.
 
 Linear is the claim board (`claimed-by:` CAS). Git branches are backup + merge surface — **never named after an agent**.
+
+**Cursor cloud substitute:** one agent per leaf, hard pre-branch gate, branch = Linear id / `gitBranchName`, one PR base `dev`, merge when CI green + zero useful comments — see cloud-agent-flow.md.
 
 ---
 
@@ -321,6 +326,7 @@ Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remai
 
 ## Anti-patterns (fast-specific)
 
+- Using this flow on **Cursor cloud** / Dev Bot (use cloud-agent-flow instead)
 - Second `/solve all` / `fast` drain on a project with foreign live claims
 - Naming branches after a bot/CLI
 - Starting workers before guidance.md + graph.json
@@ -339,15 +345,15 @@ Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remai
 
 ---
 
-## Relation to sequential mode
+## Relation to sequential mode and Cursor cloud
 
-| | Sequential | Fast |
-| --- | --- | --- |
-| Selection | One at a time | Inventory + waves + refill |
-| Guidance | Required for `all` / `N≥2` | Required before workers |
-| Parallelism | None | Up to concurrency |
-| Durability | Push `origin/dev` after each issue | Push `origin/solve/<run>/<issue>` then wave PR |
-| Merge owner | Same session | Orchestrator wave PR into `origin/dev` |
-| Linear | In Review after `origin/dev` | In Review after wave PR merges |
-| `main` | `/prb` | `/prb` |
-| Failure (`all`) | Continue independents | Cascade-skip deps; continue independents |
+| | Sequential (Mac) | Fast (Mac/Grok only) | Cursor cloud |
+| --- | --- | --- | --- |
+| Selection | One at a time | Inventory + waves + refill | One leaf per launch |
+| Guidance | Required for `all` / `N≥2` | Required before workers | Required for `all` / `N≥2` |
+| Parallelism | None | Up to concurrency | Multiple cloud launches |
+| Durability | Push `origin/dev` after each issue | Push `origin/solve/<run>/<issue>` then wave PR | Linear-named branch + one PR into `dev` |
+| Merge owner | Same session | Orchestrator wave PR into `origin/dev` | Agent merges issue PR into `origin/dev` |
+| Linear | In Review after `origin/dev` | In Review after wave PR merges | In Review after issue PR merges |
+| `main` | `/prb` Path B | `/prb` Path B | `/prb` Path B (never from cloud) |
+| Failure (`all`) | Continue independents | Cascade-skip deps; continue independents | Continue other leaves |

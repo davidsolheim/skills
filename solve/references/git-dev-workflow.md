@@ -1,15 +1,52 @@
 # Git workflow for /solve
 
-Long-lived integration branch: **`dev`** only (local, all-lowercase **d-e-v** — never capital-`D` `Dev`).  
-Upstream truth for refresh: **`origin/main`** → local **`main`**.
+Long-lived integration branch: **`dev`** only (local + `origin`, all-lowercase **d-e-v** — never capital-`D` `Dev`).  
+Trunk: **`main`**. Upstream refresh: **`origin/main`** must be in **`origin/dev`** before any new issue branch.
 
 ## Goals
 
-1. Never start issue work on a stale base.
-2. Accumulate finished work on local **`dev`**.
-3. Do **not** push or open PRs unless the user explicitly asks (out of skill default scope).
+1. Never start issue work on a stale base (**hard pre-branch gate**).
+2. Accumulate finished work on **`origin/dev`** (cloud via issue PR; local Mac via merge + push).
+3. Never merge to **`main`** from `/solve` — that is `/prb` Path B + explicit user approval.
 
-## Procedure
+## Which path?
+
+| Runtime | Procedure |
+| --- | --- |
+| **Cursor cloud agent** / Dev Bot launch | [`cloud-agent-flow.md`](cloud-agent-flow.md) — hard gate → Linear-named branch → one PR into `dev` → merge → In Review |
+| **Local Mac / Grok CLI** (sequential) | Sections 1–7 below — refresh → issue branch → merge local `dev` → push `origin/dev` |
+| **Local Mac / Grok `fast` only** | [`fast-mode.md`](fast-mode.md) — **not** the default for Cursor cloud |
+
+---
+
+## Hard pre-branch gate (all runtimes)
+
+**Before creating or launching onto a new origin issue branch**, complete every step. Hard rule — not a suggestion.
+
+```text
+1. git fetch origin
+2. Update knowledge of origin/main and origin/dev (create origin/dev from origin/main if missing)
+3. If origin/main is not an ancestor of origin/dev:
+     merge origin/main into dev and push origin/dev
+4. Use the current origin/dev tip (DEV_TIP)
+5. Create / launch the issue branch from that tip only
+   (cloud: starting_ref = origin/dev or DEV_TIP SHA)
+6. If the issue is already on origin/dev or origin/main: comment the SHA and skip
+```
+
+Verify before branching:
+
+```bash
+git fetch origin
+git merge-base --is-ancestor origin/main origin/dev   # exit 0 required
+DEV_TIP=$(git rev-parse origin/dev)
+```
+
+Full cloud / Dev Bot checklist: [`cloud-agent-flow.md`](cloud-agent-flow.md).
+
+---
+
+## Local Mac / sequential procedure
 
 ### 1. Snapshot safety
 
@@ -30,7 +67,7 @@ git merge --ff-only origin/main
 
 If ff-only fails, report divergence; do not rewrite remote history. Prefer resolving with the user before continuing.
 
-### 3. Update dev from main
+### 3. Update dev from main (and keep origin/dev current)
 
 ```bash
 # Canonical branch is always lowercase `dev`.
@@ -43,7 +80,9 @@ elif git show-ref --verify --quiet refs/heads/Dev; then
 else
   git checkout -b dev main
 fi
-git merge main -m "Merge main into dev"
+git merge origin/main -m "Merge origin/main into dev"
+# If origin/dev was behind main, push so remotes match before issue branches:
+git push -u origin dev
 ```
 
 - First run in a clone: create **`dev`** from current `main` (never create `Dev`).
@@ -53,17 +92,20 @@ git merge main -m "Merge main into dev"
 
 ### 4. Issue branch
 
-Prefer Linear’s suggested `gitBranchName` when present; else:
+Prefer Linear’s suggested `gitBranchName` when present; else the issue id (e.g. `KEC-799`); else:
 
 ```text
 feat/<prefix-lower>-<number>-short-slug
 ```
 
-`<prefix-lower>` is the real Linear team key lowercased (e.g. `eng`, `ops`, `team`). Example only: `feat/team-341-profile-avatar`
+`<prefix-lower>` is the real Linear team key lowercased (e.g. `eng`, `ops`, `team`). Example: `feat/team-341-profile-avatar`
 
 ```bash
 git checkout -b feat/team-341-profile-avatar dev
+# branch must contain the refreshed origin/dev tip
 ```
+
+**Never** name branches after agents. **Never** use `solve/<run>/…` on Cursor cloud (Grok fast-mode only).
 
 ### 5. Commit on issue branch
 
@@ -80,57 +122,55 @@ EOF
 
 Include the issue id in the subject line.
 
-### 6. Merge into local dev
+### 6. Merge into local `dev` and push `origin/dev`
 
 ```bash
 git checkout dev
 git merge feat/team-341-profile-avatar -m "Merge branch 'feat/team-341-profile-avatar' into dev"
+# build + security/verify (repo AGENTS) — do not push until green
+git push -u origin dev
 ```
 
-Confirm `git log --oneline -5` shows the merge/work on `dev`.
+Confirm `git log --oneline -5` shows the work on `dev` / `origin/dev`.
 
-### 7. Explicit non-goals
+### 7. Explicit non-goals (local sequential)
 
 ```bash
-# Do NOT run unless user asked:
-# git push origin dev
-# git push -u origin feat/...
-# gh pr create ...
+# Do NOT run from /solve:
+# gh pr create --base main ...
+# gh pr merge ... into main
+# Linear Done  (/prb Path B after main)
 ```
+
+**Cursor cloud** instead opens one PR **into `dev`** and merges that — see [`cloud-agent-flow.md`](cloud-agent-flow.md). Do not push straight to `origin/dev` from cloud without the issue-PR babysit path unless the launch instructions explicitly say otherwise.
 
 ## Failure modes
 
 | Situation | Response |
 |-----------|----------|
 | Dirty conflict with dev←main | Resolve or stop; don’t implement on broken base |
-| Issue branch diverged | Rebase onto dev or merge dev in, then verify again |
-| Accidental commit on main | Move commit onto issue branch / dev carefully without destroying user work |
-| User asked to push | Confirm once, then push `dev` only if they want that ship path |
+| Issue branch diverged | Rebase onto refreshed `origin/dev` or merge it in, then verify again |
+| Accidental commit on main | Move commit onto issue branch / `dev` carefully without destroying user work |
+| `origin/main` not in `origin/dev` | **Stop branching** — complete the hard pre-branch gate first |
+| Already on `origin/dev` / `main` | Comment SHA; skip re-implement |
 
 ## End state of a successful /solve
 
-- Local **`dev`** includes latest **`main`** plus this issue’s commits
-- Issue branch merged (or ff’d) into **`dev`**
-- No requirement that `origin` knows about `dev` yet
+### Local Mac sequential
 
-## Fast mode (`/solve … fast`) — parallel addendum
+- Local **`dev`** / **`origin/dev`** includes latest **`main`** plus this issue’s commits
+- Linear **In Review** with `origin/dev` SHA
+- **`main`** untouched
 
-When `FAST_MODE` is true, follow [`fast-mode.md`](fast-mode.md). Git differences:
+### Cursor cloud
 
-1. **Orchestrator** refreshes `main` → `dev` once (or per wave) in the **main workspace**.
-2. Each worker runs in an isolated **git worktree** (`spawn_subagent` `isolation: worktree`) on a short-lived issue branch based at the **wave base** (`dev` tip when the wave started).
-3. Workers **commit only on the issue branch**. They never checkout/merge `dev` in a way that races the orchestrator.
-4. Orchestrator integrates with the Subagent Worktree Protocol:
-   - `git fetch <worktree_path> HEAD --no-tags`
-   - record `commit_sha`; `git cat-file -t`
-   - on main workspace: `git checkout dev` then merge issue branch (or cherry-pick `base_sha..commit_sha`) in **merge_order**
-   - re-verify on `dev`
-5. **Mandatory cleanup after each successful merge (and on failure):**
-   ```bash
-   # free worktree before deleting branch ref
-   grok worktree rm --force <worktree_path>
-   git branch -d <issue-branch>   # or -D if already on dev
-   # never delete dev or main
-   ```
-6. Steady-state worktree count ≤ concurrency; **end of run = 0** leftover solve-fast worktrees for the run.
-7. Still **no push** unless the user explicitly asked.
+- Issue branch created from refreshed **`origin/dev`** tip
+- One PR **base `dev`** merged after CI green + zero useful open review comments
+- Linear **In Review** with merge SHA
+- **`main`** untouched
+
+## Fast mode (`/solve … fast`) — Mac/Grok only
+
+When `FAST_MODE` is true **on local Grok CLI**, follow [`fast-mode.md`](fast-mode.md).
+
+**Cursor cloud agents must not use fast-mode wave PRs** (`origin/solve/<run>/<issue>`). Use [`cloud-agent-flow.md`](cloud-agent-flow.md) instead.
