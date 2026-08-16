@@ -1,24 +1,105 @@
 ---
 name: prb
 description: >
-  Ship session work: fetch origin/main into local main, merge origin/main into
-  local dev, run a Local Code Review Gate on the ship set (with closed-loop
-  Linear /issue + /solve fixes on local dev until clean), then push to
-  origin/dev; open a PR from dev into main; babysit CI/bot feedback on a
-  5-minute cadence for up to 15 minutes, push to **origin/dev** for user review (no approval needed for `dev`), then **stop and wait for explicit user approval**
-  before merging to **main** or running production migrate/deploy (quiet CI alone is
-  never main/prod authority). When the ship includes DB
-  migrations, discover and run this project's production migration procedure at
-  the correct pre-merge gate (never invent a stack; never db:push to prod by
-  default). Use when the user runs /prb, says "push dev and PR to main", "ship
-  session work", "babysit then merge to main", "promote dev to main with CI
-  watch", or production migrate-on-ship.
+  Two delivery paths. Path A (Cursor cloud): after the hard refresh gate, land a
+  Linear-named issue branch into origin/dev via one PR (base dev), babysit until
+  CI green and zero useful review comments, merge to origin/dev, Linear In Review
+  — never main, never Done. Path B (Mac/local): ship session work by fetching
+  origin/main into local main, merging origin/main into local dev, running a Local
+  Code Review Gate on the ship set (with closed-loop Linear /issue + /solve fixes
+  on local dev until clean), then push to origin/dev; open a PR from dev into main;
+  babysit CI/bot feedback on a 5-minute cadence for up to 15 minutes, push to
+  **origin/dev** for user review (no approval needed for `dev`), then **stop and
+  wait for explicit user approval** before merging to **main** or running
+  production migrate/deploy (quiet CI alone is never main/prod authority). When
+  the ship includes DB migrations, discover and run this project's production
+  migration procedure at the correct pre-merge gate (never invent a stack; never
+  db:push to prod by default). Use when the user runs /prb, says "push dev and PR
+  to main", "ship session work", "babysit then merge to main", "promote dev to
+  main with CI watch", cloud "land issue branch into dev", or production
+  migrate-on-ship.
 argument-hint: "[--no-merge] [--skip-migrations] [--skip-review] [--exhaustive-review|--no-exhaustive] [--max-fix-cycles N] [--watch-minutes N] [--interval-minutes M]"
 ---
 
-# /prb — Push `dev` → PR into `main` → babysit → migrate (if needed) → merge
+# /prb — Two paths: cloud land → `dev` · local ship `dev` → `main`
 
-Ship **this session’s finished work** by:
+## Path overview (read first)
+
+| Path | Runtime | What it ships | Linear |
+|------|---------|---------------|--------|
+| **A — Cloud land** | Cursor cloud agents / Dev Bot | Linear-named **issue branch → one PR → merge `origin/dev`** | **In Review** + SHA (never Done; never `main`) |
+| **B — Local ship** | Mac / local Grok | **`origin/dev` → PR → `main`** (+ babysit, migrate, explicit approval) | **Done** only after merge to `main` |
+
+**Hard rules shared by both paths:**
+
+- Long-lived lowercase **`dev`** + **`main`** on every project.
+- **Hard refresh before new work from trunk:** `git fetch origin`; if `origin/main` is not an ancestor of `origin/dev`, merge into `dev` and push `origin/dev`.
+- **Zero open useful review comments** before landing (no waive).
+- **No force-push to `main`.**
+- Multiplayer Linear **`claimed-by:`** is claim SoT (`../solve/references/multiplayer-linear.md`).
+- Cloud agents **must never** open a PR against `main` or merge to `main`.
+
+**Cursor cloud default:** Path A (also documented in [`../solve/references/cloud-agent-flow.md`](../solve/references/cloud-agent-flow.md)).  
+**Mac `/prb` default:** Path B (full procedure below, Phases 0–5).
+
+---
+
+## Path A — Cloud: issue branch → `origin/dev`
+
+Use when running as a **Cursor cloud agent**, Dev Bot launch, or when the user asks to land an issue PR into `dev` (the cloud “PRB into `origin/dev` from the issue branch”).
+
+Full procedure: [`../solve/references/cloud-agent-flow.md`](../solve/references/cloud-agent-flow.md). Summary:
+
+### A0 — Hard pre-branch / pre-land refresh (non-negotiable)
+
+```text
+1. git fetch origin
+2. Update knowledge of origin/main and origin/dev (create origin/dev from origin/main if missing)
+3. If origin/main is not an ancestor of origin/dev → merge origin/main into dev → push origin/dev
+4. Use the current origin/dev tip
+5. Issue branch must contain that tip (never stale main/dev/old SHA)
+6. If already on origin/dev or origin/main → comment SHA and skip
+```
+
+Dev Bot with no Mac checkout: fetch via `gh`/remote, ensure `origin/dev` contains latest `origin/main`, launch/continue with `starting_ref: origin/dev` (or SHA).
+
+### A1 — One PR per issue
+
+- Branch name: Linear id / `gitBranchName` (e.g. `KEC-799`). **Never** agent names. **Never** `solve/<run>/…`.
+- Open or reuse **one** PR: **base `dev` ← head issue-branch**.
+- Iterate on that same PR until CI green **and** zero open useful review comments.
+- Do **not** open a pile of comment-fix PRs.
+
+### A2 — Merge into `origin/dev`
+
+When the issue is fully resolved on the PR:
+
+```bash
+gh pr merge "$PR_NUMBER" --merge   # into dev — never main
+git fetch origin
+```
+
+- Linear → **In Review**; comment the **`origin/dev` merge SHA**.
+- **Never** mark **Done** (Path B after `main`).
+- **Never** PR or merge to **`main`**.
+
+### A3 — Path A report
+
+```markdown
+**/prb Path A (cloud land)**
+**Issue:** TEAM-123
+**Branch:** KEC-799 (or gitBranchName)
+**PR:** #N — base `dev` ← head issue-branch
+**Merged:** origin/dev @ <sha>
+**Linear:** In Review (not Done)
+**Main:** not touched — run Path B / Mac `/prb` when ready to ship production
+```
+
+---
+
+## Path B — Local Mac: `origin/dev` → `main`
+
+Ship **this session’s finished work** (or already-pushed `origin/dev`) by:
 
 1. Identifying commits/changes that belong on local **`dev`**
 2. **Refreshing from remote first:** `git fetch origin`, update local **`main`** from **`origin/main`**, then **merge `origin/main` into local `dev`** so `dev` has the latest trunk **before any push**
@@ -29,17 +110,20 @@ Ship **this session’s finished work** by:
 7. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
 8. **Reporting merge-ready** after a quiet green window — then **merging the PR into `main` only after explicit user approval** (and required production migrations when approved)
 
-Default delivery **does** push **`origin/dev`** (after checks) and open/babysit the PR, but **does not** merge to `main`. After a clean quiet window, report **merge-ready for production** and **wait for explicit user approval** (e.g. "merge it", "approve merge", `/prb merge` after they said yes). Quiet CI is **never** merge authority. `--no-merge` is the default posture (redundant but allowed). Never merge to `main` or run production migrate/deploy without that approval.
+Default Path B delivery **does** push **`origin/dev`** (after checks) and open/babysit the PR, but **does not** merge to `main`. After a clean quiet window, report **merge-ready for production** and **wait for explicit user approval** (e.g. "merge it", "approve merge", `/prb merge` after they said yes). Quiet CI is **never** merge authority. `--no-merge` is the default posture (redundant but allowed). Never merge to `main` or run production migrate/deploy without that approval.
 
 The quiet babysit window proves readiness only; it does **not** authorize merge. Merge/prod ship requires explicit user approval after the window.
 
-## Operating contract
+**Cloud agents must not run Path B.**
+
+## Path B — Operating contract
 
 - **Branches (fixed names, lowercase):** integration branch is **`dev`**; trunk is **`main`**. Never use capital-`D` `Dev`.
 - **Long-lived `dev` on every project (hard):** local + `origin/dev` must exist. If `origin/dev` is missing, create it from current `main` (`git push -u origin dev`) before shipping. Always refresh: `fetch` → local `main` = `origin/main` → **merge `origin/main` into local `dev`** → build/verify/security on the ship set → only then `git push origin dev`.
 - **`origin/dev` does not need approval:** after Phase 1.5 clean + build/security gates, push to `origin/dev` automatically so the user can review there.
 - **`main`/production always need explicit approval:** never merge the PR to `main` or run production deploy/migrate until the user clearly says so in-session.
 - **Always refresh trunk before push (hard rule):** **never** `git push origin dev` until you have (1) `git fetch origin`, (2) updated local **`main`** to match **`origin/main`** (ff-only when possible), and (3) **merged `origin/main` into local `dev`** with conflicts resolved. Pushing a stale `dev` that is missing latest `main` is a skill failure.
+- **Cloud agents:** do **not** run Path B. Use Path A / [`../solve/references/cloud-agent-flow.md`](../solve/references/cloud-agent-flow.md). Never PR or merge to `main` from cloud.
 - **Local Code Review Gate before push (hard rule):** **never** `git push origin dev` and **never** open a PR until Phase 1.5 reports **zero actionable findings**, unless the user explicitly passed `--skip-review`. Full procedure: [`references/local-code-review.md`](references/local-code-review.md).
 - **Closed-loop fixes on local `dev` only:** when the gate finds issues, file Linear tickets via `/issue` and implement via `/solve` onto **local `dev`**. Do not push mid-loop. Prefer one Linear issue per distinct problem. Cap full review→issue→solve cycles (default **5**, override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push.
 - **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb` outside the review closed-loop fixes.
@@ -70,6 +154,8 @@ The quiet babysit window proves readiness only; it does **not** authorize merge.
 Parse these from the user message; ignore unknown tokens after logging them.
 
 Record for the run: `SKIP_REVIEW`, `EXHAUSTIVE_REVIEW` (default true), `MAX_FIX_CYCLES` (default 5), plus review exit fields from [`references/local-code-review.md`](references/local-code-review.md).
+
+> **Phases 0–5 below are Path B (Mac/local) only.** Cursor cloud agents use [Path A](#path-a--cloud-issue-branch--origindev) / [`../solve/references/cloud-agent-flow.md`](../solve/references/cloud-agent-flow.md) instead.
 
 ---
 
@@ -473,7 +559,7 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 
 ---
 
-## Safety guardrails
+## Path B — Safety guardrails
 
 - **Never push to `origin/dev` until `origin/main` is merged into local `dev`** (verify with `git merge-base --is-ancestor origin/main dev`)
 - **Never push to `origin/dev` or open a PR until Phase 1.5 is clean** (zero actionable findings), unless `--skip-review` was explicit
@@ -490,8 +576,9 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 - **Never invent** migrate commands or Doppler production config names; follow the project under the current git root
 - **Never** `db:push` / schema push to production by default; never print `DATABASE_URL` or Doppler secrets; never auto-seed CMS/content as part of `/prb`
 - Prefer one Linear issue per distinct review finding; all closed-loop fixes land on local `dev` only
+- **Cloud:** never run Path B; never PR/merge to `main`; Path A lands into `dev` only
 
-## Anti-patterns
+## Path B — Anti-patterns
 
 - Pushing `dev` without first pulling/merging latest `origin/main` into local `dev`
 - Pushing `dev` or opening a PR without a clean Local Code Review Gate (unless `--skip-review`)
@@ -515,13 +602,17 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 - Auto-running destructive `DROP`/`RENAME` migrations without explicit user approval
 - Printing connection strings while “verifying” migrate readiness
 - Re-pushing babysit fixes without re-running Phase 1.5 when the ship set changed
+- **Cloud agent running Path B** or opening/merging a PR to **`main`**
+- **Cloud stopping at In Review** without merging the issue PR into `origin/dev` when the issue is done (Path A)
+- Recommending Grok `solve/<run>/…` wave PRs for Cursor cloud
 
 ## Relation to other skills
 
 | Skill | Difference |
 |-------|------------|
 | `/issue` | Files thorough Linear tickets only; Phase 1.5 spawns it per actionable finding |
-| `/solve` | Implements Linear issue(s) onto local `dev` and **pushes `origin/dev` after checks** (`/solve [N\|all]`, default 1; no main/prod); Phase 1.5 may spawn it to close the review loop |
+| `/solve` | Implements Linear issue(s) onto **`origin/dev`** (cloud Path A / local push); never `main`/Done; Phase 1.5 may spawn it to close the review loop |
 | `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |
-| `/prb` | End-to-end: session → **local review gate + closed-loop fix** → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge |
+| `/prb` Path A | Cloud: issue branch → one PR → merge **`origin/dev`** → In Review |
+| `/prb` Path B | Mac: session → **local review gate + closed-loop fix** → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge + Done |

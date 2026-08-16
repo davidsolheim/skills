@@ -36,11 +36,14 @@ The skills assume a professional full-stack product shop—not a single demo app
         └─► /issues          ──► many tickets from a human dump
         │
         ▼
-   /solve   ──► implement on short-lived branch → merge local dev only
-        │         (/solve N · /solve all · /solve all fast)
+   /solve   ──► Cursor cloud: hard refresh gate → Linear-named branch →
+   │            one PR into origin/dev → In Review
+   │            Mac: implement → merge/push origin/dev → In Review
+   │            (never main; never Done)
         ▼
-   /prb     ──► local review gate → (issue+solve loop) → push origin/dev
-                → PR main←dev → babysit CI → migrate? → merge
+   /prb     ──► Path A (cloud): land issue branch → origin/dev
+                Path B (Mac): local review gate → origin/dev → PR main←dev
+                → babysit CI → migrate? → merge + Done (approval)
 ```
 
 | Skill | Role | Default git effect |
@@ -48,10 +51,12 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
-| [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
-| [`prb/`](./prb/) | Local review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
+| [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **`origin/dev`** | Cloud: issue PR into `dev`; Mac: merge/push `dev` |
+| [`prb/`](./prb/) | **Path A:** cloud land → `origin/dev`. **Path B:** local review + ship `dev` → **main** | Path A: merge to `dev`. Path B: push + PR + merge to `main` |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
+
+**Hard pre-branch gate (cloud + solve):** before any new origin issue branch — `git fetch origin`; ensure `origin/dev` contains `origin/main`; branch only from that tip (`starting_ref: origin/dev`). See [`solve/references/cloud-agent-flow.md`](./solve/references/cloud-agent-flow.md).
 
 ---
 
@@ -148,30 +153,38 @@ Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic 
 
 ---
 
-### `/solve` — implement unblocked Linear work onto local `dev`
+### `/solve` — implement unblocked Linear work onto `origin/dev`
 
 **Path:** [`solve/`](./solve/)
 
-Selects the next unblocked leaf (or drains the board), runs the full implement→review loop, verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask.
+Selects the next unblocked leaf (or drains the board), runs the full implement→review loop, verifies, and lands on **`origin/dev`**. Never merges to `main` or marks Linear **Done** (`/prb` Path B after `main`).
+
+| Runtime | Behavior |
+|---------|----------|
+| **Cursor cloud** (default for cloud agents) | Hard refresh gate → Linear-named branch → one PR **into `dev`** → babysit → merge `origin/dev` → In Review. See [`solve/references/cloud-agent-flow.md`](./solve/references/cloud-agent-flow.md) |
+| **Mac sequential** | Refresh gate → issue branch → merge/push `origin/dev` → In Review |
+| **Mac/Grok `fast`** (optional) | Parallel worktrees + wave PRs — **not** the Cursor cloud default. See [`solve/references/fast-mode.md`](./solve/references/fast-mode.md) |
 
 | Invocation | Behavior |
 |------------|----------|
 | `/solve` | One issue (default) |
 | `/solve N` | Up to N issues |
 | `/solve all` | Drain every eligible unblocked leaf (no soft cap) |
-| `/solve all fast` | Parallel worktree workers after shared batch guidance |
+| `/solve all fast` | Mac/Grok only: parallel worktree workers after shared batch guidance |
 
-**Also supports:** preferred issue id, `--effort N`, `fast`, `--concurrency M`
+**Also supports:** preferred issue id, `--effort N`, `fast` (Mac/Grok), `--concurrency M`
 
-**Companion refs:** batch guidance, fast mode, git-dev workflow, custom implement instructions (all under `solve/references/`).
+**Companion refs:** cloud-agent-flow, batch guidance, fast mode (Mac/Grok), git-dev workflow, custom implement instructions (all under `solve/references/`).
 
 ---
 
-### `/prb` — local review gate, push `dev`, PR to `main`, babysit, migrate, merge
+### `/prb` — Path A cloud land · Path B local ship to `main`
 
 **Path:** [`prb/`](./prb/)
 
-Ship **already finished** session work:
+**Path A (Cursor cloud):** land a Linear-named issue branch into **`origin/dev`** via one PR (base `dev`). Merge when CI green + zero useful review comments. Linear **In Review**. Never `main` / never Done.
+
+**Path B (Mac/local):** ship **already finished** session work:
 
 1. Refresh `origin/main` into local `main` and merge into local `dev` (**hard rule before any push**).
 2. **Local Code Review Gate** on `origin/main...dev` (high-signal findings only; load `## Code Review Rules` from AGENTS.md). If actionable findings exist: create Linear issues via `/issue`, fix on local `dev` via `/solve`, re-review in a closed loop until clean (default max **5** cycles). **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
@@ -179,9 +192,9 @@ Ship **already finished** session work:
 4. Open/reuse PR `main` ← `dev`.
 5. Babysit CI/bots (default every **5** minutes for **15** minutes).
 6. If the ship includes schema/data migrations, discover and run **this repo’s** production migrate path (see [`prb/references/db-migrations.md`](./prb/references/db-migrations.md)).
-7. Merge when quiet + green + migrations done (unless `--no-merge`).
+7. Merge when quiet + green + migrations done **and** explicit user approval (unless `--no-merge`). Linear **Done** after merge to `main`.
 
-**Useful flags:** `--no-merge`, `--skip-migrations`, `--skip-review`, `--exhaustive-review` / `--no-exhaustive`, `--max-fix-cycles N`, `--watch-minutes N`, `--interval-minutes M`
+**Useful flags (Path B):** `--no-merge`, `--skip-migrations`, `--skip-review`, `--exhaustive-review` / `--no-exhaustive`, `--max-fix-cycles N`, `--watch-minutes N`, `--interval-minutes M`
 
 ---
 
@@ -237,9 +250,10 @@ My Product Launch
 1. **Portable** — work from any skills install path; references are skill-relative (`references/…` or `$SOLVE_SKILL_DIR`).
 2. **Repo-driven** — Linear boards, migrate commands, and stack choices come from the **consumer** repo.
 3. **No PII / no private clients** — public packages must not require inventRight, personal home paths, or internal product codenames.
-4. **Local `dev` first** — `/solve` stops at local integration; humans (or `/prb`) control origin and production.
+4. **Local `dev` / `origin/dev` first** — `/solve` lands on `origin/dev` (cloud PR or local push); `/prb` Path B controls `main` and production. Cloud agents never merge to `main`.
 5. **Discovery over invention** — especially migrations and hoster CLIs: read the project; do not invent `db:push` to prod.
 6. **Agent-operable tickets** — intake skills write tickets another agent can implement after a light drift check.
+7. **Hard refresh before branching** — `origin/dev` must contain `origin/main` before any new issue branch (`starting_ref: origin/dev` for cloud launches).
 
 ---
 

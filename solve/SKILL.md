@@ -11,32 +11,34 @@ description: >
   /solve N with N≥2, any fast run) first build batch guidance that inventories
   issues, detects platform/supersession conflicts (e.g. older ClickHouse/Convex
   tickets vs newer Neon migration), orders migrations before features that would
-  be rewritten, and skips or re-scopes obsolete open tickets. Fast mode solves
-  remaining issues in parallel after that guidance (worktree workers, orchestrator
-  merges to local dev, mandatory cleanup). Always refresh from latest main, keep
-  local dev updated, complete work on a short-lived branch, verify, commit, and
-  merge into local `dev`, run build + security/verify checks, then **push to `origin/dev`** automatically. Never merge to `main` or deploy production without explicit user approval (that is `/prb` + approval).
-  Auto-resolve Linear team and project from repo context. Use when the user runs
-  /solve, /solve N, /solve all, /solve all fast, says "solve the next issue",
-  "pick up the next ticket", or wants open issue(s) completed onto `origin/dev`.
+  be rewritten, and skips or re-scopes obsolete open tickets. Cursor cloud agents
+  use a normal cloud flow: hard refresh gate so origin/dev contains origin/main,
+  Linear-named issue branch from that tip, one PR into dev, babysit until CI green
+  and zero useful review comments, merge into origin/dev, Linear In Review — never
+  main, never Done. Local Mac sequential merges to local/origin/dev without a main
+  PR. Grok fast-mode wave PRs are Mac/Grok-only — not the Cursor cloud default.
+  Never merge to `main` or deploy production without explicit user approval (`/prb`
+  Path B). Auto-resolve Linear team and project from repo context. Use when the
+  user runs /solve, /solve N, /solve all, says "solve the next issue", "pick up
+  the next ticket", or wants open issue(s) completed onto `origin/dev`.
 argument-hint: "[N|all] [fast] [--concurrency N] [--effort N] [ISSUE-ID] [extra constraints…]"
 ---
 
-# /solve — Next Unblocked Linear Issue(s) → Local `dev` (via /implement)
+# /solve — Next Unblocked Linear Issue(s) → `origin/dev` (via /implement)
 
-Select unsolved, **unblocked** Linear issue(s) for the active repo’s Linear project, implement each with the **full `/implement` loop**, verify, commit, **merge into the long-lived local `dev` branch** (lowercase), run build + security/verify checks, then **`git push origin dev`**. Default delivery stops at **`origin/dev`** for user review. **Never** merge to `main` or production without explicit user approval.
+Select unsolved, **unblocked** Linear issue(s) for the active repo’s Linear project, implement each with the **full `/implement` loop**, verify, and land on **`origin/dev`**. **Never** merge to `main` or production without explicit user approval (`/prb` Path B). **Never** mark Linear **Done** from `/solve` (Done only after merge to `main`).
 
 Multi-issue runs build **batch guidance** first ([`references/batch-guidance.md`](references/batch-guidance.md)) so architectural direction changes (e.g. Neon replacing ClickHouse/Convex) reorder and re-scope work before coding.
 
-**Two execution modes:**
+**Delivery paths (pick by runtime):**
 
-| Mode | When | Behavior |
+| Path | When | Behavior |
 |------|------|----------|
-| **Sequential** (default) | No `fast` flag | One issue at a time; guidance order when S0 ran; integer-`N` hard-stops on failure; **`all` continues past independent failures** |
-| **Fast** | `fast` or `--fast` | Inventory → batch guidance → parallel workers (worktrees) → orchestrator merge to `dev` → **mandatory cleanup** → refill until drained |
+| **Cursor cloud** (default for cloud agents) | Cursor cloud / Dev Bot / remote agent | Hard pre-branch refresh gate → Linear-named issue branch from `origin/dev` tip → one PR **base `dev`** → babysit (CI + zero useful comments) → **merge into `origin/dev`** → Linear **In Review**. See [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md) |
+| **Sequential local** (default on Mac/Grok without `fast`) | No `fast` flag; local checkout | One issue at a time; refresh gate → issue branch → merge local `dev` → push `origin/dev` → In Review |
+| **Fast** (Mac/Grok only) | `fast` / `--fast` on **local Grok CLI** | Parallel worktrees + wave PRs — **not** for Cursor cloud. See [`references/fast-mode.md`](references/fast-mode.md) |
 
-Full fast protocol: [`references/fast-mode.md`](references/fast-mode.md). Batch guidance: [`references/batch-guidance.md`](references/batch-guidance.md).
-
+Batch guidance: [`references/batch-guidance.md`](references/batch-guidance.md). Git + hard gate: [`references/git-dev-workflow.md`](references/git-dev-workflow.md).
 ## Drain contract (`/solve all` — non-negotiable)
 
 When `SOLVE_COUNT_MODE = all` (sequential or fast):
@@ -59,7 +61,7 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast):
   - **Default**: `1` — `/solve` with no count solves a single issue.
   - **Integer `N`**: `/solve N` solves up to **N** eligible issues (sequential: one at a time; fast: up to N with parallelism).
   - **`all`**: **drain the project** — keep going until **no** eligible unblocked implementable leaves remain (see [Drain contract](#drain-contract-solve-all--non-negotiable)). No soft cap. Mandatory Linear re-check before exit.
-- **Fast flag**: `fast` or `--fast` enables parallel orchestration (see [Fast mode](#fast-mode--parallel-orchestrator)). Optional `--concurrency M` (1–8) sets max simultaneous workers.
+- **Fast flag**: `fast` or `--fast` enables **Mac/Grok-only** parallel orchestration (see [Fast mode](#fast-mode--macgrok-only-parallel-orchestrator)). Optional `--concurrency M` (1–8) sets max simultaneous workers. **Cursor cloud agents ignore `fast` for wave-PR delivery** and use [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md) instead.
 - **Selection (sequential)**: when batch guidance is active (`/solve all`, `/solve N` with `N ≥ 2`, or forced S0), follow **`execution_order`** from the guidance package (migration/platform foundations before features on abandoned stacks; lowest number only as tie-breaker). When guidance is inactive (`/solve` / `/solve 1` without supersession pressure), lowest issue **number** (e.g. `TEAM-331` before `TEAM-343`). Re-validate eligibility after each closeout; refresh guidance when the remaining set changes.
 - **Selection (fast)**: full eligible inventory + **shared batch guidance** (platform direction, supersession, waves); refill after merges (see fast-mode.md + batch-guidance.md).
 - **Epics / parents**: never implement an epic (or any issue that has child issues) as the work item. When the next candidate is an epic/parent, **expand** into its **lowest-numbered eligible child** and implement that child instead (see [Phase 2E](#2e-epic--parent-expansion)). Recurse if that child is itself a parent. If **all children are completed** (Done/Canceled/Duplicate/Completed), mark the epic **Done** (rollup) and continue — does not consume a solve-count slot.
@@ -71,19 +73,24 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast):
   into implementer (and reviewer, when useful) prompts. Edit that file to change solve-time coding policy without forking the whole implement skill. When batch guidance exists, also inject the run’s **`guidance.md`** path (and per-issue supersession/rescope notes) as hard constraints — guidance wins over older tickets on platform/stack.
 - **Batch guidance (S0)**: for `/solve all`, `/solve N` (`N ≥ 2`), and any fast run, build a guidance package **before** the first implement claim. Procedure: [`references/batch-guidance.md`](references/batch-guidance.md). Template: [`references/batch-guidance-template.md`](references/batch-guidance-template.md). Detects competing architectural directions (e.g. ClickHouse/Convex tickets vs Neon migration), orders migrations first, skips or re-scopes obsolete open tickets, and allows selective override of prior work.
 - **Integration branch name is always `dev`** — all-lowercase **d-e-v**. Never use capital-`D` `Dev` for checkout, merge, or new work. If a legacy `Dev` ref is found, rename it once to `dev` (see git-dev-workflow) then continue only on `dev`.
-- **Git delivery default** (per issue):
-  1. Refresh from latest `main`
-  2. Keep local **`dev`** up to date with `main`
-  3. Work on a short-lived issue branch off `dev`
-  4. Run implement loop + verify + commit on that branch
-  5. **Merge into local `dev`**
-  6. Run **build + security/verify** (no push until green)
-  7. **`git push origin dev`** (automatic; no approval)
-  8. **Fast only:** immediately remove the worker worktree and delete the local issue branch (see cleanup contract in fast-mode.md)
-- **Long-lived `dev` (hard):** every project must have a long-lived **`dev`** branch **locally and on `origin`**. Create `origin/dev` from `main` if missing (`git push -u origin dev`). Never use capital-`D` `Dev`.
-- **Delivery = `origin/dev` (automatic):** after merge to local `dev`, run the repo’s **build + security/verify** checks; only then **`git push origin dev`**. No user approval needed for `origin/dev`.
-- **Main/prod still gated:** never merge to `main`, never deploy production, never `gh pr merge` under `/solve`. Promoting `dev` → `main`/prod is **`/prb`** and requires **explicit user approval** (quiet CI is never prod authority).
-- **Linear closeout**: after merge to local `dev`, verification, and push to `origin/dev` → **In Review** (or stay In Progress if the team has no In Review) with evidence. **Do not mark Done.** `/prb` marks Done after merge to `main`. Full claim protocol: [`references/multiplayer-linear.md`](references/multiplayer-linear.md). In fast mode the **orchestrator** owns claim + In Review (workers must not set Linear state).
+- **Hard pre-branch gate (non-negotiable):** before creating or launching onto any new origin issue branch: `git fetch origin` → ensure `origin/dev` exists and **`origin/main` is an ancestor of `origin/dev`** (merge + push `origin/dev` if not) → create/launch from that tip only → if already on `origin/dev`/`origin/main`, comment SHA and skip. Full text: [`references/git-dev-workflow.md`](references/git-dev-workflow.md) + [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md).
+- **Git delivery — Cursor cloud** (per issue): follow [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md):
+  1. Hard pre-branch refresh gate
+  2. Branch named for the Linear issue (`KEC-799` / `gitBranchName`) — **never** agent names, **never** `solve/<run>/…`
+  3. Implement + verify + commit on that branch; push the same branch
+  4. Open **one** PR: **base `dev` ← head issue-branch**; iterate until CI green **and** zero open useful review comments (no waive)
+  5. **Merge that PR into `origin/dev`** (cloud land / Path A)
+  6. Linear **In Review** + comment SHA — **not** Done; **never** PR/merge to `main`
+- **Git delivery — local Mac sequential** (per issue):
+  1. Hard pre-branch refresh gate
+  2. Short-lived issue branch off refreshed `dev`
+  3. Implement loop + verify + commit
+  4. **Merge into local `dev`**
+  5. Build + security/verify; then **`git push origin dev`**
+- **Long-lived `dev` (hard):** every project must have a long-lived **`dev`** branch on **`origin`** (and locally when a Mac checkout exists). Create `origin/dev` from `main` if missing. Never use capital-`D` `Dev`.
+- **Delivery = `origin/dev` (automatic):** no user approval needed to land on `origin/dev`. Cloud lands via the issue PR; local sequential via push after checks.
+- **Main/prod still gated:** never merge to `main`, never deploy production, never `gh pr merge` into **`main`** under `/solve`. Promoting `dev` → `main`/prod is **`/prb` Path B** and requires **explicit user approval** (quiet CI is never prod authority). Cloud agents must never run Path B.
+- **Linear closeout**: after the issue is on **`origin/dev`** → **In Review** (or stay In Progress if the team has no In Review) with evidence SHA. **Do not mark Done.** `/prb` Path B marks Done after merge to `main`. Full claim protocol: [`references/multiplayer-linear.md`](references/multiplayer-linear.md). In Mac/Grok fast mode the **orchestrator** owns claim + In Review (workers must not set Linear state).
 - **Secrets**: never commit `.env`, print Doppler values, tokens, or connection strings.
 - **Linear MCP**: `search_tool` then `use_tool`. Read schemas before calling. Literal newlines in markdown bodies.
 - **Scope discipline**: satisfy the issue’s acceptance criteria; file follow-ups (e.g. via `/issue`) instead of expanding scope.
@@ -118,7 +125,7 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast):
 |-----|---------|
 | `N` (positive integer) | Solve **up to N** eligible issues this run. **Default: 1** when omitted. Sequential: one at a time. Fast: up to N with concurrency `min(N, 8)` unless `--concurrency` set. |
 | `all` | **Drain** every eligible unblocked implementable leaf. No soft cap. Mandatory re-query Linear before Phase 9; only real stop conditions apply (see [Drain contract](#drain-contract-solve-all--non-negotiable)). |
-| `fast` / `--fast` | Enable **fast mode**: batch guidance + parallel worktree workers + orchestrator merge/cleanup. Full protocol in [`references/fast-mode.md`](references/fast-mode.md). |
+| `fast` / `--fast` | Enable **Mac/Grok-only** fast mode: batch guidance + parallel worktree workers + orchestrator wave merge. **Not for Cursor cloud** — cloud uses [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md). Full protocol in [`references/fast-mode.md`](references/fast-mode.md). |
 | `--concurrency M` | Fast only. Max simultaneous workers (1–8). Default: `min(N, 8)` in integer mode; **4** in `all fast` mode. Ignored (warn once) if not in fast mode. |
 | `--effort N` | Implement effort 1–5 (reviewer count / specialists). Default: value in `custom-implement-instructions.md` (currently **5** — high/max rigor), else **5**. |
 | `ISSUE-ID` (e.g. `TEAM-123`, `ENG-12`) | Prefer this Linear issue for the **first** slot if unblocked (still validate). Sequential: later slots re-select lowest. Fast: include in inventory when eligible. Examples use `TEAM-N`; real teams use their own prefix. |
@@ -132,7 +139,7 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
 |-----|------|
 | Match preferred id token | `[A-Za-z][A-Za-z0-9]*-\d+` (case-insensitive prefix; trailing digits are the number) |
 | Sort / “lowest number” | Parse **trailing digits** from the identifier (`PREFIX-(\d+)` → integer). Do **not** require the literal prefix `TEAM`. |
-| Branch names | Prefer Linear’s `gitBranchName` / identifier fields when present; else `feat/<prefix-lower>-<number>-short-slug` |
+| Branch names | Prefer Linear’s `gitBranchName` / identifier (e.g. `KEC-799`) when present; else `feat/<prefix-lower>-<number>-short-slug`. **Never** agent names. **Never** `solve/<run>/…` on Cursor cloud |
 
 `TEAM-123` / `TEAM-100` appear in examples and templates only as stand-ins for any real team prefix.
 
@@ -190,7 +197,9 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
    - `CUSTOM_IMPL_INSTRUCTIONS` = `$SOLVE_SKILL_DIR/references/custom-implement-instructions.md` — **read this file every run** (and again if the file may have changed between batch items).
    - `BATCH_GUIDANCE_MD` = `$SOLVE_SKILL_DIR/references/batch-guidance.md` — **read when `GUIDANCE_REQUIRED`**
    - `BATCH_GUIDANCE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/batch-guidance-template.md` — **read when `GUIDANCE_REQUIRED`**
-   - `FAST_MODE_MD` = `$SOLVE_SKILL_DIR/references/fast-mode.md` — **read when `FAST_MODE`**
+   - `CLOUD_AGENT_FLOW_MD` = `$SOLVE_SKILL_DIR/references/cloud-agent-flow.md` — **read when running as Cursor cloud / Dev Bot**
+   - `GIT_DEV_WORKFLOW_MD` = `$SOLVE_SKILL_DIR/references/git-dev-workflow.md` — **read every run** (hard pre-branch gate)
+   - `FAST_MODE_MD` = `$SOLVE_SKILL_DIR/references/fast-mode.md` — **read when `FAST_MODE` on local Grok only**
    - `ARCHITECTURE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/architecture-guidance-template.md` — optional fast supplement; prefer batch guidance as authority
    - `IMPLEMENT_SKILL_MD` = resolve the implement skill:
      1. `$HOME/.grok/skills/implement/SKILL.md` if present
@@ -200,7 +209,8 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
 8. **Branch on mode after Phase 1 (+ S0 when required):**
    - Always run Phase 1 (Linear team/project).
    - If `GUIDANCE_REQUIRED`: run [Phase S0 — Batch guidance](#phase-s0--batch-guidance-multi-issue) before any claim.
-   - If `FAST_MODE`: follow [Fast mode](#fast-mode--parallel-orchestrator) + [`references/fast-mode.md`](references/fast-mode.md) (Phases F1–F6), using the S0 package as the architecture/guidance authority. **Do not** run the sequential batch loop below.
+   - If **Cursor cloud / Dev Bot**: follow [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md) for git delivery (hard gate → issue branch → one PR into `dev` → merge → In Review). Use sequential selection (Phases 2–3, 5–6) for pick/claim/implement; **replace** local Phase 4/7/8 push-to-dev with the cloud PR path. **Do not** use fast-mode wave PRs.
+   - Else if `FAST_MODE` **and** local Grok CLI: follow [Fast mode](#fast-mode--macgrok-only-parallel-orchestrator) + [`references/fast-mode.md`](references/fast-mode.md). **Do not** run the sequential batch loop below.
    - Else: sequential [Batch loop](#batch-loop--solve-up-to-n-or-all) (Phases 2–8), selecting via guidance `execution_order` when S0 ran.
 
 ---
@@ -258,9 +268,11 @@ After S0, sequential Phase 2 **selects the next leaf from `execution_order`**, n
 
 ---
 
-## Fast mode — parallel orchestrator
+## Fast mode — Mac/Grok-only parallel orchestrator
 
-When `FAST_MODE` is true, **stop using the sequential one-at-a-time batch loop**. Instead follow **[`references/fast-mode.md`](references/fast-mode.md)** end-to-end. Summary:
+**Cursor cloud agents: do not use this section.** Use [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md).
+
+When `FAST_MODE` is true **on local Grok CLI**, **stop using the sequential one-at-a-time batch loop**. Instead follow **[`references/fast-mode.md`](references/fast-mode.md)** end-to-end. Summary:
 
 ```text
 Phase 0–1  Bootstrap + Linear project (above)
@@ -269,14 +281,14 @@ Phase F1   Align inventory with S0 (epic expand, blocked filter, skip obsolete)
 Phase F2   Ensure package complete: shared contracts, waves, conflict zones, supersession
 Phase F3   Report waves/concurrency + direction/skips to user (non-blocking)
 Phase F4   CAS-claim → worktree workers → implement/verify/commit →
-           push origin/solve/<RUN_ID>/<ISSUE> (durable; never agent-named)
+           push origin/solve/<RUN_ID>/<ISSUE> (durable; never agent-named) — Grok isolation only
 Phase F5   Orchestrator: one PR per wave (head solve/<RUN_ID>/wave-N, base origin/dev) →
            merge to origin/dev (no main) → Linear In Review → cleanup worktrees
 Phase F6   Fetch origin/dev; refill newly unblocked leaves; next wave rebases; drain
 Phase 9    Fast batch summary (wave PRs, origin/dev SHA, remaining worktrees: 0)
 ```
 
-### Fast rules (non-negotiable)
+### Fast rules (non-negotiable; Mac/Grok only)
 
 1. **Guidance first** — no worker starts until `guidance.md` (or equivalent architecture package with supersession/order sections) and `graph.json` exist with shared contracts, tech intersections, waves, conflict zones, **and** platform/supersession decisions.
 2. **Workers never merge `origin/dev`/`main`, never open a main PR, never set Linear state.** They **do** push `origin/solve/<RUN_ID>/<ISSUE>`. Orchestrator owns CAS claim, wave PR into `origin/dev`, and In Review. See [`references/fast-mode.md`](references/fast-mode.md).
@@ -287,22 +299,22 @@ Phase 9    Fast batch summary (wave PRs, origin/dev SHA, remaining worktrees: 0)
 7. **No separate Grok CLI processes** in v1 — use `spawn_subagent` + `isolation: "worktree"`.
 8. **Eligibility / epics / Linear comment policy** — same as Phase 2 / Linear issue management (no spam on skips).
 9. **`all` drain** — F6 refill + end-of-run Linear re-scan until no eligible leaves remain (same drain contract as sequential `all`). Do not Phase 9 while implementable leaves remain.
+10. **Not for Cursor cloud** — cloud uses one Linear-named issue branch + one PR into `dev` per leaf ([`cloud-agent-flow.md`](references/cloud-agent-flow.md)), not `solve/<run>/…` waves.
 
-### Sequential vs fast
+### Sequential vs fast vs cloud
 
-| | Sequential | Fast |
-|--|------------|------|
-| Selection | One at a time; **guidance order** when S0 ran | Inventory + waves + refill |
-| Batch guidance | **Required** for `all` / `N≥2` | **Required** before workers |
-| Parallelism | None | Up to concurrency |
-| Merge owner | Same session after each issue | Orchestrator wave PR → origin/dev |
-| Failure (`N`) | Hard-stop batch | Cascade-skip deps; continue independents |
-| Failure (`all`) | Record fail; cascade-skip deps; **continue** independents | Cascade-skip deps; continue independents |
-| Pre-queue | Allowed **after** S0 (`execution_order`); re-validate each slot | Required (with refill) |
-| Branch/worktree cleanup | Optional | **Mandatory** after merge/fail |
-| `/solve all` exit | Only after **drain gate** (re-list Linear → zero eligible) | Same: F6 + drain gate before Phase 9 |
+| | Sequential (Mac) | Fast (Mac/Grok only) | Cursor cloud |
+|--|------------|------|------|
+| Selection | One at a time; **guidance order** when S0 ran | Inventory + waves + refill | One leaf per agent/launch; guidance when S0 ran |
+| Batch guidance | **Required** for `all` / `N≥2` | **Required** before workers | **Required** for `all` / `N≥2` |
+| Parallelism | None | Up to concurrency | Multiple cloud launches (each with refresh gate) |
+| Merge owner | Push `origin/dev` after each issue | Orchestrator wave PR → origin/dev | Issue PR → merge `origin/dev` |
+| Branch names | Linear id / `feat/…` | `solve/<run>/<issue>` | Linear id / `gitBranchName` only |
+| Failure (`N`) | Hard-stop batch | Cascade-skip deps; continue independents | Fail the leaf; do not open main PRs |
+| Failure (`all`) | Record fail; cascade-skip deps; **continue** independents | Cascade-skip deps; continue independents | Continue other leaves / launches |
+| `/solve all` exit | Only after **drain gate** | Same: F6 + drain gate before Phase 9 | Same drain gate before final summary |
 
-If `FAST_MODE` is false, continue with the sequential batch loop below.
+If `FAST_MODE` is false and not Cursor cloud, continue with the sequential batch loop below. If Cursor cloud, use cloud-agent-flow for Phases 4/7/8 git delivery.
 
 ---
 
@@ -491,7 +503,7 @@ When **every** child of an epic is in a terminal state (Done / Canceled / Cancel
 4. Do **not** count the epic toward `SOLVE_COUNT_MODE` (it is free hygiene during selection or after the last child closeout).
 5. Continue selecting the next global candidate.
 
-Also run this rollup check in **Phase 8** after marking a leaf child Done: if the parent epic now has only terminal children, mark the epic Done the same way.
+Also run this rollup check in **Phase 8** after marking a leaf child **In Review** on `origin/dev`: if the parent epic now has only terminal children, mark the epic Done the same way.
 
 ### 2F. Inspect before claiming
 
@@ -524,7 +536,7 @@ Only for the **leaf** issue we are about to implement (not for skipped candidate
 3. Set state **In Progress** on the leaf (not the parent epic, unless the epic is being rollup-closed per 2E).
 4. **Required claim + start comment** on the leaf. First line MUST be:
    `claimed-by: <bot-or-cli> · session <id> · worktree <cwd> · run <RUN_ID|sequential>`
-   Then: why this order, epic expansion path if any, plan in 3–6 bullets, implement→review + verify, delivery = **`origin/dev` then In Review (not Done)**, batch guidance path when S0 ran.
+   Then: why this order, epic expansion path if any, plan in 3–6 bullets, implement→review + verify, delivery = **`origin/dev` then In Review (not Done; not main)**, batch guidance path when S0 ran. Cloud: one PR into `dev` then merge.
 5. **Re-read the issue immediately.** If a different run's `claimed-by:` is newer, abort this leaf (do not code) and pick another.
 4. **Required** brief comment on the parent epic when expanded: `Starting child TEAM-205 (lowest eligible) under this epic.` (skip if no parent).
 5. When S0 **skips/cancels** an obsolete open ticket as full supersede: **one** comment on that ticket (superseded by …; not implemented). Do not spam other skips.
@@ -533,12 +545,33 @@ Do **not** comment on issues we only evaluated and skipped for ordinary ordering
 
 ---
 
-## Phase 4 — Git: main + dev hygiene
+## Phase 4 — Git: hard pre-branch gate + issue branch
 
-Follow [references/git-dev-workflow.md](references/git-dev-workflow.md). Summary:
+**Authority:** [`references/git-dev-workflow.md`](references/git-dev-workflow.md).  
+**Cursor cloud:** after the gate, follow [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md) for branch/PR/merge (skip local-only merge+push in Phase 7).
+
+### Hard pre-branch gate (must pass before any new issue branch)
 
 ```text
+1. git fetch origin
+2. Update knowledge of origin/main and origin/dev (create origin/dev from origin/main if missing)
+3. If origin/main is not an ancestor of origin/dev:
+     merge origin/main into dev and push origin/dev
+4. DEV_TIP = current origin/dev tip — use only this tip
+5. Create / launch issue branch from DEV_TIP
+   Cloud launch: starting_ref = origin/dev (or DEV_TIP SHA)
+6. If issue already on origin/dev or origin/main: comment SHA, skip (do not re-implement)
+```
+
+```bash
 git fetch origin
+git merge-base --is-ancestor origin/main origin/dev   # exit 0 required before branching
+DEV_TIP=$(git rev-parse origin/dev)
+```
+
+### Local Mac sequential (after gate)
+
+```text
 git checkout main
 git merge --ff-only origin/main
 
@@ -546,18 +579,20 @@ git merge --ff-only origin/main
 git checkout dev 2>/dev/null || git checkout -b dev main
 # only if a legacy capital-D branch exists and dev does not:
 #   git branch -m Dev dev && git checkout dev
-git merge main
+git merge origin/main -m "Merge origin/main into dev"
+git push -u origin dev   # keep origin/dev current when main moved
 
-git checkout -b <issue-branch>   # from dev; prefer Linear gitBranchName
+git checkout -b <issue-branch>   # from DEV_TIP / refreshed dev; prefer Linear gitBranchName or KEC-799
 ```
 
 Rules:
 
 - Long-lived integration branch name is **`dev`** only (lowercase `d`). **Never** create, checkout for work, or merge into capital-`D` `Dev`.
-- If `dev` has local commits not in main, still **merge main into dev** (don’t reset dev).
+- If `dev` has local commits not in main, still **merge main into `dev`** (don't reset `dev`).
 - If merge conflicts on `dev`←`main` block progress, resolve them first or stop with a clear report—do not implement the feature on a diverged broken base.
-- Never `git push` under default contract.
-- Never `git reset --hard` or force-delete user work.
+- **Never** branch before the hard gate passes.
+- **Never** `git reset --hard` or force-delete user work.
+- **Cursor cloud:** do not stop after a local-only merge; open the issue PR into `dev` (Phase 7 cloud).
 
 ---
 
@@ -604,7 +639,7 @@ Construct a single description string for the implement loop:
 ## Solve delivery constraints (hard)
 - Work only on the current git branch: <issue-branch>
 - Scope is this leaf issue only — do not implement the full parent epic
-- Do not push, open PRs, merge to dev/main, or update Linear state
+- Do not push, open PRs, merge to dev/main, or update Linear state (**implementer**); the solve orchestrator owns delivery after verify
 - Do not discard unrelated dirty files
 - Prefer not to commit; leave the tree ready for the solve orchestrator to commit after verify
 - Smallest complete change meeting **current** (possibly re-scoped) acceptance criteria
@@ -674,24 +709,39 @@ Use HEREDOC for the commit message. If the implementer already committed clean i
 
 ---
 
-## Phase 7 — Merge into local dev
+## Phase 7 — Land on `origin/dev`
+
+### Cursor cloud — one PR into `dev` (required path)
+
+Follow [`references/cloud-agent-flow.md`](references/cloud-agent-flow.md) Phases C4–C6:
+
+1. Push the issue branch: `git push -u origin HEAD:<issue-branch>`
+2. Open or **reuse** one PR: `gh pr create --base dev --head <issue-branch>` (never `--base main`)
+3. Babysit the **same** PR: fix CI and useful review comments on the same branch (no pile of fix PRs; no waive)
+4. When CI green **and** zero open useful review comments: **`gh pr merge` into `dev`**
+5. Record the `origin/dev` merge SHA for Phase 8
+6. **Never** merge to `main`; **never** mark Done
+
+If `origin/dev` moved mid-flight: merge/rebase `origin/dev` into the issue branch, re-verify, push, continue the same PR.
+
+### Local Mac sequential — merge local `dev` + push
 
 ```text
 git checkout dev
 git merge <issue-branch>    # prefer merge commit or ff; keep history understandable
-# confirm dev still includes latest main (merge main again if main moved—rare mid-run)
+# confirm origin/main is still an ancestor (re-run hard gate if trunk moved)
 ```
 
 - Leave the short-lived branch locally in **sequential** mode (delete only if merge succeeded and user/repo prefers cleanup—optional).
-- **Fast mode:** always delete the local issue branch after successful merge (and remove the worktree) — see [Cleanup contract](references/fast-mode.md#cleanup-contract-mandatory).
-- Working tree on **`dev`** at end of successful run when possible.
+- **Mac/Grok fast mode:** always delete the local issue branch after successful merge (and remove the worktree) — see [Cleanup contract](references/fast-mode.md#cleanup-contract-mandatory).
+- Working tree on **`dev`** at end of successful local run when possible.
 - **Then Phase 7B — verify/build/security on `dev`, then push `origin/dev`.**
 
-### Phase 7B — Build, security checks, push `origin/dev`
+### Phase 7B — Build, security checks, push `origin/dev` (local sequential)
 
 After the issue branch is merged into local `dev`:
 
-1. Ensure `origin/main` is still merged into local `dev` (re-fetch if trunk moved).
+1. Ensure `origin/main` is still an ancestor of local `dev` / `origin/dev` (re-fetch; merge + push if trunk moved).
 2. Run repo-required **build + verify + security** checks (from `AGENTS.md` / package scripts / documented scanners). Fail → fix via implement loop; **do not push**.
 3. `git push -u origin dev` (create `origin/dev` if missing). No user approval required.
 4. Record the `origin/dev` SHA in the Linear closeout comment.
@@ -703,24 +753,27 @@ If checks fail, do not push; leave leaf In Progress with a failure comment.
 
 ## Phase 8 — Linear closeout
 
-After verified merge to local `dev` for the **leaf** work issue:
+After the leaf is verified **on `origin/dev`** (cloud: issue PR merged; local: push completed):
 
 1. **Required** completion comment on the leaf:
    - Summary of code changes (paths)
    - Implement effort + review rounds (if known)
    - Verification commands + results
-   - Local branches: issue branch name + **merged into local `dev`**
-   - Explicit: **pushed to `origin/dev`** after checks; **no** merge to `main`/prod (unless user explicitly approved a separate `/prb`)
+   - Cloud: issue branch + PR URL + **merged into `origin/dev` @ sha**
+   - Local: issue branch + **merged/pushed `origin/dev` @ sha**
+   - Explicit: **no** merge to `main`/prod (that is `/prb` Path B + approval)
    - Parent epic reference if this was an expanded child
    - Follow-ups filed or recommended
-2. Set state **In Review** on the **leaf** if the team has that status; otherwise leave **In Progress**. Never **Done** here (`/prb` owns Done after `main`).
+2. Set state **In Review** on the **leaf** if the team has that status; otherwise leave **In Progress**. Never **Done** here (`/prb` Path B owns Done after `main`).
 3. If this leaf had a parent epic:
    - Re-list children of the parent.
-   - If **any** non-terminal children remain: **required** brief progress comment on the epic (`Child TEAM-205 Done; remaining: …`).
+   - If **any** non-terminal children remain: **required** brief progress comment on the epic (`Child TEAM-205 In Review on origin/dev; remaining: …`).
    - If **all** children are terminal: **required** epic rollup — comment + set epic **Done** (see 2E). Does not consume a solve-count slot.
 4. Brief comments on **related** issues only if this clearly unblocks them (optional but preferred when obvious).
 
-If verification failed or dev merge failed:
+**Do not** stop at In Review without having merged the cloud issue PR into `origin/dev` once the issue is actually done (CI green + zero useful open comments).
+
+If verification failed or land-to-`dev` failed:
 
 - Leave leaf **In Progress**, or set **Blocked** with reason when blocked on human/external input.
 - **Required** failure comment on the leaf explaining what failed. In **integer `N`** multi-issue mode, note that the batch halted. In **`all`** mode, note that this leaf failed and the drain **continues** with other independent eligible issues.
@@ -736,11 +789,11 @@ If verification failed or dev merge failed:
 **Solved:** [TEAM-123](url) — <title>
 **Via epic:** [TEAM-100](url) — <epic title>   <!-- omit if not expanded -->
 **Linear:** leaf In Review (`origin/dev`); epic <left open | rollup Done only if all children terminal>
-**Branch:** `<issue-branch>` → local `dev` → **`origin/dev` @ sha** (after checks)
-**Main/prod:** not shipped (needs explicit approval)
+**Branch:** `<issue-branch>` (Linear-named) → **`origin/dev` @ sha**
+**Path:** cloud PR into `dev` merged | local push `origin/dev`
+**Main/prod:** not shipped (needs `/prb` Path B + explicit approval)
 **Implement:** effort N · review rounds R · 0 open review issues
 **Verify:** <commands + pass/fail>
-**Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
 **Notes:** <one line if needed>
 ```
 
@@ -771,10 +824,10 @@ If verification failed or dev merge failed:
 - Implementable eligible still open: **none** (required for all after drain gate)
   <!-- integer N incomplete batch may list remaining and suggest re-run `/solve` / `/solve N` -->
 - Open but blocked / other-assignee / guidance-obsolete only: <ids if any>
-**Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
+**Landed:** `origin/dev` @ sha · **main/prod:** not shipped (`/prb` Path B + approval)
 ```
 
-### Fast batch (`FAST_MODE`)
+### Fast batch (Mac/Grok only) (`FAST_MODE`)
 
 **Only emit after F6 + drain gate when mode is `all`.**
 
@@ -799,7 +852,7 @@ If verification failed or dev merge failed:
 ### Remaining
 - Implementable eligible still open: **none** (required for all after drain gate)
   <!-- integer N may list leftovers and suggest re-run -->
-**Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
+**Landed:** `origin/dev` @ sha · **main/prod:** not shipped (`/prb` Path B + approval)
 ```
 
 If `all` drained implementable work: state clearly that **Drain verified: no eligible unblocked implementable issues remain** (mention guidance-skipped obsolete, blocked, or other-assignee tickets separately if still open). **Do not** tell the user to re-run `/solve all` to finish work that this run should have continued.
@@ -835,7 +888,7 @@ Canonical policy for status, assignee, and comments under `/solve`.
 | Phase 3 start work | **leaf** | → **In Progress** | → **me** if unassigned | **Yes** (start plan) |
 | Phase 3 (expanded child) | parent epic | unchanged | unchanged | **Yes** (starting child …) |
 | Phase 5–7 (implement/verify/merge) | leaf | stays In Progress | stays | no routine mid-flight comments |
-| Phase 8 success | **leaf** | → **Done** | unchanged | **Yes** (completion evidence) |
+| Phase 8 success | **leaf** | → **In Review** (not Done) | unchanged | **Yes** (completion evidence + origin/dev SHA) |
 | Phase 8 success, parent still has open children | parent epic | unchanged | unchanged | **Yes** (child Done; remaining …) |
 | Phase 8 success, parent all children terminal | parent epic | → **Done** | unchanged | **Yes** (rollup) |
 | Phase 8 / implement failure | **leaf** | stays **In Progress**, or → **Blocked** if human/external | unchanged | **Yes** (failure reason) |
@@ -843,7 +896,7 @@ Canonical policy for status, assignee, and comments under `/solve`.
 
 ### Comment rules (summary)
 
-- **Yes, comment** on every issue we **claim** (start) or **complete** (Done) or **fail** after claiming, plus epic start/progress/rollup notes tied to that work.
+- **Yes, comment** on every issue we **claim** (start) or **complete** (In Review on origin/dev) or **fail** after claiming, plus epic start/progress/rollup notes tied to that work.
 - **No, do not comment** on every issue we merely scan and skip while hunting for the next eligible leaf.
 - **No spam**: one start comment and one completion (or failure) comment on the leaf is enough; avoid play-by-play during implement/review.
 - Implementer/reviewer subagents **must not** update Linear state or close issues (solve orchestrator owns Linear).
@@ -903,6 +956,14 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - **Fast:** using only `git worktree remove` for tool-created worktrees — use `grok worktree rm --force`
 - **Fast:** exceeding concurrency 8 or spawning separate `grok` CLI processes (v1)
 - **Fast:** starting a dependent while its hard dep is only done in a worktree, not yet on local `dev`
+- **Cloud:** branching before the hard pre-branch gate (`origin/main` not in `origin/dev`)
+- **Cloud:** `starting_ref` / issue branch from stale `main`, stale `dev`, or an old SHA
+- **Cloud:** naming branches after agents or using `solve/<run>/…` (Grok-only)
+- **Cloud:** opening a PR with base **`main`**, or merging to **`main`**
+- **Cloud:** opening multiple comment-fix PRs instead of iterating one issue PR
+- **Cloud:** stopping at In Review / green CI without merging the issue PR into `origin/dev` when the issue is done
+- **Cloud:** using Grok fast-mode wave PRs as the Cursor cloud default
+
 
 ---
 
@@ -912,9 +973,9 @@ Canonical policy for status, assignee, and comments under `/solve`.
 |-------|------------|
 | `/issue` | Files thorough tickets only |
 | `/implement` | Implement→review loop only; no Linear pick / no git delivery |
-| `/solve` | Selects Linear issue(s) + implement loop + local `dev` + **`origin/dev` push after checks**; count via `/solve [N\|all]` (default 1); optional **`fast`** parallel orchestrator |
+| `/solve` | Selects Linear issue(s) + implement loop → **`origin/dev`** (cloud: one PR into `dev`; local: merge+push); count via `/solve [N\|all]` (default 1); Mac/Grok-only optional **`fast`** |
 | `/execute-plan` | Parallel worktree implement from a design-doc PR DAG (not Linear pick/closeout) |
-| `/prb` | Promotes already-pushed `origin/dev` → PR → main/prod; **`origin/dev` is automatic**, **main/prod needs explicit user approval** |
+| `/prb` | **Path A:** cloud land issue-branch → `origin/dev`. **Path B (Mac):** `origin/dev` → `main`/prod with review gate, babysit, migrate, **explicit approval**; Done only after `main` |
 | GSD | Broader delivery (push/PR/deploy); do **not** assume those defaults here |
 
 ---
@@ -941,7 +1002,15 @@ references/graph.schema.json
 # absolute: $SOLVE_SKILL_DIR/references/<file>
 ```
 
-Fast-mode orchestration (waves, worktrees, cleanup) lives in:
+Cursor cloud delivery (hard refresh gate, one PR into `dev`) lives in:
+
+```text
+references/cloud-agent-flow.md
+references/git-dev-workflow.md
+# absolute: $SOLVE_SKILL_DIR/references/<file>
+```
+
+Mac/Grok-only fast-mode orchestration (waves, worktrees, cleanup) lives in:
 
 ```text
 references/fast-mode.md
@@ -949,7 +1018,7 @@ references/architecture-guidance-template.md
 # absolute: $SOLVE_SKILL_DIR/references/<file>
 ```
 
-`architecture-guidance-template.md` is a **fast supplement**; `guidance.md` from batch guidance is the **authority** for platform direction and supersession.
+`architecture-guidance-template.md` is a **fast supplement**; `guidance.md` from batch guidance is the **authority** for platform direction and supersession. **Cursor cloud must not use fast-mode wave PRs.**
 
 ---
 
@@ -960,4 +1029,4 @@ references/architecture-guidance-template.md
 - **Implement skill missing**: report path resolution failure; stop.
 - **Batch guidance / fast package fails**: stop before claim/workers; report inventory/graph/direction problems; do not spawn parallel implementers or implement obsolete stack work.
 - **Fast worktree cleanup fails**: retry `grok worktree rm --force` once; include leftover paths in Phase 9; do not pretend remaining worktrees is 0.
-- **Push requested later**: user may run a separate ship step; this skill’s default remains local-only.
+- **Main/prod ship**: user runs `/prb` Path B; this skill lands on `origin/dev` only (cloud PR or local push).
