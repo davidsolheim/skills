@@ -19,8 +19,9 @@ These packages are **sanitized for open use**: no client brands as required defa
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
 1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), or **file** tickets from a human description (`/issue` / `/issues`).
-2. **Solve** unblocked tickets onto a long-lived local `dev` branch with an implement→review loop.
-3. **Ship** `dev` → **local code review gate** (closed-loop Linear fix if needed) → push → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
+2. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
+3. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
+4. **Ship** `dev` → **local code review gate** (closed-loop Linear fix if needed) → push → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
 
 The skills assume a professional full-stack product shop—not a single demo app. They are stack-aware when *your* docs say so, but they do not hard-code one company’s board or hoster.
 
@@ -36,8 +37,12 @@ The skills assume a professional full-stack product shop—not a single demo app
         └─► /issues          ──► many tickets from a human dump
         │
         ▼
+   /identify ──► pick 2–4 high-value leaves → upgrade thin tickets → wait
+        │         approve → claim → /solve 1 per ID (sequential)
+        │         reject  → next-best 2–4
+        ▼
    /solve   ──► implement on short-lived branch → merge local dev only
-        │         (/solve N · /solve all · /solve all fast)
+        │         (/solve N · /solve all · /solve all fast · or /solve 1 ID from identify)
         ▼
    /prb     ──► local review gate → (issue+solve loop) → push origin/dev
                 → PR main←dev → babysit CI → migrate? → merge
@@ -48,6 +53,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
+| [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
 | [`prb/`](./prb/) | Local review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
 
@@ -90,7 +96,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/solve` closeout comments).
+- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/identify` upgrades + claims, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
@@ -148,6 +154,27 @@ Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic 
 
 ---
 
+### `/identify` — recommend a 2–4 ticket batch, then `/solve` on approve
+
+**Path:** [`identify/`](./identify/)
+
+Reads the current project’s **open** Linear board, keeps only `/solve`-eligible unblocked **leaves**, ranks by **Linear priority then user-facing impact**, and proposes a **small mix** (2–4). Thin tickets in that set are rewritten in Linear to the `/issue` bar **before** you see them. The skill **stops and waits**.
+
+| You say | What happens |
+|---------|----------------|
+| **Approve** | Claim each id (`claimed-by:` + In Progress), then sequential `/solve 1 <ID>` in the proposed order |
+| **Reject** | Those ids are excluded for the session; next-best 2–4 is proposed |
+
+Plain `/identify` only — no size, theme, or id args. `/solve` still works without Identify when you want auto-pick.
+
+**Triggers:** `/identify`, “identify work”, “pick a batch”, “what should we solve”, “recommend issues to solve”
+
+**Needs:** Linear MCP · current git workspace · companion `/issue` (upgrades) and `/solve` (eligibility + implement)
+
+**Companion refs:** [`identify/references/ranking.md`](./identify/references/ranking.md), [`identify/references/upgrade.md`](./identify/references/upgrade.md)
+
+---
+
 ### `/solve` — implement unblocked Linear work onto local `dev`
 
 **Path:** [`solve/`](./solve/)
@@ -194,7 +221,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/project-review skills/solve skills/prb ~/.grok/skills/
+cp -R skills/issue skills/issues skills/project-review skills/identify skills/solve skills/prb ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -207,7 +234,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/identify`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -258,6 +285,9 @@ My Product Launch
 ├── issues/
 │   ├── SKILL.md
 │   └── references/
+├── identify/
+│   ├── SKILL.md
+│   └── references/          # ranking, upgrade
 ├── solve/
 │   ├── SKILL.md
 │   └── references/
