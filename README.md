@@ -19,9 +19,10 @@ These packages are **sanitized for open use**: no client brands as required defa
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
 1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), or **file** tickets from a human description (`/issue` / `/issues`).
-2. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
-3. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
-4. **Ship** `dev` → **local code review gate** (closed-loop Linear fix if needed) → push → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
+2. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown.
+3. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
+4. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
+5. **Ship** `dev` → **local code review gate** (closed-loop Linear fix if needed) → push → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
 
 The skills assume a professional full-stack product shop—not a single demo app. They are stack-aware when *your* docs say so, but they do not hard-code one company’s board or hoster.
 
@@ -36,6 +37,9 @@ The skills assume a professional full-stack product shop—not a single demo app
         ├─► /issue           ──► one Linear ticket (deep code map + AC)
         └─► /issues          ──► many tickets from a human dump
         │
+        ▼
+   /tidy     ──► upgrade thin tickets · status if shipped · weekly stamp
+        │         skip live claims · needs-you list at end
         ▼
    /identify ──► pick 2–4 high-value leaves → upgrade thin tickets → wait
         │         approve → claim → /solve 1 per ID (sequential)
@@ -53,6 +57,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
+| [`tidy/`](./tidy/) | Board hygiene: upgrade, relations, rollup, high-confidence close, shipped status | None (Linear only) |
 | [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
 | [`prb/`](./prb/) | Local review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
@@ -96,7 +101,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/identify` upgrades + claims, `/solve` closeout comments).
+- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/tidy` hygiene + stamps, `/identify` upgrades + claims, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
@@ -151,6 +156,28 @@ Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic 
 **Useful flags:** `--draft`, `--plan-only`, `--no-epic`, `--epic "Title"`, `--max N`
 
 **Triggers:** `/issues`, “break this into tickets”, “file this list”…
+
+---
+
+### `/tidy` — Linear board hygiene (weekly cooldown)
+
+**Path:** [`tidy/`](./tidy/)
+
+Full pass on the current project’s **due** issues. Thickens thin tickets to the `/issue` bar, retitles, fixes obvious relations, rolls up finished epics, applies **high-confidence** Duplicate/Canceled, and sets status when work is already shipped (**In Review** on `origin/dev`, **Done** only on `main`). Skips live foreign claims. Finishes the board, then one **needs-you** list.
+
+| Invocation | Behavior |
+|------------|----------|
+| `/tidy` | Every issue whose last tidy-pass is ≥ 7 days ago (or never) |
+| `/tidy --force` | Ignore cooldown for the whole board |
+| `/tidy TEAM-123` | That issue only; ignore its cooldown |
+
+Last pass is a parseable Linear `tidy-pass:` comment plus a machine-local ledger under `~/.grok/tidy/ledgers/`. Does **not** implement or claim.
+
+**Triggers:** `/tidy`, “tidy Linear”, “clean up the board”, “thicken thin tickets”, “close issues that are already done”
+
+**Needs:** Linear MCP · current git workspace · companion `/issue` (quality bar)
+
+**Companion refs:** [`tidy/references/ledger.md`](./tidy/references/ledger.md), [`tidy/references/actions.md`](./tidy/references/actions.md)
 
 ---
 
@@ -221,7 +248,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/project-review skills/identify skills/solve skills/prb ~/.grok/skills/
+cp -R skills/issue skills/issues skills/project-review skills/tidy skills/identify skills/solve skills/prb ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -234,7 +261,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/identify`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/tidy`, `/identify`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -288,6 +315,9 @@ My Product Launch
 ├── identify/
 │   ├── SKILL.md
 │   └── references/          # ranking, upgrade
+├── tidy/
+│   ├── SKILL.md
+│   └── references/          # ledger, actions
 ├── solve/
 │   ├── SKILL.md
 │   └── references/
