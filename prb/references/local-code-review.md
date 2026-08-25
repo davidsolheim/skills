@@ -1,8 +1,8 @@
 # /prb — Local Code Review Gate + Closed-Loop Fix Cycle
 
-When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. Findings become Linear issues via `/issue`, are fixed on local `dev` via `/solve`, then the gate re-runs until clean (or the cycle cap).
+When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is a **four-agent review panel** on `grok-4.6` (thoroughness, security, rules, challenge), merged through [`review-rubric.md`](review-rubric.md). Findings become Linear issues via `/issue`, are fixed on local `dev` via `/solve`, then the gate re-runs until clean (or the cycle cap).
 
-Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This file is the detailed procedure for **Phase 1.5**.
+Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This file is the detailed procedure for **Phase 1.5**. Rubric and specialist prompts are not duplicated here.
 
 ---
 
@@ -24,8 +24,8 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 | Flag | Effect |
 |------|--------|
 | `--skip-review` | Skip entire gate + closed loop. Dangerous. Explicit only. |
-| `--exhaustive-review` | Force exhaustive mode **on** (default is already on). |
-| `--no-exhaustive` | Single review pass per cycle (still blocks on any actionable findings found). |
+| `--exhaustive-review` | After a clean first panel, run **one** more panel pass hunting for issues not already listed (default **on**). |
+| `--no-exhaustive` | Exactly one panel pass per cycle (still blocks on any actionable findings found). |
 | `--max-fix-cycles N` | Cap full **review → issue → solve → re-review** cycles. Default **5**. |
 
 Parse from the `/prb` invocation. Record:
@@ -73,7 +73,7 @@ git merge-base --is-ancestor origin/main dev   # must still be true
 
 ### Size gate
 
-If the unified diff is huge (> ~1 MB text), still review, but prefer path-by-path / subagent review of high-risk areas first (auth, payments, migrations, data access, public API). Do not skip the gate because the diff is large unless the user passed `--skip-review`.
+If the unified diff is huge (> ~1 MB text), still run the four-agent panel. Tell every agent to cover high-risk paths first (auth, payments, migrations, data access, public API) and then the rest of the ship set. Do not skip the gate because the diff is large unless the user passed `--skip-review`.
 
 ---
 
@@ -94,34 +94,13 @@ If no `## Code Review Rules` sections exist, still review for correctness/securi
 
 ---
 
-## 5. Review focus (high-signal only)
+## 5. What is actionable
 
-**Prioritize (actionable when real):**
+**Authority:** [`review-rubric.md`](review-rubric.md). Do not invent a second policy here.
 
-| Category | Examples |
-|----------|----------|
-| Correctness / regressions | Wrong conditionals, broken control flow, off-by-one, incomplete migrations of call sites, race conditions |
-| Security | Authz bypass, secret leakage, injection, unsafe deserialization, SSRF, missing CSRF on state-changing routes where required |
-| Performance | N+1 queries, unbounded loads, accidental full-table scans introduced by the diff, blocking work on hot paths |
-| Maintainability (high impact) | Clear AGENTS violations, logic in the wrong layer, destructive coupling introduced by the ship |
-| Tests | New behavior with no tests when the repo expects them; deleted tests without replacement |
-| Repo invariants | Doppler/env rules, no `db:push` to prod patterns, branch/package boundaries from AGENTS |
+**Actionable** (blocks push, files Linear): `[P0]` / `[P1]`, plus `[P2]` that is high-signal correctness, security, or regression.
 
-**Deprioritize / do not block the gate:**
-
-- Pure style / formatting / import order
-- Optional renames, “could be slightly cleaner” without correctness risk
-- Drive-by refactors outside the ship set
-- Nits that would not matter if CI is green and behavior is correct
-
-**Severity labels** (use these in structured output):
-
-| Severity | Meaning | Actionable for gate? |
-|----------|---------|----------------------|
-| `critical` | Breaks production / security / data integrity | **Yes** |
-| `serious` | Likely bug, regression, or hard AGENTS violation | **Yes** |
-| `medium` | Real risk but narrower; correctness/security still counts | **Yes** if high-signal correctness/security/regression; else optional |
-| `nit` | Style / low-value | **No** — log only; do not open Linear issues |
+**Not actionable:** `[P3]` / nits, style, optional cleanup, speculative breakage, pre-existing issues on `origin/main`.
 
 **Gate pass = zero actionable findings.** Nits alone never block push.
 
@@ -129,60 +108,79 @@ If no `## Code Review Rules` sections exist, still review for correctness/securi
 
 ## 6. How to run the review
 
-### Prefer a read-only reviewer subagent
-
-Spawn `general-purpose` (or equivalent) with description prefix `[reviewer] prb local gate`:
-
-- **Read-only:** no edits, no git writes, no Linear, no push.
-- Prompt must include: ship-set commands, path list, AGENTS Code Review Rules text, exhaustive flag, severity policy, output path.
-- Instruct: read the diff **and** surrounding source for call sites/types before flagging.
-
-Orchestrator may perform the review itself when the diff is tiny; prefer subagent for non-trivial ships.
+Always run the **panel**. Tiny diffs still get all four agents. Orchestrator does **not** author findings.
 
 **Do not** use the bundled `/review` PR-posting flow (no GitHub PENDING review). This gate is local-only.
 
-### Exhaustive mode (default **on**)
-
-When `EXHAUSTIVE_REVIEW=true`:
-
-```text
-round = 0
-MAX_EXHAUSTIVE_ROUNDS = 3
-findings = []
-
-while round < MAX_EXHAUSTIVE_ROUNDS:
-  round += 1
-  new = review_pass(ship_set, known=findings)
-  actionable_new = filter_actionable(new)
-  if actionable_new is empty:
-    break
-  merge into findings (dedupe by file+line+problem signature)
-  # next round: hunt for issues NOT already listed
-```
-
-When `--no-exhaustive`: exactly **one** review pass per cycle.
-
-Still: one thorough pass beats a flood of nits. Stop adding findings when only low-value items remain.
-
-### Structured output (required)
-
-Write a review artifact (mode 0600) under a user-private scratch dir:
+### 6A. Scratch paths
 
 ```bash
 umask 077
 scratch_dir="${TMPDIR:-/tmp}/grok-$(id -u)"
 mkdir -p "$scratch_dir" && chmod 700 "$scratch_dir"
-# e.g. ${scratch_dir}/prb-review-${RUN_ID}-c${cycle}.md
 ```
 
-**Template:**
+Per cycle `C` and panel pass `R` (1 or 2):
+
+| File | Writer |
+|------|--------|
+| `${scratch_dir}/prb-review-${RUN_ID}-c${C}-r${R}-thoroughness.json` | thoroughness agent |
+| `${scratch_dir}/prb-review-${RUN_ID}-c${C}-r${R}-security.json` | security agent |
+| `${scratch_dir}/prb-review-${RUN_ID}-c${C}-r${R}-rules.json` | rules agent |
+| `${scratch_dir}/prb-review-${RUN_ID}-c${C}-r${R}-challenge.json` | challenge agent |
+| `${scratch_dir}/prb-review-${RUN_ID}-c${C}.md` | orchestrator merge (gate artifact) |
+
+Inline these absolute paths into prompts. Never put secrets, tokens, connection strings, or `.env` contents in artifacts.
+
+### 6B. Load the rubric and AGENTS rules
+
+1. Read [`review-rubric.md`](review-rubric.md) in full. Prepend that text to **every** specialist prompt.
+2. Load AGENTS Code Review Rules as in §4. Paste the excerpts into every prompt (rules agent still owns citation; others need them as override context).
+3. Read [`reviewer-prompts.md`](reviewer-prompts.md) and append **one** specialist overlay per spawn.
+
+### 6C. Spawn the panel (one turn, parallel)
+
+Launch **all four** in the same assistant response with `spawn_subagent`:
+
+| Tag | Overlay | Fatal if spawn/run fails? |
+|-----|---------|---------------------------|
+| `[thoroughness]` | Thoroughness | **Yes** — stop the gate; do not push |
+| `[security]` | Security | No — warn, continue with remaining |
+| `[rules]` | Rules | No — warn, continue with remaining |
+| `[challenge]` | Challenge | No — warn, continue with remaining |
+
+Shared spawn args:
+
+- `subagent_type`: `general-purpose`
+- `model`: `grok-4.6` (required for this gate)
+- `background`: `true`
+- `description`: `[<tag>] prb local gate c${C} r${R}`
+- Do **not** pass `capability_mode`
+
+Then wait with `get_command_or_subagent_output` until all four complete (or the three non-fatal ones if one specialist failed).
+
+Each agent writes **only** rubric JSON to its output file. If a file is missing or not valid JSON, treat that agent as failed (fatal for thoroughness → `REVIEW_EXIT=blocked-tooling`, do not push; skip for specialists).
+
+### 6D. Merge
+
+Read the JSON files. Build one finding list:
+
+1. Tag each finding with its source (`thoroughness` / `security` / `rules` / `challenge`).
+2. Deduplicate by file + overlapping line range + same defect/remedy. Union source tags when merging. Keep the higher priority. When in doubt that they are the same defect, keep both.
+3. Drop anything that fails the rubric tests (pre-existing, speculative, intentional, nit-only, author would not fix).
+4. Re-check every survivor against applicable `AGENTS.md` rules. Add a citation when the finding is rule-supported; do not drop ordinary bugs that are not rule violations.
+5. Classify actionable vs nit using §5.
+
+Write the merged gate artifact:
 
 ```markdown
 # Local code review — origin/main...dev
 - Repo: <owner/repo>
 - dev SHA: <sha>
 - origin/main SHA: <sha>
-- Exhaustive: yes|no · round: r/R
+- Panel: thoroughness, security, rules, challenge · grok-4.6
+- Exhaustive: yes|no · panel pass: r/R
+- Agents ok: <list> · failed: <list or none>
 - Correctness verdict: pass | fail
 - Confidence: high | medium | low
 
@@ -191,7 +189,7 @@ mkdir -p "$scratch_dir" && chmod 700 "$scratch_dir"
 
 ## Actionable findings
 
-### F1 — Severity: critical|serious|medium
+### F1 — Severity: critical|serious|medium · P0|P1|P2 · [thoroughness, security]
 - File: path/to/file.ext:START-END
 - Explanation: <what is wrong and why it matters>
 - AGENTS rule: <cite or "none">
@@ -205,7 +203,20 @@ mkdir -p "$scratch_dir" && chmod 700 "$scratch_dir"
 - Gate: CLEAN | NEEDS_FIX
 ```
 
-Never put secrets, tokens, connection strings, or full `.env` contents in the artifact.
+`overall_correctness` of `"patch is incorrect"` from any surviving agent is a fail unless merge dropped every supporting finding.
+
+### 6E. Exhaustive panel (default **on**)
+
+```text
+pass = 1
+findings = merge(panel_pass(1))
+if EXHAUSTIVE_REVIEW and filter_actionable(findings) is empty:
+  pass = 2
+  more = merge(panel_pass(2, known=findings))  # prompts include known findings; hunt for NEW issues
+  findings = dedupe(findings + more)
+```
+
+`--no-exhaustive`: exactly **one** panel pass per cycle. Never run a third panel pass in the same cycle. Closed-loop re-review after `/solve` is a new cycle, not an exhaustive extra pass.
 
 ---
 
@@ -280,10 +291,10 @@ loop:
 
 | Step | Parallelism |
 |------|-------------|
-| Review | One reviewer at a time per cycle |
+| Review | Four `grok-4.6` agents in parallel, then orchestrator merge |
 | `/issue` creates | Parallel OK for independent findings |
 | `/solve` | **Default sequential** (one after another on local `dev`) |
-| Re-review | Only after the cycle’s intended solves finished or failed |
+| Re-review | Full panel again, only after the cycle’s intended solves finished or failed |
 
 ### Re-review discipline
 
@@ -312,7 +323,7 @@ Do not treat the first clean review as a permanent waiver for later fix commits.
 | `clean` | **Yes** (if main-ancestor checks also pass) | `Review: local clean after N cycles` and/or `local fixed M findings across K Linear issues` |
 | `skipped` | **Yes** (with loud warning) | `Review: skipped (--skip-review)` |
 | `blocked-at-cap` | **No** | `Review: blocked at cycle cap (remaining …)` |
-| `blocked-tooling` | **No** | `Review: blocked (Linear/solve failure)` |
+| `blocked-tooling` | **No** | `Review: blocked (Linear/solve failure)` or `blocked (thoroughness agent failed)` |
 
 Always include when issues were filed:
 
@@ -336,6 +347,12 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 - Pushing from an issue branch instead of local `dev`
 - Printing secrets into review artifacts or Linear bodies
 - Weakening the `origin/main` → `dev` merge requirement “because review passed”
+- Orchestrator writing findings instead of spawning the panel
+- Spawning fewer than four agents without a specialist failure
+- Using any model other than `grok-4.6` for these reviewers
+- Treating the panel as a nit hunt — or treating P0/P1 as optional
+- Running three sequential single-reviewer passes instead of the panel
+- Posting GitHub PENDING reviews from this gate
 
 ---
 
@@ -345,5 +362,7 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 |-------|-----------|
 | `/issue` | File one implementation-ready Linear ticket per distinct finding |
 | `/solve` | Implement ticket onto **local `dev`** (no push) |
-| `/review` | Optional inspiration for reviewer structure; **not** required; do not post GitHub PENDING reviews from this gate |
+| `/review` | Optional local/PR review tooling; **not** this gate; do not post GitHub PENDING reviews from Phase 1.5 |
+| [`review-rubric.md`](review-rubric.md) | Finding policy (what to flag, priority, JSON schema) |
+| [`reviewer-prompts.md`](reviewer-prompts.md) | Specialist overlays prepended after the rubric |
 | `/prb` Phase 3 babysit | Separate CI/bot loop **after** clean local review + push + PR |
