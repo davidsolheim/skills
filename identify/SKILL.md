@@ -240,8 +240,10 @@ for ID in QUEUE:
 ```
 
 Load `$SOLVE_SKILL_MD` and follow it end-to-end for each ID (Phase 0–9 of
-solve, with count mode `1`). Identify must **not** write application source
-during those loops; the solve orchestrator / implementers do.
+solve, with count mode `1`). If nested `/solve` is a `spawn_subagent`, pass
+**`model: grok-4.6`** ([`../docs/grok-models.md`](../docs/grok-models.md)).
+Identify must **not** write application source during those loops; the solve
+orchestrator / implementers do.
 
 Hard constraints to inject into each nested solve:
 
