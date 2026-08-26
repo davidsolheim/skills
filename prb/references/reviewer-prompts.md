@@ -5,7 +5,7 @@ Orchestrator-only. Prepend [`review-rubric.md`](review-rubric.md) (full text) to
 Every spawn:
 
 - `subagent_type`: `general-purpose`
-- `model`: `grok-4.6`
+- `model`: `grok-4.6` (required; never omit / never inherit; [`../../docs/grok-models.md`](../../docs/grok-models.md))
 - `background`: `true` (launch the panel in one turn)
 - `description`: `[thoroughness] …` / `[security] …` / `[rules] …` / `[challenge] …`
 - Do **not** pass `capability_mode`. Reviewers must write their scratch file. Read-only is enforced by the prompt: no source edits, no git writes, no Linear, no push.

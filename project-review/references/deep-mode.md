@@ -190,6 +190,7 @@ Proceed unless inventory empty or user asked for dry-run only.
 | Param | Value |
 |-------|--------|
 | `subagent_type` | `explore` preferred for pure code walk; `general-purpose` if browser/live tools needed |
+| `model` | `grok-4.5` for explore code-walk; `grok-4.6` if general-purpose / browser. Never omit. [`../../docs/grok-models.md`](../../docs/grok-models.md) |
 | `capability_mode` | `read-only` when available (explore default) |
 | `isolation` | `none` (shared workspace — workers write under SCRATCH_DIR only) |
 | `background` | `true` |

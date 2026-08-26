@@ -183,9 +183,9 @@ while actionable findings remain:
   cycle += 1
 
   For each distinct actionable finding (or tightly related group):
-    1. Spawn subagent → /issue  (file/line, severity, AGENTS rule, context)
+    1. Spawn subagent → /issue  (file/line, severity, AGENTS rule, context; model grok-4.6)
     2. Capture TEAM-### 
-    3. Spawn subagent → /solve TEAM-###  (fix lands on local dev only; no push)
+    3. Spawn subagent → /solve TEAM-###  (fix lands on local dev only; no push; model grok-4.6)
        Prefer sequential solves so merges to dev do not race.
 
   Re-run 1.5A (full four-agent panel) on updated origin/main...dev
@@ -494,7 +494,7 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 - Pushing `dev` or opening a PR without a clean Local Code Review Gate (unless `--skip-review`)
 - Skipping re-review after `/solve` closed-loop fixes
 - Orchestrator-authored findings instead of the thoroughness/security/rules/challenge panel
-- Reviewing Phase 1.5 on a model other than `grok-4.6`
+- Reviewing Phase 1.5 on a model other than `grok-4.6` (or omitting `model` so Cursor/Claude inherit)
 - Treating nits as ship-blockers — or treating P0/P1 findings as optional nits
 - Treating a clean review panel or typecheck as runtime proof for UI/auth/billing/API/schema/shared-helper ships
 - Bundling unrelated review findings into one mega Linear issue

@@ -21,6 +21,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 9. **Summary**: always write the implement summary file requested by the orchestrator (paths changed, design decisions, supersession overrides, verification notes, **runtime-proof evidence**).
 10. **Runtime proof**: follow [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md). Do not claim the implement loop complete on typecheck/tests/build alone when the change is user-visible, auth, billing, public API, schema, or a shared helper.
 11. **Boundaries**: parse/validate at HTTP, env, webhooks, and external JSON. After that, trust internal types. Do not nil-guard a crash and call it fixed.
+12. **Models:** every `spawn_subagent` (implementer, reviewers, nested workers) must pass `model: grok-4.6` per [`../../docs/grok-models.md`](../../docs/grok-models.md). Do not inherit the parent. Do not spawn Claude, GPT, Gemini, Composer, or Cursor Auto.
 
 ## Ticket kind
 

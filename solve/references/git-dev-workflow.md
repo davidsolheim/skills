@@ -118,7 +118,7 @@ Confirm `git log --oneline -5` shows the merge/work on `dev`.
 When `FAST_MODE` is true, follow [`fast-mode.md`](fast-mode.md). Git differences:
 
 1. **Orchestrator** refreshes `main` → `dev` once (or per wave) in the **main workspace**.
-2. Each worker runs in an isolated **git worktree** (`spawn_subagent` `isolation: worktree`) on a short-lived issue branch based at the **wave base** (`dev` tip when the wave started).
+2. Each worker runs in an isolated **git worktree** (`spawn_subagent` `isolation: worktree`, **`model: grok-4.6`**) on a short-lived issue branch based at the **wave base** (`dev` tip when the wave started).
 3. Workers **commit only on the issue branch**. They never checkout/merge `dev` in a way that races the orchestrator.
 4. Orchestrator integrates with the Subagent Worktree Protocol:
    - `git fetch <worktree_path> HEAD --no-tags`

@@ -153,6 +153,8 @@ Workers **must not** set Linear state.
 - `issue_branch = solve/<RUN_ID>/<ISSUE>`
 - `git branch <issue_branch> <wave_base_sha>` then spawn `isolation: worktree` on that branch.
 
+Worker spawn (required): `subagent_type: general-purpose`, `isolation: worktree`, **`model: grok-4.6`** ([`../../docs/grok-models.md`](../../docs/grok-models.md)). Do not inherit the parent.
+
 ### Worker prompt (required)
 
 ```markdown
@@ -338,6 +340,7 @@ Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remai
 - Exceeding `MAX_CONCURRENCY` (8)
 - Implementing epic shells
 - Spawning a second top-level grok CLI drain (v1: one orchestrator; workers = subagents + worktrees)
+- Fast workers without `model: grok-4.6` (Claude/GPT/Composer inherit)
 
 ---
 

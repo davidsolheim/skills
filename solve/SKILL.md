@@ -189,6 +189,7 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
    - `SOLVE_SKILL_DIR` = directory containing this `SKILL.md` (from skill load path).
    - `CUSTOM_IMPL_INSTRUCTIONS` = `$SOLVE_SKILL_DIR/references/custom-implement-instructions.md` — **read this file every run** (and again if the file may have changed between batch items).
    - `PROVE_IT_WORKS_MD` = `$SOLVE_SKILL_DIR/../docs/prove-it-works.md` — **read for Phase 6** (and inject the path into implementer/fast-worker prompts).
+   - `GROK_MODELS_MD` = `$SOLVE_SKILL_DIR/../docs/grok-models.md` — **read once**; every spawn in this run uses Grok-only slugs.
    - `BATCH_GUIDANCE_MD` = `$SOLVE_SKILL_DIR/references/batch-guidance.md` — **read when `GUIDANCE_REQUIRED`**
    - `BATCH_GUIDANCE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/batch-guidance-template.md` — **read when `GUIDANCE_REQUIRED`**
    - `FAST_MODE_MD` = `$SOLVE_SKILL_DIR/references/fast-mode.md` — **read when `FAST_MODE`**
@@ -624,6 +625,7 @@ Use CLI `--effort N` if valid (1–5). Else default from custom instructions (cu
 
 Follow **every** required step of the implement skill for this description and effort, including:
 
+- **`model: grok-4.6` on every `spawn_subagent`** (implementer, reviewers, resumes). Authority: [`../docs/grok-models.md`](../docs/grok-models.md). Do not omit `model`. Do not inherit the parent.
 - Tool-call discipline and todo scaffold (implement phase ids)
 - Persona injection and bracketed `description` tags
 - Memory retrieval / flush via implement’s `memory.py`
@@ -882,6 +884,7 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - Hard-stopping sequential **`all`** after one independent failure while other eligible leaves remain
 - Implementing the issue **yourself** instead of the implement loop
 - Ignoring `custom-implement-instructions.md` or `guidance.md`
+- Spawning implementer/reviewer/fast workers without `model: grok-4.6` (or `grok-4.5` only for explore fan-out) — [`../docs/grok-models.md`](../docs/grok-models.md)
 - Using capital-`D` **`Dev`** (or any other casing) instead of lowercase **`dev`** for the integration branch
 - Creating a new branch named `Dev`
 - Skipping build/security checks before `git push origin dev`

@@ -102,7 +102,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 | Secrets | **Doppler** (or Vercel env / `.env.local` for local only)—skills never commit secrets |
 | CI | GitHub Actions + `gh` CLI for PRs, checks, and merge |
 | Project tracking | **Linear** (MCP tools: list/create/update issues, comments, projects) |
-| Agent runtime | **Grok Build** / compatible agent CLIs with MCP + subagents |
+| Agent runtime | **Grok Build**. Subagents are **Grok-only** (`grok-4.6` default, `grok-4.5` for explore fan-out) — see [`docs/grok-models.md`](./docs/grok-models.md) |
 
 ### Agent & delivery tooling
 
@@ -321,6 +321,7 @@ My Product Launch
 4. **Local `dev` first** — `/solve` stops at local integration; humans (or `/prb` / `/yeet`) control origin and production.
 5. **Discovery over invention** — especially migrations and hoster CLIs: read the project; do not invent `db:push` to prod.
 6. **Agent-operable tickets** — intake skills write tickets another agent can implement after a light drift check.
+7. **Grok-only models** — every `spawn_subagent` passes `model: grok-4.6` (or `grok-4.5` for read-only explore). Never inherit the host default. Never Claude/GPT/Composer.
 
 ---
 
@@ -355,6 +356,7 @@ My Product Launch
 │   └── SKILL.md             # quick ship; shares prove-it-works + prb migrate discovery
 └── docs/
     ├── prove-it-works.md
+    ├── grok-models.md
     ├── linear-comments.md
     └── rfc-multiplayer-linear.md
 ```

@@ -77,6 +77,7 @@ You are a **project-review deep worker** for one inventory slice.
 | Param | Value |
 |-------|--------|
 | `subagent_type` | `explore` (code-only) or `general-purpose` (if live browser needed) |
+| `model` | `grok-4.5` (explore) or `grok-4.6` (general-purpose). Never omit. [`../../docs/grok-models.md`](../../docs/grok-models.md) |
 | `capability_mode` | `read-only` when available — **exception:** workers must write scratch files; if pure read-only mode blocks writes to scratch, use `general-purpose` with prompt-enforced “scratch writes only” |
 | `isolation` | `none` |
 | `background` | `true` |

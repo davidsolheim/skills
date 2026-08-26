@@ -152,7 +152,7 @@ Launch **all four** in the same assistant response with `spawn_subagent`:
 Shared spawn args:
 
 - `subagent_type`: `general-purpose`
-- `model`: `grok-4.6` (required for this gate)
+- `model`: `grok-4.6` (required for this gate; never omit; [`../../docs/grok-models.md`](../../docs/grok-models.md))
 - `background`: `true`
 - `description`: `[<tag>] prb local gate c${C} r${R}`
 - Do **not** pass `capability_mode`
@@ -259,12 +259,12 @@ loop:
 
   # One Linear issue per distinct problem (group only tightly related)
   for each distinct finding (or tight group) in actionable:
-    1. Spawn subagent: run /issue skill with a precise description
+    1. Spawn subagent (`model: grok-4.6`): run /issue skill with a precise description
        (file/line, severity, AGENTS rule, explanation, suggested fix shape,
         note: "Filed by /prb Phase 1.5 local review gate before push")
     2. Capture TEAM-### (+ URL); append to all_created
     3. If issue create fails → REVIEW_EXIT = blocked-tooling; DENY_PUSH
-    4. Spawn subagent: run /solve TEAM-### (local dev only; no push/PR)
+    4. Spawn subagent (`model: grok-4.6`): run /solve TEAM-### (local dev only; no push/PR)
        Prefer sequential solve so merges to dev do not race.
     5. On solve success: append to all_solved; findings_fixed += 1
        On solve failure: leave finding open; do not mark fixed;
@@ -354,7 +354,7 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 - Weakening the `origin/main` → `dev` merge requirement “because review passed”
 - Orchestrator writing findings instead of spawning the panel
 - Spawning fewer than four agents without a specialist failure
-- Using any model other than `grok-4.6` for these reviewers
+- Using any model other than `grok-4.6` for these reviewers (including inherit-parent / Claude / GPT / Composer)
 - Treating the panel as a nit hunt — or treating P0/P1 as optional
 - Running three sequential single-reviewer passes instead of the panel
 - Posting GitHub PENDING reviews from this gate
