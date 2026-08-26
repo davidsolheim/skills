@@ -56,6 +56,7 @@ Commands (from package `AGENTS.md` / README when applicable):
 
 - `<typecheck or build for touched package>`
 - Manual: <steps>
+- Runtime proof (in-scope UI/auth/API/schema/shared helper): surface to drive + observed end state (`../../docs/prove-it-works.md`)
 
 ## Drift check (before implementing)
 

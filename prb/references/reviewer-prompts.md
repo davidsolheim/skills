@@ -54,7 +54,7 @@ Work at high thoroughness: read surrounding source, follow types and callers, an
 
 ## Security
 
-Focus: exploitable issues introduced by this ship — authz bypass, secret leakage, injection, unsafe deserialization, SSRF, CSRF on state-changing routes that require it, unsafe defaults, PII in logs.
+Focus: exploitable issues introduced by this ship — authz bypass, secret leakage, injection, unsafe deserialization, SSRF, CSRF on state-changing routes that require it, unsafe defaults, PII in logs, **missing parse/validate at system boundaries** (HTTP, env, webhooks, external JSON) so illegal states leak into business logic.
 
 Flag real, reachable issues only. Defense-in-depth suggestions without a concrete path are P3 (non-blocking) or omit them.
 
@@ -80,5 +80,6 @@ Focus: pressure-test the ship.
 - New behavior with no tests when this repo expects them; deleted tests without replacement
 - Risky behavior changes (API contract, data, auth, migrations) that a careful reviewer would challenge
 - Failure modes the author likely missed (empty input, partial failure, retries, rollback)
+- **Missing proof:** in-scope UI/auth/billing/API/schema/shared-helper ships with no runtime evidence (tests-only / “looks correct”). Flag as P1 when the diff claims behavior the author did not drive.
 
 Do not duplicate a generic correctness nit or a generic security nit already in the rubric unless you can show a distinct defect. Prefer “claimed vs actual” and “missing proof” over style.

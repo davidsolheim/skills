@@ -383,7 +383,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 2. Always describe current state so the implementer does not reverse-engineer the problem.
 3. Prefer “match existing pattern on [surface]” over inventing new design values.
 4. One primary change per issue; split compounds.
-5. Verification steps must be runnable or clearly manual (from `AGENTS.md` when possible).
+5. Verification steps must be runnable or clearly manual (from `AGENTS.md` when possible). In-scope UI/auth/billing/API/schema/shared-helper leaves must fill **Runtime proof** ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
 6. Explicit “do not change” lists prevent scope expansion.
 7. Code map + drift check required for filed leaves.
 8. Write for another agent: paths, symbols, AC beat vague product prose.

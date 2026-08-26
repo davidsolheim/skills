@@ -18,13 +18,24 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 6. **Git while implementing**: stay on the issue branch created by `/solve`. Do not switch to `main` or `dev`. Do not push. Do not open PRs.
 7. **Commits**: prefer **not** committing during the implement loop. Leave a clean, reviewable working tree (or only intentional WIP commits on the issue branch). The `/solve` orchestrator stages and commits after the review loop and verification pass.
 8. **Files**: stage-worthy changes only for this issue (including intentional overrides of earlier work). Leave unrelated dirty files untouched.
-9. **Summary**: always write the implement summary file requested by the orchestrator (paths changed, design decisions, supersession overrides, verification notes).
+9. **Summary**: always write the implement summary file requested by the orchestrator (paths changed, design decisions, supersession overrides, verification notes, **runtime-proof evidence**).
+10. **Runtime proof**: follow [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md). Do not claim the implement loop complete on typecheck/tests/build alone when the change is user-visible, auth, billing, public API, schema, or a shared helper.
+11. **Boundaries**: parse/validate at HTTP, env, webhooks, and external JSON. After that, trust internal types. Do not nil-guard a crash and call it fixed.
+
+## Ticket kind
+
+| The issue is… | While implementing |
+|---------------|-------------------|
+| Bug with a cheap local test path | Write the failing test first, then the fix |
+| User-visible UI | Match the named sibling/reference; smallest change; delight over convenience |
+| Crosses a module boundary | Settle types and call shape before filling logic |
+| Shared helper / schema / auth | Prove the one safety fact by running code |
 
 ## Prefer
 
-- Smallest complete change that meets **current** acceptance criteria (which may include a selective override of prior work)
+- Smallest complete change that meets **current** acceptance criteria (which may include a selective override of prior work). Delete dead weight in-scope before adding.
 - Existing runtime routes / data helpers / server helpers already used in the consumer repo (e.g. Neon or equivalent) when this issue is not superseding that pattern
-- Unit tests for new logic when the issue or repo validation matrix expects them
+- Unit tests for new logic when the issue or repo validation matrix expects them; **failing test first** for bugs when a cheap local path exists
 - Issue id in any commit messages if you must commit mid-loop (e.g. `TEAM-123: …`)
 
 ## Avoid
@@ -35,12 +46,13 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 - Discarding unrelated user work (`git reset --hard`, force-checkout over dirty unrelated files)
 - Marking Linear Done (orchestrator owns Linear closeout)
 - Merging into `dev` (orchestrator owns merge after verify)
+- Claiming the implement loop complete without runtime proof when the change is in-scope ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md))
 
 ## Optional overrides (edit as needed)
 
 - Default implement effort when the user does not pass `--effort`: **5** (maximum rigor — up to 3 generals + all specialists)
 - Extra reviewer focus (always mention in summary if relevant): auth/gating, billing, UI parity across surfaces, SEO only when marketing/public routes change
-- UI changes: note manual/browser smoke expectations in the summary when browser tooling is unavailable
+- UI: drive the route; “browser unavailable” is **not** a pass — see prove-it-works.md
 
 ## Per-run user args
 

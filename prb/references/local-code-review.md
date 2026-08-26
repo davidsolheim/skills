@@ -11,7 +11,7 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 | Rule | Detail |
 |------|--------|
 | **When** | After Phase 1 (1A–1C). **Before** Phase 1D push and Phase 2 PR. |
-| **Pass** | Zero **actionable** findings on `origin/main...dev`. |
+| **Pass** | Zero **actionable** findings on `origin/main...dev` **and** runtime proof for in-scope ships ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)). |
 | **Fail / block** | Actionable findings remain after `--max-fix-cycles` (default 5), or `/issue` / `/solve` cannot complete. **Do not push. Do not open a PR.** |
 | **Skip** | Only with explicit `--skip-review`. Loud warning in the final report. Never invent skip. |
 | **Fixes land on** | **Local `dev` only.** No `git push` inside the closed loop. |
@@ -227,7 +227,9 @@ if EXHAUSTIVE_REVIEW and filter_actionable(findings) is empty:
 ```text
 if SKIP_REVIEW:
   REVIEW_EXIT = skipped
-  return allow_push
+  run runtime proof ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)) on in-scope ship set
+  if proof fails: DENY_PUSH
+  else: return allow_push
 
 cycle = 0
 all_created = []
@@ -239,6 +241,9 @@ loop:
   actionable = filter_actionable(findings)
 
   if actionable is empty:
+    run runtime proof ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)) on in-scope ship set
+    if proof fails:
+      treat as actionable (file /issue + /solve or DENY_PUSH); do not allow_push
     REVIEW_EXIT = clean
     REVIEW_CYCLES_USED = cycle
     LINEAR_ISSUES_* = all_created / all_solved
@@ -353,6 +358,8 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 - Treating the panel as a nit hunt — or treating P0/P1 as optional
 - Running three sequential single-reviewer passes instead of the panel
 - Posting GitHub PENDING reviews from this gate
+- Allowing push because the panel is clean while in-scope runtime proof was skipped or unproven
+- Treating `--skip-review` as a waiver of [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)
 
 ---
 

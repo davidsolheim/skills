@@ -165,7 +165,8 @@ You are a solve-fast **worker** for a single Linear leaf.
 - Worktree only; branch: solve/<RUN_ID>/<ISSUE>
 - Base is this wave’s origin/dev tip. Do not merge other issues.
 - Full /implement loop + custom-implement-instructions.md
-- Verify per AGENTS / issue AC; commit on the issue branch:
+- Verify per AGENTS / issue AC **and** [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md) (runtime proof when in-scope). Matrix green is not enough.
+- Commit on the issue branch:
   <ISSUE>: short imperative summary
 - Write summary to <WORKER_SUMMARY>
 - **Push** (or leave HEAD ready for orchestrator push):
@@ -331,6 +332,7 @@ Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remai
 - Local-only merge to `dev` as the ship (wave PR is the ship)
 - `gh pr merge` to **main** from fast-mode
 - Marking Linear **Done** from fast-mode
+- Treating worker typecheck/tests as runtime proof for in-scope UI/auth/billing/API/schema/shared-helper leaves
 - Hard-stopping the whole run when one independent leaf fails
 - Stopping `/solve all fast` after ~5 or after wave 0 without refill + drain gate
 - Exceeding `MAX_CONCURRENCY` (8)

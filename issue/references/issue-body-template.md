@@ -56,6 +56,16 @@ Commands (from repo root / `AGENTS.md` when applicable):
 - `<typecheck or build command for touched package>`
 - Manual: <steps to reproduce fix in UI or API>
 
+### Runtime proof
+
+Fill when the leaf is user-visible, auth, billing, public API, schema, or a
+shared helper (`../../docs/prove-it-works.md`). Omit with `- N/A: docs/comments only`.
+
+- Surface to drive: `<route / CLI / METHOD path>`
+- Visual reference (UI): `<sibling route or screenshot or n/a>`
+- Blast-radius fact (shared/auth/schema): `<one fact + how to run it, or n/a>`
+- Observed end state that proves done: `<what the driver must see>`
+
 ## Drift check (before implementing)
 
 Re-verify these anchors; if they still match, skip full re-investigation:

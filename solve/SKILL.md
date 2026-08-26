@@ -188,6 +188,7 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
 7. Resolve absolute paths used later:
    - `SOLVE_SKILL_DIR` = directory containing this `SKILL.md` (from skill load path).
    - `CUSTOM_IMPL_INSTRUCTIONS` = `$SOLVE_SKILL_DIR/references/custom-implement-instructions.md` — **read this file every run** (and again if the file may have changed between batch items).
+   - `PROVE_IT_WORKS_MD` = `$SOLVE_SKILL_DIR/../docs/prove-it-works.md` — **read for Phase 6** (and inject the path into implementer/fast-worker prompts).
    - `BATCH_GUIDANCE_MD` = `$SOLVE_SKILL_DIR/references/batch-guidance.md` — **read when `GUIDANCE_REQUIRED`**
    - `BATCH_GUIDANCE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/batch-guidance-template.md` — **read when `GUIDANCE_REQUIRED`**
    - `FAST_MODE_MD` = `$SOLVE_SKILL_DIR/references/fast-mode.md` — **read when `FAST_MODE`**
@@ -609,6 +610,7 @@ Construct a single description string for the implement loop:
 - Do not discard unrelated dirty files
 - Prefer not to commit; leave the tree ready for the solve orchestrator to commit after verify
 - Smallest complete change meeting **current** (possibly re-scoped) acceptance criteria
+- Runtime proof: follow `$SOLVE_SKILL_DIR/../docs/prove-it-works.md` (in-scope classes). Matrix green is not enough.
 
 ## Custom solve implement instructions
 <verbatim contents of custom-implement-instructions.md>
@@ -646,22 +648,18 @@ If implement fails (subagent hard-fail, unrecoverable):
 
 ## Phase 6 — Verify
 
-Run verification from, in order:
+**Authority:** [`../docs/prove-it-works.md`](../docs/prove-it-works.md). **Read that file.**
 
-1. Issue **Verification** / acceptance criteria
-2. Repo `AGENTS.md` / README for the touched package(s)
+Order:
 
-Typical commands (adjust per repo):
+1. Issue **Verification** / acceptance criteria / **Runtime proof** section
+2. Repo `AGENTS.md` / README matrix for the touched package(s)
+3. **Runtime proof** when in-scope (user-visible, auth, billing, public API, schema, shared helper): drive the real path; visual parity if the ticket names a reference; blast-radius run if shared/schema/auth
+4. Typical matrix (adjust per repo): `typecheck`, relevant tests, `build` when AGENTS requires it
 
-```bash
-bun run typecheck   # or package equivalent
-bun run test:unit   # when tests changed or required
-bun run build       # when AGENTS matrix requires it for code changes
-```
+Matrix green is **necessary, not sufficient** for in-scope work. “Not performed” is a **fail**.
 
-Fix failures **by resuming the implementer** (same implement loop rules: spawn/resume implementer, not by editing yourself), then re-verify. Do not claim complete if required checks fail.
-
-UI changes: smoke the relevant route when a browser skill is available; otherwise document manual check performed/not performed.
+Fix failures **by resuming the implementer** (same implement loop rules: spawn/resume implementer, not by editing yourself), then re-verify. Do not merge to `dev` or In Review if required checks **or** in-scope runtime proof fail.
 
 ### Commit (after verify passes)
 
@@ -709,7 +707,7 @@ After verified merge to local `dev` for the **leaf** work issue:
 1. **Required** completion comment on the leaf:
    - Summary of code changes (paths)
    - Implement effort + review rounds (if known)
-   - Verification commands + results
+   - Verification commands + results **and** runtime-proof evidence from [`../docs/prove-it-works.md`](../docs/prove-it-works.md) (driven path + observed state; visual reference or `n/a`; blast-radius fact or `n/a`)
    - Local branches: issue branch name + **merged into local `dev`**
    - Explicit: **pushed to `origin/dev`** after checks; **no** merge to `main`/prod (unless user explicitly approved a separate `/prb`)
    - Parent epic reference if this was an expanded child
@@ -740,7 +738,7 @@ If verification failed or dev merge failed:
 **Branch:** `<issue-branch>` → local `dev` → **`origin/dev` @ sha** (after checks)
 **Main/prod:** not shipped (needs explicit approval)
 **Implement:** effort N · review rounds R · 0 open review issues
-**Verify:** <commands + pass/fail>
+**Verify:** <matrix commands + pass/fail> · **Runtime:** <driven path + observed state | n/a out-of-scope>
 **Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
 **Notes:** <one line if needed>
 ```
@@ -893,6 +891,8 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - Letting `dev` fall behind `main`
 - Marking **Done** from `/solve` (Done is `/prb` after `main`; exception: epic rollup when all children terminal)
 - Marking In Review without verification or without push to `origin/dev`
+- Treating typecheck/tests/build as proof for user-visible, auth, billing, API, schema, or shared-helper changes ([`../docs/prove-it-works.md`](../docs/prove-it-works.md))
+- Writing “browser smoke not performed” and still In Review
 - Starting a second `/solve all` / `fast` drain on a project that already has foreign live `claimed-by:` comments
 - Coding a leaf after a failed claim re-read (CAS miss)
 - Committing unrelated dirty files or secrets
