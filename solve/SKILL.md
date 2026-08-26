@@ -322,7 +322,7 @@ while true:
     # tentative empty — in all mode still run drain gate below before Phase 9
     break
   ATTEMPTED += 1
-  claim → git hygiene → implement → verify → merge dev → Linear Done (Phases 3–8)
+  claim → git hygiene → implement → verify → merge dev → Linear In Review (Phases 3–8)
   if that issue succeeded:
     append to SOLVED
     continue to next issue   # all mode: always continue; N mode: until len(SOLVED) >= N
@@ -351,7 +351,7 @@ Do **not** stop for: “solved five already,” long context, finished first wav
 
 ### Multi-issue rules
 
-- **One issue at a time** — finish Phases 2–8 (including merge to local `dev` and Linear Done) before selecting the next.
+- **One issue at a time** — finish Phases 2–8 (including merge to local `dev` and Linear **In Review**) before selecting the next.
 - **Guidance order when S0 ran** — walk `execution_order` (skip already solved/skipped/failed); re-validate eligibility each slot. Pure lowest-number selection only when S0 did not run.
 - **Refresh guidance** after success (and after failures that may unblock others) if Linear gains new eligible leaves or supersession edges; re-rank **remaining** only. In `all` mode, **refill** is required — initial inventory is not a fixed closed set.
 - **Preferred issue id** (`PREFIX-N`, e.g. `TEAM-123`) applies only to the **first** selection in the batch when it remains eligible and not skipped; subsequent selections follow guidance order (or lowest number if no guidance).
@@ -400,6 +400,7 @@ Include:
 Exclude:
 
 - Done, Canceled, Cancelled, Duplicate, Completed
+- **In Review** (already on `origin/dev`; waiting on `/prb` to merge `main`. Not implementable. In Review is **not** terminal.)
 - In Progress **claimed by another run** (foreign live `claimed-by:` comment)
 - In Progress assigned to **someone else** (when assignee is not this Linear user)
 - Issues whose only remaining work is explicitly “wait for external X” with X unavailable
@@ -483,7 +484,7 @@ Rules:
 
 #### Epic rollup (all children complete)
 
-When **every** child of an epic is in a terminal state (Done / Canceled / Cancelled / Duplicate / Completed):
+When **every** child of an epic is in a terminal state (Done / Canceled / Cancelled / Duplicate / Completed). **In Review is not terminal.**
 
 1. Comment on the epic: all children complete; closing epic as rollup (list child ids if short).
 2. Set epic state **Done**.
@@ -491,7 +492,7 @@ When **every** child of an epic is in a terminal state (Done / Canceled / Cancel
 4. Do **not** count the epic toward `SOLVE_COUNT_MODE` (it is free hygiene during selection or after the last child closeout).
 5. Continue selecting the next global candidate.
 
-Also run this rollup check in **Phase 8** after marking a leaf child Done: if the parent epic now has only terminal children, mark the epic Done the same way.
+**In Review is not terminal.** After a leaf closeout the leaf is In Review, so **do not** rollup the epic in Phase 8. `/prb` / `/tidy` roll up after `main`.
 
 ### 2F. Inspect before claiming
 
@@ -716,8 +717,8 @@ After verified merge to local `dev` for the **leaf** work issue:
 2. Set state **In Review** on the **leaf** if the team has that status; otherwise leave **In Progress**. Never **Done** here (`/prb` owns Done after `main`).
 3. If this leaf had a parent epic:
    - Re-list children of the parent.
-   - If **any** non-terminal children remain: **required** brief progress comment on the epic (`Child TEAM-205 Done; remaining: …`).
-   - If **all** children are terminal: **required** epic rollup — comment + set epic **Done** (see 2E). Does not consume a solve-count slot.
+   - **In Review is not terminal.** **Required** brief progress comment on the epic (`Child TEAM-205 In Review (origin/dev); remaining: …`). Do **not** mark the epic Done.
+   - Epic rollup (comment + Done) only if **every** child is already terminal (Done/Canceled/Duplicate). A leaf just set to In Review keeps the epic open. `/prb` / `/tidy` roll up after `main`.
 4. Brief comments on **related** issues only if this clearly unblocks them (optional but preferred when obvious).
 
 If verification failed or dev merge failed:
@@ -815,6 +816,7 @@ If `all` drained implementable work: state clearly that **Drain verified: no eli
 | Needs missing secrets / human decision | Skip (no comment) unless already claimed → then Blocked + comment |
 | In Progress + other assignee | Skip (no comment) |
 | Done/Canceled/Duplicate | Skip (no comment) |
+| In Review | Skip (no comment) — waiting on `/prb` / `main` |
 | Guidance full-obsolete / abandoned platform | **Skip implement**; one Linear comment; prefer Cancel/Duplicate when high confidence |
 | Parent/epic with eligible children | **Expand** → lowest eligible child (do not implement parent) |
 | Epic, all children terminal | Comment + mark epic **Done** (rollup); continue; no solve-count |
@@ -835,15 +837,14 @@ Canonical policy for status, assignee, and comments under `/solve`.
 | Phase 3 start work | **leaf** | → **In Progress** | → **me** if unassigned | **Yes** (start plan) |
 | Phase 3 (expanded child) | parent epic | unchanged | unchanged | **Yes** (starting child …) |
 | Phase 5–7 (implement/verify/merge) | leaf | stays In Progress | stays | no routine mid-flight comments |
-| Phase 8 success | **leaf** | → **Done** | unchanged | **Yes** (completion evidence) |
-| Phase 8 success, parent still has open children | parent epic | unchanged | unchanged | **Yes** (child Done; remaining …) |
-| Phase 8 success, parent all children terminal | parent epic | → **Done** | unchanged | **Yes** (rollup) |
+| Phase 8 success | **leaf** | → **In Review** (never Done) | unchanged | **Yes** (completion evidence; `origin/dev`) |
+| Phase 8 success, parent epic | parent epic | unchanged | unchanged | **Yes** (child In Review; remaining …) |
 | Phase 8 / implement failure | **leaf** | stays **In Progress**, or → **Blocked** if human/external | unchanged | **Yes** (failure reason) |
 | Related issues unblocked | related | unchanged unless policy says otherwise | unchanged | optional short note |
 
 ### Comment rules (summary)
 
-- **Yes, comment** on every issue we **claim** (start) or **complete** (Done) or **fail** after claiming, plus epic start/progress/rollup notes tied to that work.
+- **Yes, comment** on every issue we **claim** (start) or **complete** (In Review) or **fail** after claiming, plus epic start/progress/rollup notes tied to that work.
 - **No, do not comment** on every issue we merely scan and skip while hunting for the next eligible leaf.
 - **No spam**: one start comment and one completion (or failure) comment on the leaf is enough; avoid play-by-play during implement/review.
 - Implementer/reviewer subagents **must not** update Linear state or close issues (solve orchestrator owns Linear).
