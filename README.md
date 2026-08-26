@@ -19,7 +19,7 @@ These packages are **sanitized for open use**: no client brands as required defa
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
 1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), or **file** tickets from a human description (`/issue` / `/issues`).
-2. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown.
+2. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open board urgent-first with `/stat` (read-only; not a solve batch).
 3. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
 4. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
 5. **Ship** with `/prb` (review gate, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
@@ -40,6 +40,8 @@ The skills assume a professional full-stack product shop—not a single demo app
         ▼
    /tidy     ──► upgrade thin tickets · status if shipped · weekly stamp
         │         skip live claims · needs-you list at end
+        │
+   /stat     ──► read-only open board, urgent → least (not a batch)
         ▼
    /identify ──► pick 2–4 high-value leaves → upgrade thin tickets → wait
         │         approve → claim → /solve 1 per ID (sequential)
@@ -62,6 +64,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
 | [`tidy/`](./tidy/) | Board hygiene: upgrade, relations, rollup, high-confidence close, shipped status | None (Linear only) |
+| [`stat/`](./stat/) | Read-only briefing of the open Linear board, urgent → least | None |
 | [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
 | [`prb/`](./prb/) | Four-agent grok-4.6 review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
@@ -106,7 +109,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/tidy` hygiene + stamps, `/identify` upgrades + claims, `/solve` closeout comments).
+- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
@@ -183,6 +186,26 @@ Last pass is a parseable Linear `tidy-pass:` comment plus a machine-local ledger
 **Needs:** Linear MCP · current git workspace · companion `/issue` (quality bar)
 
 **Companion refs:** [`tidy/references/ledger.md`](./tidy/references/ledger.md), [`tidy/references/actions.md`](./tidy/references/actions.md)
+
+---
+
+### `/stat` — open board, urgent first (read-only)
+
+**Path:** [`stat/`](./stat/)
+
+Lists **every issue that still needs resolution** on this repo’s Linear project, sorted **most urgent → least**. Includes blocked, claimed, In Progress, In Review, and epic shells. Does **not** implement, claim, tidy, upgrade, or start `/solve` / `/identify`.
+
+| Invocation | Behavior |
+|------------|----------|
+| `/stat` | Full open board |
+| `/stat N` | Top **N** after sort; still reports full counts |
+| `/stat checkout` | Area filter on title / labels / identifier |
+
+**Triggers:** `/stat`, “board status”, “what's open”, “what's left to solve”
+
+**Needs:** Linear MCP · current git workspace · companion `/issue` (team/project) and `/identify` ranking keys
+
+Do **not** use for session `/status` (auth/model/context) or for picking a solve batch (`/identify`).
 
 ---
 
@@ -275,7 +298,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/project-review skills/tidy skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
+cp -R skills/issue skills/issues skills/project-review skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -288,7 +311,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/tidy`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -346,6 +369,8 @@ My Product Launch
 ├── tidy/
 │   ├── SKILL.md
 │   └── references/          # ledger, actions
+├── stat/
+│   └── SKILL.md             # read-only open board, urgent first
 ├── solve/
 │   ├── SKILL.md
 │   └── references/
