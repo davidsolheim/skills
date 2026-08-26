@@ -22,7 +22,7 @@ Most agent “prompts” either stay private or leak the author’s machine and 
 2. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown.
 3. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
 4. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
-5. **Ship** `dev` → **four-agent grok-4.6 review gate** (closed-loop Linear fix if needed) → push → PR into `main`, babysit CI, optionally run **this repo’s** production migrations, then merge.
+5. **Ship** with `/prb` (review gate, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
 
 The skills assume a professional full-stack product shop—not a single demo app. They are stack-aware when *your* docs say so, but they do not hard-code one company’s board or hoster.
 
@@ -51,6 +51,9 @@ The skills assume a professional full-stack product shop—not a single demo app
    /prb     ──► grok-4.6 panel (thoroughness/security/rules/challenge)
                 → (issue+solve loop) → push origin/dev
                 → PR main←dev → babysit CI → migrate? → merge
+        or
+   /yeet    ──► push origin/dev → PR main←dev → runtime proof
+                → migrate? → merge now (no panel, no CI wait)
 ```
 
 | Skill | Role | Default git effect |
@@ -62,6 +65,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
 | [`prb/`](./prb/) | Four-agent grok-4.6 review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
+| [`yeet/`](./yeet/) | Quick ship: push `dev`, PR into `main`, merge immediately (no panel / no CI wait). In-scope runtime proof still required | Push + PR + merge |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
 
@@ -106,7 +110,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
-- **Production migrations** discovered per repo at ship time (`/prb`)—never invent a stack, never `db:push` to prod by default.
+- **Production migrations** discovered per repo at ship time (`/prb`, `/yeet`)—never invent a stack, never `db:push` to prod by default.
 - **Local code review gate** on `/prb` before push: four `grok-4.6` reviewers (thoroughness, security, rules, challenge), then closed-loop `/issue` + `/solve` on local `dev` until the ship set is clean.
 
 ### Platform supersession (multi-ticket runs)
@@ -240,6 +244,28 @@ Ship **already finished** session work:
 
 ---
 
+### `/yeet` — quick ship `dev` → `main` (no babysit)
+
+**Path:** [`yeet/`](./yeet/)
+
+Ship **already finished** session work **now**. `/prb` is the careful path. `/yeet` skips the review panel and CI wait.
+
+1. Refresh `origin/main` into local `main` and `dev`.
+2. Commit leftover session files on `dev` if needed.
+3. Push `origin/dev`, open/reuse PR `main` ← `dev`.
+4. **Runtime proof** for in-scope ships ([`docs/prove-it-works.md`](./docs/prove-it-works.md)) — skip the panel, **not** the proof.
+5. Additive production migrate when the ship includes migrations.
+6. Merge immediately (`gh pr merge --rebase --admin`). Do **not** re-push `dev` after merge.
+7. Linear comment + **Done** when ticket ids are known.
+
+**Useful flags:** `--via-dev-pr`, `--skip-migrations`, `--no-commit`
+
+**Triggers:** `/yeet`, “yeet it”. Do **not** steal `/prb` when the user asked to babysit or carefully ship.
+
+**Needs:** `gh` auth · git workspace with long-lived `dev` · companion `/prb` migrate discovery
+
+---
+
 ## Install
 
 Each skill is a directory with a `SKILL.md` and optional `references/`.
@@ -249,7 +275,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/project-review skills/tidy skills/identify skills/solve skills/prb ~/.grok/skills/
+cp -R skills/issue skills/issues skills/project-review skills/tidy skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -262,7 +288,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/tidy`, `/identify`, `/solve all`, `/prb`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/tidy`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -292,7 +318,7 @@ My Product Launch
 1. **Portable** — work from any skills install path; references are skill-relative (`references/…` or `$SOLVE_SKILL_DIR`).
 2. **Repo-driven** — Linear boards, migrate commands, and stack choices come from the **consumer** repo.
 3. **No PII / no private clients** — public packages must not require inventRight, personal home paths, or internal product codenames.
-4. **Local `dev` first** — `/solve` stops at local integration; humans (or `/prb`) control origin and production.
+4. **Local `dev` first** — `/solve` stops at local integration; humans (or `/prb` / `/yeet`) control origin and production.
 5. **Discovery over invention** — especially migrations and hoster CLIs: read the project; do not invent `db:push` to prod.
 6. **Agent-operable tickets** — intake skills write tickets another agent can implement after a light drift check.
 
@@ -322,9 +348,15 @@ My Product Launch
 ├── solve/
 │   ├── SKILL.md
 │   └── references/
-└── prb/
-    ├── SKILL.md
-    └── references/          # local-code-review, review-rubric, reviewer-prompts, db-migrations
+├── prb/
+│   ├── SKILL.md
+│   └── references/          # local-code-review, review-rubric, reviewer-prompts, db-migrations
+├── yeet/
+│   └── SKILL.md             # quick ship; shares prove-it-works + prb migrate discovery
+└── docs/
+    ├── prove-it-works.md
+    ├── linear-comments.md
+    └── rfc-multiplayer-linear.md
 ```
 
 ---

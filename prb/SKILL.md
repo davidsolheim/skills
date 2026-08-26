@@ -524,4 +524,5 @@ If Phase 1.5 stopped the ship before push, still emit this report with `Pushed: 
 | `/solve` | Implements Linear issue(s) onto local `dev` and **pushes `origin/dev` after checks** (`/solve [N\|all]`, default 1; no main/prod); Phase 1.5 may spawn it to close the review loop |
 | `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |
+| `/yeet` | Same ship set, **no** panel / CI wait; still runtime-proof in-scope; merge immediately |
 | `/prb` | End-to-end: session → **four-agent grok-4.6 review gate + closed-loop fix** → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge |
