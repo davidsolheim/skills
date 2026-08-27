@@ -15,7 +15,8 @@ Do **not** `list_comments` on every skipped candidate. Only the issue you are
 about to comment on or claim.
 
 Skills that post comments (`/prb`, `/yeet`, `/solve`, `/identify`, `/tidy`,
-`/issue` retire) follow this file. Moment keys live in each skill.
+`/issue` retire, `/walk` when commenting) follow this file. Moment keys live
+in each skill.
 
 | Excuse | Reality |
 |--------|---------|

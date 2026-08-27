@@ -28,6 +28,7 @@ for `/solve`. Do not implement code. Do not open a PR.
 | `/issue` | One short description → one ticket |
 | **`/issues`** | Many items / one dump → many tickets (this skill) |
 | `/project-review` | Agent invents findings without a user laundry list |
+| `/walk` | Agent invents findings from a **live UI walk** (front-facing screens only) |
 | `/solve` | Implements already-filed tickets |
 
 ## Operating contract
@@ -364,5 +365,6 @@ Then stop. Do not implement.
 | `/issue` | Single ticket, rapid-fire one-liner |
 | `/issues` | Multi ticket, shared research, graph optional |
 | `/project-review` | Agent-invented audit → many tickets |
+| `/walk` | Live front-facing UI walk → many tickets |
 | `/solve` | Implements filed leaves; expands epics |
 | `/prb` | Ships code on `dev` → PR → main |

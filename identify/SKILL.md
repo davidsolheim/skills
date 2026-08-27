@@ -290,10 +290,11 @@ Reuse solve’s single-issue or multi-issue summary shape, plus:
 | `/issue` | Team/project resolution + execution-ready bar (upgrade target) |
 | `/solve` | Eligibility, claim format, implement→review, merge local `dev` |
 | `/project-review` | Creates the queue Identify reads |
+| `/walk` | Creates the queue from a live front-facing UI walk |
 | `/prb` | Ships `dev` after solve; not used here |
 
 ```text
-/project-review | /issue | /issues
+/project-review | /walk | /issue | /issues
         ↓
    /identify     →  approve  →  /solve 1 per ID (sequential)
         ↓ reject

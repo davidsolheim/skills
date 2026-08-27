@@ -130,7 +130,9 @@ Initialize:
 
 ## Trigger phrases
 
-`/project-review`, `project-review fast`, `project-review deep`, `review this project`, `quality pass`, `UI audit`, `taste pass`, `bug hunt`, `find issues for solve`, `audit the app`, `audit the dashboard`, `queue tickets for solve`, `turn this product into Linear issues`
+`/project-review`, `project-review fast`, `project-review deep`, `review this project`, `quality pass`, `taste pass`, `bug hunt`, `find issues for solve`, `audit the app`, `audit the dashboard`, `queue tickets for solve`, `turn this product into Linear issues`
+
+A **live click-through of every front-facing screen** (bugs + ideas + improvements into Linear) is **`/walk`**, not this skill. Keep this skill for whole-project / code-inclusive review.
 
 ---
 
@@ -454,6 +456,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 | Skill | Relationship |
 |-------|--------------|
 | `/project-review` | **Agentic** multi-issue discovery + Linear queue (fast single-agent or deep orchestrator) |
+| `/walk` | Live **front-facing UI** click-through; files every bug/idea/improvement. Use when the user wants to drive screens, not audit APIs/jobs. |
 | `/issue` | **Human-prompted** single issue; **shared ticket quality bar** and Linear resolution order |
 | `/solve` | **Downstream consumer.** Picks unblocked leaves, implement→review, merges to local `dev`. Deep’s guidance package is for **review**, not solve batch guidance — but leaves must be solve-ready. |
 | `/implement` | Not invoked by this skill |

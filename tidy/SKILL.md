@@ -241,7 +241,7 @@ close). Do **not** re-scan the whole board unless they run `/tidy` again.
 | `/prb` | Done after merge to `main` — Tidy may set Done only with the same evidence |
 
 ```text
-/project-review | /issue | /issues
+/project-review | /walk | /issue | /issues
         ↓
      /tidy      →  board ready (weekly)
         ↓

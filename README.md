@@ -18,7 +18,7 @@ These packages are **sanitized for open use**: no client brands as required defa
 
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
-1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), or **file** tickets from a human description (`/issue` / `/issues`).
+1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), **walk** every front-facing screen (`/walk`), or **file** tickets from a human description (`/issue` / `/issues`).
 2. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open board urgent-first with `/stat` (read-only; not a solve batch).
 3. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
 4. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
@@ -34,6 +34,7 @@ The skills assume a professional full-stack product shop—not a single demo app
   idea / bug report / “audit this product”
         │
         ├─► /project-review  ──► agent invents findings → many solve-ready tickets
+        ├─► /walk            ──► live UI click-through → every bug/idea/improvement
         ├─► /issue           ──► one Linear ticket (deep code map + AC)
         └─► /issues          ──► many tickets from a human dump
         │
@@ -61,6 +62,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | Skill | Role | Default git effect |
 |-------|------|--------------------|
 | [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
+| [`walk/`](./walk/) | Live front-facing UI walk: debug every screen, file every finding | None (no commit / PR) |
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
 | [`tidy/`](./tidy/) | Board hygiene: upgrade, relations, rollup, high-confidence close, shipped status | None (Linear only) |
@@ -109,10 +111,10 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
+- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/walk` UI findings, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
-- **Browser / preview URL** optional for `/project-review` live walks (agent-browser, Chrome DevTools, etc.).
+- **Browser / preview URL** optional for `/project-review`; **required** for `/walk` (agent-browser, Chrome DevTools, etc.).
 - **Production migrations** discovered per repo at ship time (`/prb`, `/yeet`)—never invent a stack, never `db:push` to prod by default.
 - **Local code review gate** on `/prb` before push: four `grok-4.6` reviewers (thoroughness, security, rules, challenge), then closed-loop `/issue` + `/solve` on local `dev` until the ship set is clean.
 
@@ -137,9 +139,34 @@ The agent **invents** findings (completeness, bugs, UI consistency, taste→conc
 
 **Useful flags:** `--draft`, `--file`, `--p0-p1-only`, `--include-p2`, `--no-epic`, `--concurrency N`, `--scope-only`, `--url URL`, surface paths
 
-**Triggers:** `/project-review`, “review this project”, “quality pass”, “UI audit”, “bug hunt”, “find issues for solve”…
+**Triggers:** `/project-review`, “review this project”, “quality pass”, “bug hunt”, “find issues for solve”…
 
 **Needs:** Linear MCP (unless `--draft`) · git workspace · optional live app URL · optional browser tools
+
+A **live click-through of every front-facing screen** is **`/walk`**, not this skill.
+
+---
+
+### `/walk` — live front-facing UI walk → Linear queue
+
+**Path:** [`walk/`](./walk/)
+
+The agent **drives the live app** like a user: every front-facing route, click/type/submit, console and network debug, desktop + mobile on primary journeys. Files **every** actionable **bug, idea, and improvement** as atomic solve-ready Linear leaves (optional epic). Discovery and Linear publish only; never implements or ships. Browser tools are **required** — a code-only skim is a failed walk.
+
+| Flag | Behavior |
+|------|----------|
+| `--url URL` | Preview / live origin to drive |
+| `--draft` | Local candidates only; do not create Linear issues |
+| `--signed-out` / `--signed-in` | Auth scope (default: both when login is possible) |
+| `--no-epic` | Flat leaves |
+| `--desktop-only` / `--mobile-only` | Skip the other viewport sample |
+| free text | Surface bias — still finish the rest of the inventory |
+
+**Triggers:** `/walk`, “walk the UI”, “click through the app”, “walk every screen”, “front-facing UI audit”…
+
+**Needs:** Linear MCP (unless `--draft`) · git workspace · reachable live/local app · a browser driver that can click and read console
+
+**Companion refs:** [`walk/references/walk-protocol.md`](./walk/references/walk-protocol.md), [`walk/references/finding-kinds.md`](./walk/references/finding-kinds.md)
 
 ---
 
@@ -159,7 +186,7 @@ Rapid-fire intake. One short human description → deep, read-only codebase inve
 
 **Path:** [`issues/`](./issues/)
 
-Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic **solve-ready** leaves, optional epic / `blockedBy` / `relatedTo`. Same quality bar as `/issue`. Prefer `/project-review` when the agent must invent the finding list.
+Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic **solve-ready** leaves, optional epic / `blockedBy` / `relatedTo`. Same quality bar as `/issue`. Prefer `/project-review` or `/walk` when the agent must invent the finding list.
 
 **Useful flags:** `--draft`, `--plan-only`, `--no-epic`, `--epic "Title"`, `--max N`
 
@@ -298,7 +325,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/project-review skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
+cp -R skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -311,7 +338,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/project-review fast`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/project-review fast`, `/walk`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -357,6 +384,9 @@ My Product Launch
 ├── project-review/
 │   ├── SKILL.md
 │   └── references/          # deep mode, candidates, templates, …
+├── walk/
+│   ├── SKILL.md
+│   └── references/          # live UI protocol, finding kinds, handoff
 ├── issue/
 │   ├── SKILL.md
 │   └── references/
