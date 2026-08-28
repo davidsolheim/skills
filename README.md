@@ -18,11 +18,12 @@ These packages are **sanitized for open use**: no client brands as required defa
 
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
-1. **Discover** what’s missing, broken, or inconsistent (`/project-review`), **walk** every front-facing screen (`/walk`), or **file** tickets from a human description (`/issue` / `/issues`).
-2. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open board urgent-first with `/stat` (read-only; not a solve batch).
-3. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
-4. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
-5. **Ship** with `/prb` (review gate, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
+1. **Start** a product from [next-starter-template](https://github.com/davidsolheim/next-starter-template) (`/start`): scaffold or validate, onboard docs, Linear V1, nested `/solve` on local `dev`.
+2. **Discover** what’s missing, broken, or inconsistent (`/project-review`), **walk** every front-facing screen (`/walk`), or **file** tickets from a human description (`/issue` / `/issues`).
+3. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open board urgent-first with `/stat` (read-only; not a solve batch).
+4. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
+5. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
+6. **Ship** with `/prb` (review gate, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
 
 The skills assume a professional full-stack product shop—not a single demo app. They are stack-aware when *your* docs say so, but they do not hard-code one company’s board or hoster.
 
@@ -31,8 +32,10 @@ The skills assume a professional full-stack product shop—not a single demo app
 ## The delivery loop
 
 ```text
-  idea / bug report / “audit this product”
+  idea / new product / “audit this product”
         │
+        ├─► /start           ──► scaffold or validate starter → onboard → Linear V1
+        │                          → nested /solve all on local `dev`
         ├─► /project-review  ──► agent invents findings → many solve-ready tickets
         ├─► /walk            ──► live UI click-through → every bug/idea/improvement
         ├─► /issue           ──► one Linear ticket (deep code map + AC)
@@ -61,6 +64,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 
 | Skill | Role | Default git effect |
 |-------|------|--------------------|
+| [`start/`](./start/) | Greenfield scaffold **or** existing-repo bones/docs validate+repair → Linear V1 → nested `/solve` | Local `main` + `dev` (no push unless asked) |
 | [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
 | [`walk/`](./walk/) | Live front-facing UI walk: debug every screen, file every finding | None (no commit / PR) |
 | [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
@@ -111,7 +115,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/issue`, `/issues`, `/project-review`, `/walk` UI findings, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
+- **Linear MCP** for ticket lifecycle (`/start` product project + V1 epic, `/issue`, `/issues`, `/project-review`, `/walk` UI findings, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review`; **required** for `/walk` (agent-browser, Chrome DevTools, etc.).
@@ -125,6 +129,33 @@ These skills are intentionally portable, but they were shaped around the stacks 
 ---
 
 ## Skill catalog
+
+### `/start` — scaffold or validate, onboard, Linear V1, build on local `dev`
+
+**Path:** [`start/`](./start/)
+
+Greenfield: clone **[next-starter-template](https://github.com/davidsolheim/next-starter-template)** into a fresh tree (no template git history), onboard `AGENTS.md` / `VISION.md` / `README.md`, create a Linear project + V1 epic, then nested `/solve all` on local `dev`. Existing dest: **do not overlay the template** — validate starter bones, repair docs/identity, reuse the bound Linear project if present.
+
+| Flag | Behavior |
+|------|----------|
+| `--slug SLUG` | Repo / Doppler / package name |
+| `--dir PATH` | Destination (default `$HOME/src/<slug>`) |
+| `--team TEAM` | Linear team (else dest docs / `list_teams`) |
+| `--docs-only` | Scaffold or repair docs; no Linear, no build |
+| `--no-linear` | Skip Linear; still build from `VISION.md` V1 |
+| `--no-build` | Stop after docs (+ Linear unless disabled) |
+| `--draft` | Print project + leaf bodies; do not create Linear; do not build |
+| `fast` / `--fast` | Nested `/solve all fast` for V1 |
+
+**Triggers:** `/start`, “bootstrap a new project”, “spin up a new Next app”, “validate this starter repo”…
+
+**Needs:** git · companion `/issue` `/issues` `/solve` · Linear MCP unless `--docs-only` / `--no-linear` / `--draft` · optional `gh` + Doppler
+
+**Companion refs:** [`start/references/scaffold.md`](./start/references/scaffold.md), [`start/references/existing-repo.md`](./start/references/existing-repo.md), [`start/references/onboard-docs.md`](./start/references/onboard-docs.md), [`start/references/linear-v1.md`](./start/references/linear-v1.md)
+
+Default dest is **local only**. No GitHub remote, push, or production deploy unless you ask. Nested solve pins **this product’s** V1 leaves — it does not drain some other board.
+
+---
 
 ### `/project-review` — agentic discovery → solve-ready Linear queue
 
@@ -325,7 +356,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
+cp -R skills/start skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
 ```
 
 ### Option B — point the agent at this repo
@@ -338,7 +369,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/project-review fast`, `/walk`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/start`, `/project-review fast`, `/walk`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -381,6 +412,9 @@ My Product Launch
 .
 ├── README.md
 ├── .linear-project          # tracking for this skills repo itself (optional for consumers)
+├── start/
+│   ├── SKILL.md
+│   └── references/          # scaffold, existing-repo, onboard, linear-v1, handoff
 ├── project-review/
 │   ├── SKILL.md
 │   └── references/          # deep mode, candidates, templates, …
