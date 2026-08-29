@@ -27,7 +27,7 @@ Linear is the claim board (`claimed-by:` CAS). Git branches are backup + merge s
 
 | Name | Value |
 | --- | --- |
-| `DEFAULT_CONCURRENCY` | `4` when count mode is `all` |
+| `DEFAULT_CONCURRENCY` | `2` when count mode is `all` |
 | `MAX_CONCURRENCY` | `8` |
 | Integer-mode concurrency | `min(N, MAX_CONCURRENCY)` unless `--concurrency` set |
 | `--concurrency M` | Override width; clamp to `1..MAX_CONCURRENCY` |
@@ -43,10 +43,11 @@ Linear is the claim board (`claimed-by:` CAS). Git branches are backup + merge s
 | --- | --- | --- |
 | `/solve fast` | 1 | 1 |
 | `/solve 5 fast` | up to **5 issues** | up to `min(5, 8)` |
-| `/solve all fast` | **all** eligible (no soft cap) | `DEFAULT_CONCURRENCY` (4) |
-| `/solve all fast --concurrency 5` | **all** eligible | 5 |
+| `/solve all fast` | **all** eligible in the active set (no soft cap) | `DEFAULT_CONCURRENCY` (2) |
+| `/solve all fast --concurrency 5` | **all** eligible in the active set | 5 |
+| `/solve <scope> fast` | **all** in `SCOPE` (milestone/label/area) | `DEFAULT_CONCURRENCY` (2) |
 
-Default concurrency **4** and auto-dialed implement effort are **not** issue counts. Effort comes from [`../../docs/intensity.md`](../../docs/intensity.md) per issue (or `--effort`).
+Default concurrency **2** and inner-review yes/no are **not** issue counts. Inner review comes from [`../../docs/intensity.md`](../../docs/intensity.md) per issue (or `--effort`, capped at 1).
 
 ---
 
@@ -86,12 +87,14 @@ If In Progress on this project already has **foreign live `claimed-by:`** commen
 
 Pre-scan via **Phase S0 / batch-guidance.md**:
 
-1. Page Linear `list_issues` for team/project (open/actionable).
-2. Eligibility (2B), blocked (2D), epic expand (2E) → **leaves** only.
-3. Tag platforms, class, supersedes; skip full-obsolete.
-4. Order by `order_rank` (migrations first; lowest number is tie-break).
-5. Integer `N`: inventory all for guidance; implement until `N` successful **wave merges to origin/dev**.
-6. Do **not** comment ordinary scan skips. Do comment once when canceling a full-obsolete supersede.
+1. Linear inventory fetch in [`eligibility.md`](eligibility.md) (team + project + state per actionable status; slim fields; page each state).
+2. If `SCOPE` is set, keep `issue_in_scope` only (Scope filter in the same file).
+3. Eligibility (2B), blocked (2D), epic expand (2E) → **leaves** only.
+   Canonical: [`eligibility.md`](eligibility.md). Out-of-scope blockers stay skipped.
+4. Tag platforms, class, supersedes; skip full-obsolete.
+5. Order by `order_rank` (migrations first; lowest number is tie-break).
+6. Integer `N`: inventory all for guidance; implement until `N` successful **wave merges to origin/dev**.
+7. Do **not** comment ordinary scan skips. Do comment once when canceling a full-obsolete supersede.
 
 After each wave lands on `origin/dev`, **re-scan** Linear, patch guidance, append waves. Do not freeze F1.
 
@@ -153,7 +156,7 @@ Workers **must not** set Linear state.
 - `issue_branch = solve/<RUN_ID>/<ISSUE>`
 - `git branch <issue_branch> <wave_base_sha>` then spawn `isolation: worktree` on that branch.
 
-Worker spawn (required): `subagent_type: general-purpose`, `isolation: worktree`, **`model: grok-4.6`** ([`../../docs/grok-models.md`](../../docs/grok-models.md)). Do not inherit the parent.
+Worker spawn (required): `subagent_type: solve-implementer` (fallback `general-purpose`), `isolation: worktree`, **`model: grok-4.6`** ([`../../docs/grok-models.md`](../../docs/grok-models.md)). Do not inherit the parent. Do not pass a fake `effort:` field.
 
 ### Worker prompt (required)
 
@@ -166,7 +169,8 @@ You are a solve-fast **worker** for a single Linear leaf.
 - Guidance wins on stack / rescope
 - Worktree only; branch: solve/<RUN_ID>/<ISSUE>
 - Base is this wave’s origin/dev tip. Do not merge other issues.
-- Full /implement loop + custom-implement-instructions.md
+- Cheap construction: apply the Linear contract + custom-implement-instructions.md. **No** bundled `/implement` until-zero-nits.
+- Inner review: <none | bugs-only from intensity.md / --effort, capped at 1>
 - Verify per AGENTS / issue AC **and** [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md) (runtime proof when in-scope). Matrix green is not enough.
 - Commit on the issue branch:
   <ISSUE>: short imperative summary
@@ -259,7 +263,7 @@ Never `gh pr merge` into `main` here.
 
 For each issue that landed in the merged PR:
 
-1. Completion comment: origin issue branch, wave PR URL, `origin/dev` SHA, verify evidence.
+1. Completion comment: origin issue branch, wave PR URL, `origin/dev` SHA, matrix + runtime-proof evidence ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)).
 2. **In Review** (or stay In Progress if the team has no In Review). **Never Done.**
 3. Epic rollup only when all children are terminal.
 
@@ -292,9 +296,11 @@ After a wave is on `origin/dev`:
 2. Re-list Linear (all pages). Patch guidance + graph.
 3. Continue until integer `N` met, `all` drain gate passes, or nothing eligible remains.
 
+If `SELECTION_PIN` is set (Identify), **do not** append leaves outside the pin. See [`eligibility.md`](eligibility.md) (Selection pin). If `SCOPE` is set, **do not** append leaves outside `issue_in_scope` (Scope filter).
+
 ### Drain gate (`all` only)
 
-Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remains → resume F4. Do not Phase 9.
+Fresh Linear inventory fetch + scope filter + eligibility. If any implementable **unclaimed** leaf remains **in the active set** → resume F4. Do not Phase 9. Scoped runs may finish while the rest of the project still has eligible leaves.
 
 ---
 
@@ -309,7 +315,8 @@ Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remai
 **Wave PRs:** #… (merged) · #… (open)
 **origin/dev:** <sha>
 **Cleanup:** worktrees 0 remaining
-**Drain (all):** verified — no eligible unblocked unclaimed leaves
+**Scope:** <milestone Name | label X | area "…" | none>
+**Drain (all):** verified — no eligible unblocked unclaimed leaves [in this scope]
 
 ### Solved (In Review on origin/dev)
 1. [TEAM-123](url) — wave PR #N · origin/dev <sha>
@@ -337,10 +344,12 @@ Fresh `list_issues` + eligibility. If any implementable **unclaimed** leaf remai
 - Treating worker typecheck/tests as runtime proof for in-scope UI/auth/billing/API/schema/shared-helper leaves
 - Hard-stopping the whole run when one independent leaf fails
 - Stopping `/solve all fast` after ~5 or after wave 0 without refill + drain gate
+- Picking a leaf **outside** `SCOPE` during a scoped `/solve <milestone> fast` drain
 - Exceeding `MAX_CONCURRENCY` (8)
 - Implementing epic shells
 - Spawning a second top-level grok CLI drain (v1: one orchestrator; workers = subagents + worktrees)
 - Fast workers without `model: grok-4.6` (Claude/GPT/Composer inherit)
+- Fast workers running bundled `/implement` until-zero-nits
 
 ---
 

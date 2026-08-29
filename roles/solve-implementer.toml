@@ -1,0 +1,5 @@
+# Cheap construction worker for /solve. Pins low reasoning even if the parent is high/xhigh.
+description = "Apply a Linear implementer contract. Smallest complete change. No inner review swarm."
+default_capability_mode = "all"
+model = "grok-4.6"
+reasoning_effort = "low"

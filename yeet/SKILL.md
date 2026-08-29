@@ -14,7 +14,7 @@ argument-hint: "[--via-dev-pr] [--skip-migrations] [--no-commit]"
 
 # /yeet — Quick ship `dev` → `main` (no babysit)
 
-Ship **this session’s finished work now**. `/prb` is the careful path (review gate, 15m CI watch). `/yeet` skips those.
+Ship **this session’s finished work now**. `/prb` is the careful path (deep local review panel + 15m CI watch). `/yeet` skips those. Cheap `/solve` has no inner review swarm, so `/yeet` after `/solve` is an explicit skip of the only remaining audit.
 
 1. Refresh `origin/main` into local `main` and `dev`
 2. Commit leftover session files on `dev` if needed
@@ -44,7 +44,7 @@ Ship **this session’s finished work now**. `/prb` is the careful path (review 
 
 | Arg | Meaning |
 |-----|---------|
-| `--via-dev-pr` | Commit on a short `feat/<ticket-or-slug>` branch, PR into `dev`, merge that, then PR `dev` → `main` |
+| `--via-dev-pr` | Commit on a short `david/…` branch, PR into `dev`, merge that, then PR `dev` → `main` |
 | `--skip-migrations` | Do not run production migrate; loud warning that schema may lag |
 | `--no-commit` | Do not auto-commit; stop if the working tree has session changes that need a commit |
 
@@ -75,7 +75,7 @@ If the dirty set looks **mixed or huge** (unrelated packages, generated junk mix
 Otherwise:
 
 1. Stage only the session source files (and their tests). Never stage the ignore list above.
-2. Invent a short subject from the diff + a ticket id when known (`TEAM-123: …`). Do not ask for a subject unless the dirty set is ambiguous.
+2. Invent a short subject from the diff + a ticket id when known (`INV-123: …`). Do not ask for a subject unless the dirty set is ambiguous.
 3. Commit on local `dev` (or on the `--via-dev-pr` branch).
 4. Re-scan Linear ids from the new commit.
 
@@ -95,7 +95,7 @@ git merge-base --is-ancestor origin/main dev   # required
 
 If ff-only on `main` fails, **stop**. If the `dev` merge conflicts, resolve fully, then continue. If merging `origin/dev` is needed because remote `dev` is ahead, do that **after** `origin/main` is in, without dropping session commits.
 
-`--via-dev-pr`: after `dev` contains `origin/main`, checkout a short `feat/<ticket-or-slug>` from `dev`, ensure the session commit is on it.
+`--via-dev-pr`: after `dev` contains `origin/main`, checkout a short `david/<ticket-or-slug>` from `dev`, ensure the session commit is on it.
 
 ## Phase 2 — Push and PR
 
@@ -167,7 +167,7 @@ Do not `reset --hard` if it would destroy unique local commits. If `--admin` fai
 
 ## Phase 5 — Linear (when ids exist)
 
-Keep the comment short. Read-before-write: [`../docs/linear-comments.md`](../docs/linear-comments.md).
+Authority for comment shape: `/prb` [`references/linear-ship-comments.md`](../prb/references/linear-ship-comments.md). Keep it short. Read-before-write: [`../docs/linear-comments.md`](../docs/linear-comments.md).
 
 For each id in `SHIP_LINEAR_IDS` that this ship implemented:
 

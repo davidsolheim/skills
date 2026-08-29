@@ -6,15 +6,24 @@ Canonical procedure for claiming and closing Linear issues when several Grok CLI
 
 **Unclaimed:** Backlog/Todo/Triage (or equivalent), not In Progress, no live `claimed-by:` comment newer than 60 minutes.
 
-**Claimed by us:** In Progress (or In Review after we shipped `dev`) whose latest `claimed-by:` / `stolen-by:` matches this session `run` id.
+**Claimed by us:** In Progress (or In Review after we shipped `dev`) whose latest `claimed-by:` / `stolen-by:` matches this session `run` id. The `<bot-or-cli>` token does **not** matter for “ours” vs foreign — only `run`.
 
-**Claimed by other:** In Progress with a foreign live claim comment — skip. Do not implement.
+**Claimed by other:** In Progress with a foreign live claim comment (different `run`) — skip. Do not implement.
+
+Valid `<bot-or-cli>` tokens include `solve`, `identify`, and the CLI/bot name. `/identify` claims with:
+
+```
+claimed-by: identify · session <id> · worktree <cwd> · run <RUN_ID>
+```
+
+Nested `/solve` from Identify **must reuse that `RUN_ID`**. Treat the identify line as this run; do not abort as foreign.
 
 ## Claim (CAS) — before any git work
 
 1. Eligible leaf (existing 2B–2E) **and unclaimed**.
 2. Assign to me if unassigned. Set **In Progress**.
-3. Comment, first line exactly:
+3. `list_comments` first. Skip a new claim comment if this `run` already has a
+   live `claimed-by:`. Else comment, first line exactly:
 
 ```
 claimed-by: <bot-or-cli> · session <id> · worktree <cwd> · run <RUN_ID|sequential>

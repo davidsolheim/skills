@@ -15,12 +15,19 @@ Do **not** `list_comments` on every skipped candidate. Only the issue you are
 about to comment on or claim.
 
 Skills that post comments (`/prb`, `/yeet`, `/solve`, `/identify`, `/tidy`,
-`/issue` retire, `/walk` when commenting) follow this file. Moment keys live
-in each skill.
+`/issue` retire, `/walk` retire, `/start` nested `/solve`) follow this file.
+Moment keys live in each skill. `/start` itself does not comment on V1 leaves
+until nested `/solve` claims them.
+
+`/prb` Phase 1.5 posts **one** `/prb — local review gate` comment on the first
+ship issue (template C in `prb/references/linear-ship-comments.md`). It does
+**not** file Linear issues per finding. `/solve` posts claim + one In Review
+closeout; it does not post per-reviewer chatter.
 
 | Excuse | Reality |
 |--------|---------|
 | "I already loaded the issue body" | Body ≠ comments. List comments. |
 | "We posted this earlier in the run" | Re-list. Orchestrator and scheduler race. |
 | "A second comment will be clearer" | Skip. One comment per moment. |
+| "File a Linear issue per /prb finding" | No. Scratch markdown + one gate comment. |
 | "This is a different skill, so a new comment is fine" | Same moment + same PR/SHA/marker → skip. |

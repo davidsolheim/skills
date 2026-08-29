@@ -28,7 +28,7 @@
 {{ISSUE_INVENTORY}}
 
 <!-- Example row:
-- [TEAM-123](url) — title · wave 0 · deps: none · paths: apps/web/src/foo/**
+- [TW-123](url) — title · wave 0 · deps: none · paths: apps/web/src/foo/**
 -->
 
 ## Tech intersections
@@ -38,9 +38,9 @@ Technologies, packages, routes, schema areas, and auth surfaces that **two or mo
 {{TECH_INTERSECTIONS}}
 
 <!-- Example:
-- Neon schema / migrations under packages/db — issues TEAM-123, TEAM-140
-- Auth session helpers in packages/auth — TEAM-124, TEAM-131
-- Marketing SEO routes under apps/web/app/(marketing) — TEAM-150 only
+- Neon schema / migrations under packages/db — issues TW-123, TW-140
+- Auth session helpers in packages/auth — TW-124, TW-131
+- Marketing SEO routes under apps/web/app/(marketing) — TW-150 only
 -->
 
 ## Shared contracts (must follow)
@@ -50,10 +50,10 @@ Non-negotiable decisions for this run. If an issue needs something not listed, p
 {{SHARED_CONTRACTS}}
 
 <!-- Example:
-1. API routes: continue existing runtime helpers / data-access patterns in the consumer repo; no new ad-hoc fetch wrappers.
+1. API routes: continue existing `useRuntimeResource` / Neon runtime pattern; no new ad-hoc fetch wrappers.
 2. DB: additive migrations only; no rename/drop of columns other tickets still use.
 3. Env: only keys already in AGENTS.md / existing Doppler set; never commit secrets.
-4. Naming: issue id prefix in commits (`TEAM-123: …`).
+4. Naming: issue id prefix in commits (`TW-123: …`).
 -->
 
 ## Explicit non-goals / do-not-touch
@@ -76,11 +76,11 @@ An issue **must not start** until every hard dependency is **merged to local `de
 
 <!-- Example:
 ### Wave 0 (base = dev @ <sha>)
-1. merge_order 1 — TEAM-123
-2. merge_order 2 — TEAM-124
+1. merge_order 1 — TW-123
+2. merge_order 2 — TW-124
 
 ### Wave 1 (starts after wave 0 merges)
-3. merge_order 3 — TEAM-125 (hard_deps: TEAM-123)
+3. merge_order 3 — TW-125 (hard_deps: TW-123)
 -->
 
 ## Per-issue notes
@@ -88,8 +88,8 @@ An issue **must not start** until every hard dependency is **merged to local `de
 {{PER_ISSUE_NOTES}}
 
 <!-- Example:
-### TEAM-123 — title
-- Parent epic: TEAM-100
+### TW-123 — title
+- Parent epic: TW-100
 - Hard deps: none
 - Soft deps: none
 - Primary paths: …
@@ -106,7 +106,7 @@ Paths or modules that must **not** be edited by two concurrent workers. Issues l
 <!-- Example:
 | Zone paths | Serialize (order) |
 |------------|-------------------|
-| packages/db/schema.ts | TEAM-123 → TEAM-140 |
+| packages/db/schema.ts | TW-123 → TW-140 |
 -->
 
 ## Supersession / selective overrides
@@ -118,8 +118,8 @@ Later tickets may **replace** earlier functionality. When an issue is listed as 
 <!-- Example:
 | Superseder | Mode | Superseded | Override scope | Notes |
 |------------|------|------------|----------------|-------|
-| TEAM-140 | full | TEAM-123 | entire prior surface for X | TEAM-123 skipped this run |
-| TEAM-155 | partial | TEAM-130 (Done) | `apps/web/lib/foo.ts` | may rewrite foo |
+| TW-140 | full | TW-123 | entire prior surface for X | TW-123 skipped this run |
+| TW-155 | partial | TW-130 (Done) | `apps/web/lib/foo.ts` | may rewrite foo |
 -->
 
 **Rules for workers:**
@@ -142,7 +142,7 @@ Before coding:
 
 After coding (worker):
 
-1. [ ] Implement→review until 0 open issues
+1. [ ] Cheap construction (`solve-implementer`; bugs-only inner review on heavy/critical)
 2. [ ] Verify per repo AGENTS / issue verification
 3. [ ] Commit on issue branch only
 4. [ ] Write worker summary to the path the orchestrator gave you

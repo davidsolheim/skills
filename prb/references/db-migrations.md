@@ -2,7 +2,7 @@
 
 When `/prb` ships work that includes schema/data migrations, **apply them carefully at the production gate** using **this repo’s** documented migration procedure. Do not invent a stack. Do not assume every app migrates the same way.
 
-Many hosts and CI pipelines **do not** run migrations on deploy. Merging code that requires new tables/columns without a production migrate is a skill failure when the ship set includes migrations.
+Vercel (and most CI here) often **does not** run migrations on deploy. Merging code that requires new tables/columns without a production migrate is a skill failure when the ship set includes migrations.
 
 ---
 
@@ -46,17 +46,14 @@ If new migration SQL exists only in the working tree and is not on `dev`, **stop
 
 ## 2. Discover **this project’s** migration procedure (required)
 
-**Discovery algorithm only:** resolve the migrate procedure from **this repo’s** docs and scripts. Do **not** invent a stack, hardcode another project’s prod runbook, or assume Neon/Railway/Vercel/Doppler shapes unless the repo documents them.
-
 Read **in order** until you can fill the discovery table. Prefer the first clear source of truth.
 
-1. `AGENTS.md` / `CLAUDE.md` / repo agent rules (DB / secrets / migrate sections)
+1. `AGENTS.md` / `CLAUDE.md` / repo agent rules (DB / Doppler / migrate sections)
 2. `docs/DATABASE_MIGRATIONS.md`, `docs/**/migrat*.md`, `docs/migration/**`
 3. `README.md` (Database / Migration sections)
 4. Root and workspace `package.json` scripts matching `db:migrate`, `db:migrate:*`, `migrate`, `prisma:migrate*`
-5. CI workflows (`.github/workflows/**`, other CI configs) that name migrate steps or env configs
-6. Config files: `drizzle.config.*`, `prisma/schema.prisma`, `doppler.yaml` (or equivalent secrets tooling)
-7. Monorepo packages: `packages/db/**`, `apps/*/package.json` filter scripts
+5. Config files: `drizzle.config.*`, `prisma/schema.prisma`, `doppler.yaml`
+6. Monorepo packages: `packages/db/**`, `apps/*/package.json` filter scripts
 
 ### Discovery table (fill every run when migrations apply)
 
@@ -66,11 +63,11 @@ Read **in order** until you can fill the discovery table. Prefer the first clear
 | `MIGRATE_SCRIPT` | Prefer `db:migrate` over `db:push`. If `db:push` is the only option and docs forbid it for shared DBs, **stop** |
 | `MIGRATE_CMD` | Exact command from docs/scripts (e.g. `bun run db:migrate`, `pnpm --dir packages/db …`) |
 | `DOPPLER_PROJECT` | From `doppler.yaml` `setup.project`, AGENTS examples, or folder name only if documented |
-| `DOPPLER_PRODUCTION` | Production config name: usually `production` or `prd` (sometimes `prod`). **Never guess** if both `prd` and `production` exist without docs — list configs and pick the one docs map to the production deploy environment |
+| `DOPPLER_PRODUCTION` | Production config name: usually `production` or `prd` (sometimes `prod`). **Never guess** if both `prd` and `production` exist without docs — list configs and pick the one docs map to Vercel Production |
 | `DOPPLER_PREVIEW` | Optional: `preview` / `stg` if docs say migrate preview too |
 | `ENV_WRAPPER` | How secrets are injected: `doppler run --project X --config Y -- …`, script already wraps Doppler, or plain env |
 | `HISTORY_STORE` | e.g. Drizzle `__drizzle_migrations` / schema pin notes from README |
-| `FORBIDDEN` | Commands docs disable (e.g. `db:push` / `db:push:force` against shared/production DBs) |
+| `FORBIDDEN` | Commands docs disable (e.g. kectil `db:push` / `db:push:force`) |
 | `SEED_POLICY` | Content/seed scripts are **never** part of `/prb` migrate unless the user explicitly requests a named seed against a confirmed env |
 
 ### Common stack patterns (examples only — override with repo docs)
@@ -87,7 +84,7 @@ Read **in order** until you can fill the discovery table. Prefer the first clear
 - **Never** invent Doppler project/config names. If unknown: `doppler configs` / read docs; if still unclear, **stop and ask**.
 - **Never** print `DATABASE_URL`, Doppler secret values, or connection strings. Redact hosts if needed (`doppler run -- …` with a check that `DATABASE_URL` is set without printing it).
 - **Never** run `db:push` / `drizzle-kit push` / `prisma db push` against production unless the user explicitly orders it **and** docs allow it (rare). Prefer versioned migrate.
-- Prefer **unpooled** URLs when the project documents `DATABASE_URL_UNPOOLED` (or equivalent) for migrations; use whatever the project’s migrate path already selects. Hosted Postgres providers (e.g. Neon) often document this pattern — follow repo docs, not this example.
+- Prefer **unpooled** URLs when the project documents `DATABASE_URL_UNPOOLED` for migrations (Neon); use whatever the project’s migrate path already selects.
 - Do not run repair/history-rewrite scripts (`db:repair:*`) unless docs say the target DB needs them **and** the user confirms.
 
 ---
@@ -166,7 +163,7 @@ doppler run --project "$DOPPLER_PROJECT" --config "$DOPPLER_PRODUCTION" -- $PKG 
 $PKG run db:migrate
 ```
 
-5. Run with a generous timeout; migrations can be slow on remote/hosted databases.
+5. Run with a generous timeout; migrations can be slow on Neon.
 6. On **non-zero exit**: **do not merge**. Capture error text (redact secrets). Diagnose (wrong config, history mismatch, destructive SQL). Offer repair only if project documents it.
 7. On **success**: note time + SHA + config name (not secrets) in the session log, then proceed to merge.
 8. Never chain content seeders, `db:push`, or destructive repair after a successful migrate as part of `/prb`.

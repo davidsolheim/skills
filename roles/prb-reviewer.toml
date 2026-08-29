@@ -1,0 +1,5 @@
+# /prb Phase 1.5 panel specialist. Medium reasoning; writes scratch JSON only.
+description = "Local code-review gate specialist. Read the ship, write rubric JSON, do not edit source."
+default_capability_mode = "all"
+model = "grok-4.6"
+reasoning_effort = "medium"

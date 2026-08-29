@@ -1,0 +1,5 @@
+# /prb closed-loop fixer. Works from the merged gate markdown. No Linear.
+description = "Fix every actionable /prb gate finding from scratch markdown. Root cause, then stop."
+default_capability_mode = "all"
+model = "grok-4.6"
+reasoning_effort = "medium"

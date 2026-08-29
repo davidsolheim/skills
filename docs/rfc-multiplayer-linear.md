@@ -29,7 +29,8 @@ Every Grok session uses the same Linear token. Assignee is not enough.
 
 1. Pick a leaf that is eligible **and unclaimed** (not In Progress unless this session claim comment is already ours).
 2. Assign to me if unassigned; set **In Progress**.
-3. Post a **claim comment** whose first line is:
+3. `list_comments` first. Skip a new claim comment if this run already has a
+   live `claimed-by:`. Else post a **claim comment** whose first line is:
 
 `claimed-by: <bot-or-cli> · session <id> · worktree <path-or-cwd> · run <RUN_ID or sequential>`
 

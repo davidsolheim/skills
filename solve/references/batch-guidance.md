@@ -31,7 +31,9 @@ Lowest-issue-number order is wrong when:
 | `/solve` / `/solve 1` | Only if preferred issue has explicit `## Supersedes` / stack conflict, or user constraints demand it |
 | `/solve N` (`N ≥ 2`) | **Yes**, before first claim |
 | `/solve all` | **Yes**, before first claim |
+| `/solve` with `SCOPE` (implicit `all`) | **Yes**, on the in-scope leaf set only |
 | Any `fast` | **Yes** (F1 inventory + this analysis before workers) |
+| `/identify` | **Thin** subset only — tag, skip full-obsolete, promote migrations when a conflict exists. No scratch files. No Linear writes. See identify `references/guidance.md`. |
 
 If S0 is not required, sequential mode may keep pure lowest-number selection.
 
@@ -69,10 +71,11 @@ Fast mode may use the same dir naming (`solve-batch-*` or `solve-fast-*`) but **
 
 ## Step A — Inventory
 
-1. Page Linear open/actionable issues for team + project.
-2. Apply eligibility (Phase 2B), blocked (2D), epic expansion (2E) → **leaf** set.
-3. Optionally sample **recent Done** issues that share keywords/paths with open leaves (override context only).
-4. Read repo architecture anchors when present:
+1. Linear inventory fetch in [`eligibility.md`](eligibility.md) (team + project + state per actionable status; slim fields; page each state).
+2. If `SCOPE` is set, keep `issue_in_scope` only ([`eligibility.md`](eligibility.md) Scope filter).
+3. Apply eligibility (Phase 2B), blocked (2D), epic expansion (2E) → **leaf** set.
+4. Optionally sample **recent Done** issues that share keywords/paths with open leaves (override context only).
+5. Read repo architecture anchors when present:
    - `docs/architecture.md`, `docs/prd.md`, root `README.md`
    - Deferred/superseded plan docs under `docs/plans/`
    - Package layout (`apps/`, `packages/`) for actual runtime
@@ -104,7 +107,7 @@ Parse body for:
 
 - `## Supersedes` section (preferred; see `/issue` template)
 - Phrases: “supersedes”, “replaces”, “instead of”, “do not use”, “abandoned”, “deferred in favor of”
-- Issue ids matching `PREFIX-\d+` (e.g. `TEAM-123`, `ENG-12`) named as replaced
+- Issue ids `TEAM-\d+` named as replaced
 
 ### Stack verbs
 
@@ -171,10 +174,10 @@ Assign `order_rank` (1 = first):
 
 | Id | Intent | Outcome |
 |----|--------|---------|
-| TEAM-67 | ClickHouse warehouse | skip / cancel (abandoned) |
-| TEAM-80 | Funnel rollups in ClickHouse | rescope → Neon rollups; after migration |
-| TEAM-123 | Edge → Neon ingestion | promote early |
-| TEAM-200 | Remove ClickHouse from launch | early/mid; may override Done ClickHouse artifacts |
+| LEET-67 | ClickHouse warehouse | skip / cancel (abandoned) |
+| LEET-80 | Funnel rollups in ClickHouse | rescope → Neon rollups; after migration |
+| LEET-123 | Edge → Neon ingestion | promote early |
+| LEET-200 | Remove ClickHouse from launch | early/mid; may override Done ClickHouse artifacts |
 
 Order sketch: `123` → `200` → re-scoped `80`; skip `67`.
 
@@ -204,6 +207,8 @@ After each successful Done (sequential) or merge wave (fast):
 1. Re-list Linear for newly eligible leaves.
 2. If new leaves add platform conflicts or supersession edges, **patch** guidance + re-rank **remaining** only.
 3. Do not reorder already merged/solved work.
+4. If `SELECTION_PIN` is set, do not append ids outside the pin ([`eligibility.md`](eligibility.md)).
+5. If `SCOPE` is set, do not append ids outside `issue_in_scope` (same file, Scope filter).
 
 ---
 

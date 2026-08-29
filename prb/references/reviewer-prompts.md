@@ -4,11 +4,12 @@ Orchestrator-only. Prepend [`review-rubric.md`](review-rubric.md) (full text) to
 
 Every spawn:
 
-- `subagent_type`: `general-purpose`
+- `subagent_type`: `prb-reviewer` (fallback `general-purpose` if the host rejects the type)
 - `model`: `grok-4.6` (required; never omit / never inherit; [`../../docs/grok-models.md`](../../docs/grok-models.md))
 - `background`: `true` (launch the panel in one turn)
 - `description`: `[thoroughness] …` / `[security] …` / `[rules] …` / `[challenge] …`
 - Do **not** pass `capability_mode`. Reviewers must write their scratch file. Read-only is enforced by the prompt: no source edits, no git writes, no Linear, no push.
+- Do **not** pass a fake `effort:` field. Medium reasoning comes from the `prb-reviewer` role.
 
 Inline absolute paths for the rubric, ship-set commands, `AGENTS.md` excerpts, and `output_file`. Do not rely on shell variables surviving across tool calls.
 

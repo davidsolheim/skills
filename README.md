@@ -22,8 +22,8 @@ Most agent “prompts” either stay private or leak the author’s machine and 
 2. **Discover** what’s missing, broken, or inconsistent (`/project-review`), **walk** every front-facing screen (`/walk`), or **file** tickets from a human description (`/issue` / `/issues`).
 3. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open board urgent-first with `/stat` (read-only; not a solve batch).
 4. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
-5. **Solve** the approved tickets onto a long-lived local `dev` branch with an implement→review loop.
-6. **Ship** with `/prb` (review gate, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
+5. **Solve** the approved tickets onto a long-lived local `dev` branch with cheap construction (one implementer; `/prb` is the deep review).
+6. **Ship** with `/prb` (review panel, scratch-file fixer, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
 
 The skills assume a professional full-stack product shop—not a single demo app. They are stack-aware when *your* docs say so, but they do not hard-code one company’s board or hoster.
 
@@ -51,11 +51,11 @@ The skills assume a professional full-stack product shop—not a single demo app
         │         approve → claim → /solve 1 per ID (sequential)
         │         reject  → next-best 2–4
         ▼
-   /solve   ──► implement on short-lived branch → merge local dev only
+   /solve   ──► cheap construction on short-lived branch → merge local dev only
         │         (/solve N · /solve all · /solve all fast · or /solve 1 ID from identify)
         ▼
    /prb     ──► intensity-selected grok-4.6 panel
-                → (issue+solve loop) → push origin/dev
+                → scratch markdown + one fixer → push origin/dev
                 → PR main←dev → babysit CI → migrate? → merge
         or
    /yeet    ──► push origin/dev → PR main←dev → runtime proof
@@ -72,8 +72,8 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`tidy/`](./tidy/) | Board hygiene: upgrade, relations, rollup, high-confidence close, shipped status | None (Linear only) |
 | [`stat/`](./stat/) | Read-only briefing of the open Linear board, urgent → least | None |
 | [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
-| [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
-| [`prb/`](./prb/) | Intensity-selected grok-4.6 review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
+| [`solve/`](./solve/) | Pick next unblocked leaf(s), cheap construction, land on **local `dev`** | Local only |
+| [`prb/`](./prb/) | Intensity-selected grok-4.6 review gate + scratch fixer, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
 | [`yeet/`](./yeet/) | Quick ship: push `dev`, PR into `main`, merge immediately (no panel / no CI wait). In-scope runtime proof still required | Push + PR + merge |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
@@ -117,10 +117,10 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 - **Linear MCP** for ticket lifecycle (`/start` product project + V1 epic, `/issue`, `/issues`, `/project-review`, `/walk` UI findings, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
-- **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
+- **Cheap construction** under `/solve` (one `solve-implementer`; optional bug-only inner review on heavy/critical). Standalone `/implement` is separate.
 - **Browser / preview URL** optional for `/project-review`; **required** for `/walk` (agent-browser, Chrome DevTools, etc.).
 - **Production migrations** discovered per repo at ship time (`/prb`, `/yeet`)—never invent a stack, never `db:push` to prod by default.
-- **Local code review gate** on `/prb` before push: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), then closed-loop `/issue` + `/solve` on local `dev` until the ship set is clean. `/solve` auto-dials implement effort from the ticket stamp.
+- **Local code review gate** on `/prb` before push: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), findings in scratch markdown, one `prb-fixer` on local `dev`, one Linear gate comment. `/solve` does **not** run a review swarm.
 
 ### Platform supersession (multi-ticket runs)
 
@@ -292,7 +292,7 @@ Plain `/identify` only — no size, theme, or id args. `/solve` still works with
 
 **Path:** [`solve/`](./solve/)
 
-Selects the next unblocked leaf (or drains the board), runs the full implement→review loop, verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask. Implement effort is **auto-dialed** from the ticket’s `## Intensity` stamp ([`docs/intensity.md`](./docs/intensity.md)); `--effort N` is a hidden override.
+Selects the next unblocked leaf (or drains the board), runs **cheap construction** (one `solve-implementer`; optional one bug-only reviewer on heavy/critical), verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask. Inner-review yes/no is **auto-dialed** from the ticket’s `## Intensity` stamp ([`docs/intensity.md`](./docs/intensity.md)); `--effort N` is a hidden inner-review override, capped at 1. Deep review is `/prb`.
 
 | Invocation | Behavior |
 |------------|----------|
@@ -314,7 +314,7 @@ Selects the next unblocked leaf (or drains the board), runs the full implement�
 Ship **already finished** session work:
 
 1. Refresh `origin/main` into local `main` and merge into local `dev` (**hard rule before any push**).
-2. **Local Code Review Gate** on `origin/main...dev`: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), merged through [`prb/references/review-rubric.md`](./prb/references/review-rubric.md). High-signal findings only; load `## Code Review Rules` from AGENTS.md. If actionable findings exist: create Linear issues via `/issue`, fix on local `dev` via `/solve` at the **finding’s** effort, re-run the panel until clean (default max **2** cycles). Exhaustive second pass only on **critical** ships. **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
+2. **Local Code Review Gate** on `origin/main...dev`: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), merged through [`prb/references/review-rubric.md`](./prb/references/review-rubric.md). High-signal findings only; load `## Code Review Rules` from AGENTS.md. If actionable findings exist: fix on local `dev` from scratch markdown via `prb-fixer` (no per-finding Linear tickets), re-run the panel until clean (default max **2** cycles), then **one** Linear gate comment. Exhaustive second pass only on **critical** ships. **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
 3. Push `origin/dev`.
 4. Open/reuse PR `main` ← `dev`.
 5. Babysit CI/bots (default every **5** minutes for **15** minutes).
@@ -357,6 +357,8 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
 cp -R skills/start skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
+mkdir -p ~/.grok/roles
+cp skills/roles/*.toml ~/.grok/roles/
 ```
 
 ### Option B — point the agent at this repo
@@ -443,6 +445,7 @@ My Product Launch
 │   └── references/          # local-code-review, review-rubric, reviewer-prompts, db-migrations
 ├── yeet/
 │   └── SKILL.md             # quick ship; shares prove-it-works + prb migrate discovery
+├── roles/                   # solve-implementer / solve-reviewer / prb-reviewer / prb-fixer
 └── docs/
     ├── prove-it-works.md
     ├── intensity.md

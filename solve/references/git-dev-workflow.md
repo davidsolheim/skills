@@ -56,13 +56,13 @@ git merge main -m "Merge main into dev"
 Prefer Linear’s suggested `gitBranchName` when present; else:
 
 ```text
-feat/<prefix-lower>-<number>-short-slug
+feat/<team-lower>-<number>-short-slug
 ```
 
-`<prefix-lower>` is the real Linear team key lowercased (e.g. `eng`, `ops`, `team`). Example only: `feat/team-341-profile-avatar`
+Example: `feat/tw-341-profile-avatar`
 
 ```bash
-git checkout -b feat/team-341-profile-avatar dev
+git checkout -b feat/tw-341-profile-avatar dev
 ```
 
 ### 5. Commit on issue branch
@@ -72,7 +72,7 @@ After the implement→review loop and verification:
 ```bash
 git add <only-relevant-paths>
 git commit -m "$(cat <<'EOF'
-TEAM-341: short imperative summary
+TW-341: short imperative summary
 
 EOF
 )"
@@ -84,7 +84,7 @@ Include the issue id in the subject line.
 
 ```bash
 git checkout dev
-git merge feat/team-341-profile-avatar -m "Merge branch 'feat/team-341-profile-avatar' into dev"
+git merge feat/tw-341-profile-avatar -m "Merge branch 'feat/tw-341-profile-avatar' into dev"
 ```
 
 Confirm `git log --oneline -5` shows the merge/work on `dev`.

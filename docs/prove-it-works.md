@@ -86,8 +86,9 @@ fixed.
 | `/yeet` | After `origin/main` is in `dev`, **before** merge to `main` | Do not merge |
 
 `--skip-review` does **not** waive runtime proof. Docs-only ships are out of
-scope above. Intensity bands ([`intensity.md`](intensity.md)) change reviewer
-count, not this proof contract.
+scope above. Intensity bands ([`intensity.md`](intensity.md)) change `/prb` panel
+width and whether `/solve` runs a bug-only inner review, not this proof
+contract.
 
 ## Closeout evidence (required when in-scope)
 

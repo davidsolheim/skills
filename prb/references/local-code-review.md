@@ -1,6 +1,6 @@
 # /prb — Local Code Review Gate + Closed-Loop Fix Cycle
 
-When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.6` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings become Linear issues via `/issue`, are fixed on local `dev` via `/solve` at the **finding’s** effort, then the gate re-runs until clean (or the cycle cap).
+When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.6` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings live in scratch markdown. A `prb-fixer` applies them on local `dev`. The gate re-runs until clean (or the cycle cap). **One** Linear comment when the gate finishes.
 
 Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This file is the detailed procedure for **Phase 1.5**. Rubric and specialist prompts are not duplicated here.
 
@@ -12,7 +12,7 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 |------|--------|
 | **When** | After Phase 1 (1A–1C). **Before** Phase 1D push and Phase 2 PR. |
 | **Pass** | Zero **actionable** findings on `origin/main...dev` **and** runtime proof for in-scope ships ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)). |
-| **Fail / block** | Actionable findings remain after `--max-fix-cycles` (default 2), or `/issue` / `/solve` cannot complete. **Do not push. Do not open a PR.** |
+| **Fail / block** | Actionable findings remain after `--max-fix-cycles` (default 2), or the fixer / thoroughness agent cannot complete. **Do not push. Do not open a PR.** |
 | **Skip** | Only with explicit `--skip-review`. Loud warning in the final report. Never invent skip. |
 | **Fixes land on** | **Local `dev` only.** No `git push` inside the closed loop. |
 | **Trunk still required** | This gate does **not** replace merge-of-`origin/main`. If `origin/main` moves mid-loop, re-fetch and re-merge into local `dev` before re-review or push. |
@@ -26,7 +26,7 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 | `--skip-review` | Skip entire gate + closed loop. Dangerous. Explicit only. |
 | `--exhaustive-review` | After a clean first panel, run **one** more panel pass hunting for issues not already listed (default **on only for critical ships**). |
 | `--no-exhaustive` | Exactly one panel pass per cycle (still blocks on any actionable findings found). |
-| `--max-fix-cycles N` | Cap full **review → issue → solve → re-review** cycles. Default **2**. |
+| `--max-fix-cycles N` | Cap full **review → fix → re-review** cycles. Default **2**. |
 
 Parse from the `/prb` invocation. Record:
 
@@ -37,9 +37,8 @@ Parse from the `/prb` invocation. Record:
 | `EXHAUSTIVE_REVIEW` | true only when `SHIP_INTENSITY` is **critical**, unless `--exhaustive-review` / `--no-exhaustive` |
 | `MAX_FIX_CYCLES` | 2 |
 | `REVIEW_CYCLES_USED` | 0 |
-| `LINEAR_ISSUES_CREATED` | [] |
-| `LINEAR_ISSUES_SOLVED` | [] |
 | `FINDINGS_FIXED_COUNT` | 0 |
+| `GATE_COMMENT_ISSUE` | first `SHIP_LINEAR_ID` or empty |
 | `REVIEW_EXIT` | unset → later `clean` \| `skipped` \| `blocked-at-cap` \| `blocked-tooling` |
 
 ---
@@ -89,7 +88,7 @@ Before scoring findings:
    - `## Code review rules`
    - nearby equivalents clearly meant as review invariants (`## Review checklist` only if it is the repo’s stated review bar)
 4. Treat those bullets as **must-apply** invariants for this gate.
-5. When a finding is a rule violation, **cite** the rule (heading + short quote or bullet paraphrase) in the finding and in the Linear issue body.
+5. When a finding is a rule violation, **cite** the rule (heading + short quote or bullet paraphrase) in the finding.
 
 If no `## Code Review Rules` sections exist, still review for correctness/security/performance/maintainability/tests; do not invent fake rule citations.
 
@@ -99,7 +98,7 @@ If no `## Code Review Rules` sections exist, still review for correctness/securi
 
 **Authority:** [`review-rubric.md`](review-rubric.md). Do not invent a second policy here.
 
-**Actionable** (blocks push, files Linear): `[P0]` / `[P1]`, plus `[P2]` that is high-signal correctness, security, or regression.
+**Actionable** (blocks push, goes to the fixer): `[P0]` / `[P1]`, plus `[P2]` that is high-signal correctness, security, or regression.
 
 **Not actionable:** `[P3]` / nits, style, optional cleanup, speculative breakage, pre-existing issues on `origin/main`.
 
@@ -160,13 +159,14 @@ Do not spawn roles the band does not call for. Do not skip security on a critica
 
 Shared spawn args:
 
-- `subagent_type`: `general-purpose`
+- `subagent_type`: `prb-reviewer` (fallback `general-purpose` if the host rejects the type; say so once)
 - `model`: `grok-4.6` (required for this gate; never omit; [`../../docs/grok-models.md`](../../docs/grok-models.md))
 - `background`: `true`
 - `description`: `[<tag>] prb local gate c${C} r${R}`
 - Do **not** pass `capability_mode`
+- Do **not** pass a fake `effort:` field. Medium reasoning comes from the `prb-reviewer` role.
 
-Then wait with `get_command_or_subagent_output` until all four complete (or the three non-fatal ones if one specialist failed).
+Then wait with `get_command_or_subagent_output` until the spawned roles complete (or the non-fatal specialists if one of those failed).
 
 Each agent writes **only** rubric JSON to its output file. If a file is missing or not valid JSON, treat that agent as failed (fatal for thoroughness → `REVIEW_EXIT=blocked-tooling`, do not push; skip for specialists).
 
@@ -187,7 +187,7 @@ Write the merged gate artifact:
 - Repo: <owner/repo>
 - dev SHA: <sha>
 - origin/main SHA: <sha>
-- Panel: thoroughness, security, rules, challenge · grok-4.6
+- Panel: <roles spawned> · grok-4.6 · ship intensity: <band>
 - Exhaustive: yes|no · panel pass: r/R
 - Agents ok: <list> · failed: <list or none>
 - Correctness verdict: pass | fail
@@ -226,11 +226,13 @@ if EXHAUSTIVE_REVIEW and filter_actionable(findings) is empty:
   findings = dedupe(findings + more)
 ```
 
-`--no-exhaustive`: exactly **one** panel pass per cycle. Never run a third panel pass in the same cycle. Closed-loop re-review after `/solve` is a new cycle, not an exhaustive extra pass.
+`--no-exhaustive`: exactly **one** panel pass per cycle. Never run a third panel pass in the same cycle. Closed-loop re-review after a fixer commit is a new cycle, not an exhaustive extra pass.
 
 ---
 
 ## 7. Closed-loop fix cycle
+
+Scratch is the ticket. Linear is one comment at the end.
 
 ### Algorithm
 
@@ -239,11 +241,9 @@ if SKIP_REVIEW:
   REVIEW_EXIT = skipped
   run runtime proof ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)) on in-scope ship set
   if proof fails: DENY_PUSH
-  else: return allow_push
+  else: post_gate_comment(); return allow_push
 
 cycle = 0
-all_created = []
-all_solved = []
 findings_fixed = 0
 
 loop:
@@ -253,70 +253,79 @@ loop:
   if actionable is empty:
     run runtime proof ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)) on in-scope ship set
     if proof fails:
-      treat as actionable (file /issue + /solve or DENY_PUSH); do not allow_push
+      treat as actionable (re-enter fixer, or DENY_PUSH); do not allow_push
     REVIEW_EXIT = clean
     REVIEW_CYCLES_USED = cycle
-    LINEAR_ISSUES_* = all_created / all_solved
     FINDINGS_FIXED_COUNT = findings_fixed
+    post_gate_comment()
     return allow_push
 
   if cycle >= MAX_FIX_CYCLES:
     REVIEW_EXIT = blocked-at-cap
-    report outstanding actionable + Linear ids so far
+    post_gate_comment()  # leftovers listed
     return DENY_PUSH
 
   cycle += 1
 
-  # One Linear issue per distinct problem (group only tightly related)
-  for each distinct finding (or tight group) in actionable:
-    1. Spawn subagent (`model: grok-4.6`): run /issue skill with a precise description
-       (file/line, severity, AGENTS rule, explanation, suggested fix shape,
-        note: "Filed by /prb Phase 1.5 local review gate before push")
-    2. Capture TEAM-### (+ URL); append to all_created
-    3. If issue create fails → REVIEW_EXIT = blocked-tooling; DENY_PUSH
-    4. Spawn subagent (`model: grok-4.6`): run /solve TEAM-### (local dev only; no push/PR)
-       Pass `--effort` from the **finding’s** band (default **2** / standard; **5** if the finding is critical). Do not inherit ship-critical for a localized UI/copy fix.
-       Prefer sequential solve so merges to dev do not race.
-    5. On solve success: append to all_solved; findings_fixed += 1
-       On solve failure: leave finding open; do not mark fixed;
-       may retry once; if still failing, continue other findings this cycle
-       but DENY_PUSH if any actionable remain after re-review
+  # One fixer, whole actionable list
+  spawn prb-fixer (model grok-4.6) with merged c${C}.md as the contract
+  fixer writes sibling prb-review-${RUN_ID}-c${C}-fixes.md
+  orchestrator:
+    - confirm product diff is on local dev
+    - commit product files only (HEREDOC; never stage $scratch_dir)
+    - rm that cycle’s scratch JSON/md (including fixes.md after copying
+      a 5–10 line “what changed” into orchestrator memory for the gate comment)
+    findings_fixed += count of actionable items the fixes.md claims
+  if fixer fails: leave findings open; may retry once this cycle
 
-  # After this cycle's solves:
   ensure checkout is local dev
   if origin/main may have moved: git fetch; re-merge origin/main into dev (Phase 1A–1B)
   goto loop  # re-review
 ```
 
-### `/issue` subagent expectations
+### `prb-fixer` prompt (required)
 
-- Follow the `/issue` skill end-to-end (team/project resolve, code map, acceptance criteria).
-- Title should be problem-focused and ship-blocking clear.
-- Priority: map `critical` → Urgent/High, `serious` → High, `medium` → Medium.
-- Body must include file/line evidence and AGENTS rule citation when applicable.
-- **One problem per issue** unless findings are the same root cause in the same function.
+```markdown
+You are the /prb closed-loop fixer.
 
-### `/solve` subagent expectations
+Read the gate artifact in full:
+<abs path to prb-review-${RUN_ID}-c${C}.md>
 
-- Follow `/solve TEAM-123` (or equivalent single-id invocation).
-- Delivery = **merge fix into local `dev` only** — no push, no PR (solve default).
-- After solve: confirm the fix commit(s) are on local `dev`.
-- Do not start Phase 1D push from inside solve.
+Fix every item under **Actionable findings**. Root cause, not a plaster.
+Add or update tests when the defect needs them. Do not nit-hunt.
+Do not call Linear. Do not push. Do not stage scratch files.
+
+Work on local **dev** only.
+
+When done, append to <abs path to …-c${C}-fixes.md>:
+- Finding id → what you changed (path + one sentence)
+- Tests/commands you ran
+- Anything you could not fix (and why)
+```
+
+If two findings touch the same files, one fixer still does both. Spawn a second fixer only when `primary_paths` are disjoint **and** the first fixer has committed.
 
 ### Sequencing
 
 | Step | Parallelism |
 |------|-------------|
-| Review | Intensity-selected `grok-4.6` agents in parallel, then orchestrator merge |
-| `/issue` creates | Parallel OK for independent findings |
-| `/solve` | **Default sequential** (one after another on local `dev`) |
-| Re-review | Full panel again, only after the cycle’s intended solves finished or failed |
+| Review | Intensity-selected `grok-4.6` `prb-reviewer` agents in parallel, then orchestrator merge |
+| Fix | **One** `prb-fixer` (medium via the role) |
+| Re-review | Full panel again, only after the cycle’s fixer finished or failed |
 
 ### Re-review discipline
 
 - Always re-run the full Local Code Review after a fix cycle — do **not** assume findings are gone.
-- Deduplicate: if the same issue reappears, keep the existing Linear id when possible; file a follow-up only if the first fix was incomplete and needs a new ticket.
+- Deduplicate: if the same defect reappears, keep the same F-id in the next merged markdown.
 - New findings discovered on re-review enter the next cycle (counts toward `MAX_FIX_CYCLES`).
+
+### `post_gate_comment`
+
+Authority: [`linear-ship-comments.md`](linear-ship-comments.md) template C.
+
+- Issue: first `SHIP_LINEAR_ID`. None → skip Linear; put the body in Phase 5.
+- `list_comments` first. Skip if `/prb — local review gate` already exists for this `dev` SHA.
+- Body: actionable list, what landed, commit SHA(s), leftovers. No secrets.
 
 ---
 
@@ -325,7 +334,7 @@ loop:
 When Phase 3 babysit applies a fix that changes local `dev` and needs re-push:
 
 1. `git fetch origin`; ensure local `main` matches `origin/main`; **merge `origin/main` into local `dev`**.
-2. **Re-run this entire Phase 1.5 gate** on the updated `origin/main...dev` (unless `--skip-review` was set for the whole `/prb` run).
+2. **Re-run Phase 1.5** on the updated `origin/main...dev` (unless `--skip-review` was set for the whole `/prb` run). Prefer **delta**: re-run only specialists whose area changed (a copy fix does not relaunch security + rules + challenge). Recompute `SHIP_INTENSITY` if the ship set grew.
 3. Only then `git push origin dev` and restart the quiet timer.
 
 Do not treat the first clean review as a permanent waiver for later fix commits.
@@ -336,18 +345,17 @@ Do not treat the first clean review as a permanent waiver for later fix commits.
 
 | `REVIEW_EXIT` | Push allowed? | Report line shape |
 |---------------|---------------|-------------------|
-| `clean` | **Yes** (if main-ancestor checks also pass) | `Review: local clean after N cycles` and/or `local fixed M findings across K Linear issues` |
+| `clean` | **Yes** (if main-ancestor checks also pass) | `Review: local clean after N cycles` and/or `local fixed M findings from scratch` |
 | `skipped` | **Yes** (with loud warning) | `Review: skipped (--skip-review)` |
 | `blocked-at-cap` | **No** | `Review: blocked at cycle cap (remaining …)` |
-| `blocked-tooling` | **No** | `Review: blocked (Linear/solve failure)` or `blocked (thoroughness agent failed)` |
+| `blocked-tooling` | **No** | `Review: blocked (fixer failure)` or `blocked (thoroughness agent failed)` |
 
-Always include when issues were filed:
+Always include:
 
 ```text
-Linear issues created & solved: TEAM-123, TEAM-124, … | none
+Gate comment: /prb — local review gate on TEAM-123 | none (no ship ids)
+Findings fixed: M
 ```
-
-Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list both clearly and **deny push**).
 
 ---
 
@@ -355,20 +363,22 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 
 - Pushing or opening a PR with actionable findings still open
 - Skipping the gate without `--skip-review`
-- One mega Linear issue for unrelated findings
-- Fixing in the orchestrator by hand instead of `/issue` + `/solve` when Linear is available (exception: Linear outage → stop and report drafts; still do not push dirty review)
-- Parallel `/solve` workers racing merges onto `dev` without an orchestrator
+- Filing Linear issues or nested `/solve` for gate findings
+- Fixing in the orchestrator by hand instead of `prb-fixer`
+- Staging `$TMPDIR` review scratch or committing it
+- Parallel fixers racing merges onto `dev` without an orchestrator
 - Counting nits as gate failures — or ignoring critical/serious as “later”
-- Skipping re-review after solves
+- Skipping re-review after fixer commits
 - Pushing from an issue branch instead of local `dev`
 - Printing secrets into review artifacts or Linear bodies
 - Weakening the `origin/main` → `dev` merge requirement “because review passed”
 - Orchestrator writing findings instead of spawning the panel
 - Spawning a 4-agent panel on a light ship, or skipping security on a critical ship
-- Defaulting closed-loop `/solve` to effort 5 for a localized non-critical finding
+- Passing a fake `effort:` field on `spawn_subagent`
 - Using any model other than `grok-4.6` for these reviewers (including inherit-parent / Claude / GPT / Composer)
 - Treating the panel as a nit hunt — or treating P0/P1 as optional
-- Running three sequential single-reviewer passes instead of the panel
+- Running three sequential single-reviewer passes instead of the intensity-selected panel
+- Running exhaustive review on a non-critical ship without `--exhaustive-review`
 - Posting GitHub PENDING reviews from this gate
 - Allowing push because the panel is clean while in-scope runtime proof was skipped or unproven
 - Treating `--skip-review` as a waiver of [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)
@@ -379,8 +389,9 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 
 | Skill | Role here |
 |-------|-----------|
-| `/issue` | File one implementation-ready Linear ticket per distinct finding |
-| `/solve` | Implement ticket onto **local `dev`** (no push) |
+| `/issue` | **Not used** in this gate |
+| `/solve` | Cheap construction onto local `dev`; **not** this gate |
+| `prb-fixer` | Applies the merged scratch markdown on local `dev` |
 | `/review` | Optional local/PR review tooling; **not** this gate; do not post GitHub PENDING reviews from Phase 1.5 |
 | [`review-rubric.md`](review-rubric.md) | Finding policy (what to flag, priority, JSON schema) |
 | [`reviewer-prompts.md`](reviewer-prompts.md) | Specialist overlays prepended after the rubric |

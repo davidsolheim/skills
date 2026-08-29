@@ -45,7 +45,7 @@ Tag every title with a priority. Include the numeric `priority` field.
 | `[P0]` | 0 | Blocking: production, security, data integrity, or major usage. Universal — not dependent on exotic inputs. | **Actionable** |
 | `[P1]` | 1 | Urgent. Should be fixed before this ship. | **Actionable** |
 | `[P2]` | 2 | Real issue, narrower blast radius. | **Actionable** only if high-signal correctness, security, or regression; otherwise log only |
-| `[P3]` | 3 | Nice to have / nit. | **Never** blocks; do not file Linear |
+| `[P3]` | 3 | Nice to have / nit. | **Never** blocks; do not send to the fixer |
 
 Map to existing `/prb` severity labels when writing the gate artifact: P0 → `critical`, P1 → `serious`, P2 → `medium`, P3 → `nit`.
 

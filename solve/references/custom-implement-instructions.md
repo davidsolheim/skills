@@ -12,14 +12,14 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
    - Outside that scope, keep prior behavior and do not expand the rewrite.
    - Do **not** re-assert discarded earlier AC as requirements for this change.
    - In the implement summary, list: supersedes ids, override scope, and what was changed/removed vs left alone.
-3. **Patterns**: match existing route, UI, data/runtime, and test conventions in the repo **unless** the current issue’s supersession notes explicitly replace that pattern. Prefer existing helpers over new abstractions when not superseding.
+3. **Patterns**: match existing route, UI, Neon/runtime, and test conventions in the repo **unless** the current issue’s supersession notes explicitly replace that pattern. Prefer existing helpers over new abstractions when not superseding.
 4. **Repo rules**: follow root `AGENTS.md` / `CLAUDE.md` / `README.md` for this workspace (Linear tracking, package manager, validation matrix, no reintroducing removed systems).
 5. **Secrets**: never commit `.env`, print Doppler/tokens/connection strings, or log secrets.
 6. **Git while implementing**: stay on the issue branch created by `/solve`. Do not switch to `main` or `dev`. Do not push. Do not open PRs.
-7. **Commits**: prefer **not** committing during the implement loop. Leave a clean, reviewable working tree (or only intentional WIP commits on the issue branch). The `/solve` orchestrator stages and commits after the review loop and verification pass.
+7. **Commits**: prefer **not** committing during construction. Leave a clean, reviewable working tree (or only intentional WIP commits on the issue branch). The `/solve` orchestrator stages and commits after verification. Scratch files under `$TMPDIR` are never staged.
 8. **Files**: stage-worthy changes only for this issue (including intentional overrides of earlier work). Leave unrelated dirty files untouched.
 9. **Summary**: always write the implement summary file requested by the orchestrator (paths changed, design decisions, supersession overrides, verification notes, **runtime-proof evidence**).
-10. **Runtime proof**: follow [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md). Do not claim the implement loop complete on typecheck/tests/build alone when the change is user-visible, auth, billing, public API, schema, or a shared helper.
+10. **Runtime proof**: follow [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md). Do not claim construction complete on typecheck/tests/build alone when the change is user-visible, auth, billing, public API, schema, or a shared helper.
 11. **Boundaries**: parse/validate at HTTP, env, webhooks, and external JSON. After that, trust internal types. Do not nil-guard a crash and call it fixed.
 12. **Models:** every `spawn_subagent` (implementer, reviewers, nested workers) must pass `model: grok-4.6` per [`../../docs/grok-models.md`](../../docs/grok-models.md). Do not inherit the parent. Do not spawn Claude, GPT, Gemini, Composer, or Cursor Auto.
 
@@ -35,9 +35,9 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 ## Prefer
 
 - Smallest complete change that meets **current** acceptance criteria (which may include a selective override of prior work). Delete dead weight in-scope before adding.
-- Existing runtime routes / data helpers / server helpers already used in the consumer repo (e.g. Neon or equivalent) when this issue is not superseding that pattern
+- Existing Neon runtime routes / `useRuntimeResource` / server helpers when the repo already uses them **and** this issue is not superseding that pattern
 - Unit tests for new logic when the issue or repo validation matrix expects them; **failing test first** for bugs when a cheap local path exists
-- Issue id in any commit messages if you must commit mid-loop (e.g. `TEAM-123: …`)
+- Issue id in any commit messages if you must commit mid-loop (e.g. `TW-123: …`)
 
 ## Avoid
 
@@ -47,12 +47,13 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 - Discarding unrelated user work (`git reset --hard`, force-checkout over dirty unrelated files)
 - Marking Linear Done (orchestrator owns Linear closeout)
 - Merging into `dev` (orchestrator owns merge after verify)
-- Claiming the implement loop complete without runtime proof when the change is in-scope ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md))
+- Claiming construction complete without runtime proof when the change is in-scope ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md))
+- Running bundled `/implement` until-zero-nits, or treating `/prb` nits as construction blockers
 
 ## Optional overrides (edit as needed)
 
-- Default implement effort when the user does not pass `--effort`: auto from [`../../docs/intensity.md`](../../docs/intensity.md) (`## Intensity` stamp, else infer; fail closed). Never hard-code 5.
-- Extra reviewer focus (always mention in summary if relevant): auth/gating, billing, UI parity across surfaces, SEO only when marketing/public routes change
+- Inner review when the user does not pass `--effort`: auto from [`../../docs/intensity.md`](../../docs/intensity.md) (`none` on light/standard, `bugs-only` on heavy/critical). Never spawn 2–6 reviewers. Reasoning is **low** via `solve-implementer`.
+- Extra reviewer focus (always mention in summary if relevant): auth/gating, billing, portal/dashboard parity, SEO only when marketing routes change
 - UI: drive the route; “browser unavailable” is **not** a pass — see prove-it-works.md
 
 ## Per-run user args

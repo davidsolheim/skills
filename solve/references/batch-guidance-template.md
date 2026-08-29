@@ -25,7 +25,7 @@ What the **codebase and docs on main/dev** say today (not what old tickets hoped
 {{REPO_TRUTH}}
 
 <!-- Example:
-- Operational DB: Neon Postgres only (`apps/web`, `apps/api`, `services/ingest`).
+- Operational DB: Neon Postgres only (`apps/web`, `apps/neon-ingest`).
 - ClickHouse warehouse plan: superseded / not launch (`docs/plans/…`, `docs/architecture.md`).
 - Convex: not day-one; only if realtime need is proven.
 -->
@@ -46,7 +46,7 @@ If confidence is **low**, the orchestrator must **stop and ask the user** before
 {{ISSUE_INVENTORY}}
 
 <!-- Example row:
-- [TEAM-123](url) — title · class=foundation · platforms=[neon] · action=normal · paths: apps/…
+- [TW-123](url) — title · class=foundation · platforms=[neon] · action=normal · paths: apps/…
 -->
 
 ## Direction conflicts
@@ -54,8 +54,8 @@ If confidence is **low**, the orchestrator must **stop and ask the user** before
 {{DIRECTION_CONFLICTS}}
 
 <!-- Example:
-- TEAM-67 (clickhouse feature) vs TEAM-200 (remove clickhouse) + repo truth Neon-only
-- TEAM-80 assumes ClickHouse rollups; TEAM-123 establishes Neon ingest
+- TW-67 (clickhouse feature) vs TW-200 (remove clickhouse) + repo truth Neon-only
+- TW-80 assumes ClickHouse rollups; TW-123 establishes Neon ingest
 -->
 
 ## Supersession edges
@@ -89,10 +89,10 @@ Lowest issue number is **only** a tie-breaker among independent peers.
 {{EXECUTION_ORDER}}
 
 <!-- Example:
-1. TEAM-123 — foundation/migration (Neon ingest) · why: canonical platform foundation
-2. TEAM-200 — migration cleanup · why: abandons ClickHouse
-3. TEAM-80 — feature (rescope to Neon) · why: after migration; do not build ClickHouse
-SKIP: TEAM-67 — abandoned platform
+1. TW-123 — foundation/migration (Neon ingest) · why: canonical platform foundation
+2. TW-200 — migration cleanup · why: abandons ClickHouse
+3. TW-80 — feature (rescope to Neon) · why: after migration; do not build ClickHouse
+SKIP: TW-67 — abandoned platform
 -->
 
 ## Per-issue implement notes
@@ -100,7 +100,7 @@ SKIP: TEAM-67 — abandoned platform
 {{PER_ISSUE_NOTES}}
 
 <!-- Example:
-### TEAM-80 — funnel rollups
+### TW-80 — funnel rollups
 - action: rescope
 - original stack: clickhouse → implement on: neon/postgres rollups
 - supersedes: none

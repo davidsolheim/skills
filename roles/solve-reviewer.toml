@@ -1,0 +1,5 @@
+# Optional /solve inner reviewer: bugs only. Nits never block construction.
+description = "Bug-only review of a /solve implementer diff. Correctness/security/regression only."
+default_capability_mode = "all"
+model = "grok-4.6"
+reasoning_effort = "low"
