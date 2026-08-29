@@ -51,7 +51,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 
 ## Optional overrides (edit as needed)
 
-- Default implement effort when the user does not pass `--effort`: **5** (maximum rigor — up to 3 generals + all specialists)
+- Default implement effort when the user does not pass `--effort`: auto from [`../../docs/intensity.md`](../../docs/intensity.md) (`## Intensity` stamp, else infer; fail closed). Never hard-code 5.
 - Extra reviewer focus (always mention in summary if relevant): auth/gating, billing, UI parity across surfaces, SEO only when marketing/public routes change
 - UI: drive the route; “browser unavailable” is **not** a pass — see prove-it-works.md
 

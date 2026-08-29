@@ -3,6 +3,15 @@
 Copy this structure into `linear__save_issue` `description`. Use literal markdown newlines. Omit a section only if truly N/A (note why).
 
 ```markdown
+## Intensity
+
+Stamp required. Canonical: [`../../docs/intensity.md`](../../docs/intensity.md).
+`/solve` and `/prb` read `Band:` as the effort/panel default.
+
+- Band: `<light | standard | heavy | critical>`
+- Why: `<one line: risk class>`
+- Proof: `<on | n/a>`
+
 ## Summary
 
 <2–4 sentences: problem + impact + where in the product>

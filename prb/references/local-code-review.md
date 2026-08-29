@@ -1,6 +1,6 @@
 # /prb — Local Code Review Gate + Closed-Loop Fix Cycle
 
-When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is a **four-agent review panel** on `grok-4.6` (thoroughness, security, rules, challenge), merged through [`review-rubric.md`](review-rubric.md). Findings become Linear issues via `/issue`, are fixed on local `dev` via `/solve`, then the gate re-runs until clean (or the cycle cap).
+When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.6` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings become Linear issues via `/issue`, are fixed on local `dev` via `/solve` at the **finding’s** effort, then the gate re-runs until clean (or the cycle cap).
 
 Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This file is the detailed procedure for **Phase 1.5**. Rubric and specialist prompts are not duplicated here.
 
@@ -12,7 +12,7 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 |------|--------|
 | **When** | After Phase 1 (1A–1C). **Before** Phase 1D push and Phase 2 PR. |
 | **Pass** | Zero **actionable** findings on `origin/main...dev` **and** runtime proof for in-scope ships ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)). |
-| **Fail / block** | Actionable findings remain after `--max-fix-cycles` (default 5), or `/issue` / `/solve` cannot complete. **Do not push. Do not open a PR.** |
+| **Fail / block** | Actionable findings remain after `--max-fix-cycles` (default 2), or `/issue` / `/solve` cannot complete. **Do not push. Do not open a PR.** |
 | **Skip** | Only with explicit `--skip-review`. Loud warning in the final report. Never invent skip. |
 | **Fixes land on** | **Local `dev` only.** No `git push` inside the closed loop. |
 | **Trunk still required** | This gate does **not** replace merge-of-`origin/main`. If `origin/main` moves mid-loop, re-fetch and re-merge into local `dev` before re-review or push. |
@@ -24,17 +24,18 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 | Flag | Effect |
 |------|--------|
 | `--skip-review` | Skip entire gate + closed loop. Dangerous. Explicit only. |
-| `--exhaustive-review` | After a clean first panel, run **one** more panel pass hunting for issues not already listed (default **on**). |
+| `--exhaustive-review` | After a clean first panel, run **one** more panel pass hunting for issues not already listed (default **on only for critical ships**). |
 | `--no-exhaustive` | Exactly one panel pass per cycle (still blocks on any actionable findings found). |
-| `--max-fix-cycles N` | Cap full **review → issue → solve → re-review** cycles. Default **5**. |
+| `--max-fix-cycles N` | Cap full **review → issue → solve → re-review** cycles. Default **2**. |
 
 Parse from the `/prb` invocation. Record:
 
 | Field | Default |
 |-------|---------|
 | `SKIP_REVIEW` | false |
-| `EXHAUSTIVE_REVIEW` | true (unless `--no-exhaustive`) |
-| `MAX_FIX_CYCLES` | 5 |
+| `SHIP_INTENSITY` | from [`../../docs/intensity.md`](../../docs/intensity.md) (`max` of stamps; bump critical on auth/billing/schema/migrations in the diff) |
+| `EXHAUSTIVE_REVIEW` | true only when `SHIP_INTENSITY` is **critical**, unless `--exhaustive-review` / `--no-exhaustive` |
+| `MAX_FIX_CYCLES` | 2 |
 | `REVIEW_CYCLES_USED` | 0 |
 | `LINEAR_ISSUES_CREATED` | [] |
 | `LINEAR_ISSUES_SOLVED` | [] |
@@ -73,7 +74,7 @@ git merge-base --is-ancestor origin/main dev   # must still be true
 
 ### Size gate
 
-If the unified diff is huge (> ~1 MB text), still run the four-agent panel. Tell every agent to cover high-risk paths first (auth, payments, migrations, data access, public API) and then the rest of the ship set. Do not skip the gate because the diff is large unless the user passed `--skip-review`.
+If the unified diff is huge (> ~1 MB text), still run the intensity-selected panel. Tell every agent to cover high-risk paths first (auth, payments, migrations, data access, public API) and then the rest of the ship set. Do not skip the gate because the diff is large unless the user passed `--skip-review`. A huge diff that touches those paths is **critical**.
 
 ---
 
@@ -108,7 +109,7 @@ If no `## Code Review Rules` sections exist, still review for correctness/securi
 
 ## 6. How to run the review
 
-Always run the **panel**. Tiny diffs still get all four agents. Orchestrator does **not** author findings.
+Always run the **panel** selected by `SHIP_INTENSITY`. Tiny diffs still get a panel (light = thoroughness only). Orchestrator does **not** author findings.
 
 **Do not** use the bundled `/review` PR-posting flow (no GitHub PENDING review). This gate is local-only.
 
@@ -140,7 +141,13 @@ Inline these absolute paths into prompts. Never put secrets, tokens, connection 
 
 ### 6C. Spawn the panel (one turn, parallel)
 
-Launch **all four** in the same assistant response with `spawn_subagent`:
+Launch the intensity-selected roles in the same assistant response with `spawn_subagent`:
+
+| `SHIP_INTENSITY` | Roles |
+|------------------|--------|
+| **light** | thoroughness only |
+| **standard** / **heavy** | thoroughness, security, rules, challenge |
+| **critical** | thoroughness, security, rules, challenge |
 
 | Tag | Overlay | Fatal if spawn/run fails? |
 |-----|---------|---------------------------|
@@ -148,6 +155,8 @@ Launch **all four** in the same assistant response with `spawn_subagent`:
 | `[security]` | Security | No — warn, continue with remaining |
 | `[rules]` | Rules | No — warn, continue with remaining |
 | `[challenge]` | Challenge | No — warn, continue with remaining |
+
+Do not spawn roles the band does not call for. Do not skip security on a critical ship.
 
 Shared spawn args:
 
@@ -210,6 +219,7 @@ Write the merged gate artifact:
 ```text
 pass = 1
 findings = merge(panel_pass(1))
+# EXHAUSTIVE_REVIEW default: true only when SHIP_INTENSITY is critical
 if EXHAUSTIVE_REVIEW and filter_actionable(findings) is empty:
   pass = 2
   more = merge(panel_pass(2, known=findings))  # prompts include known findings; hunt for NEW issues
@@ -265,6 +275,7 @@ loop:
     2. Capture TEAM-### (+ URL); append to all_created
     3. If issue create fails → REVIEW_EXIT = blocked-tooling; DENY_PUSH
     4. Spawn subagent (`model: grok-4.6`): run /solve TEAM-### (local dev only; no push/PR)
+       Pass `--effort` from the **finding’s** band (default **2** / standard; **5** if the finding is critical). Do not inherit ship-critical for a localized UI/copy fix.
        Prefer sequential solve so merges to dev do not race.
     5. On solve success: append to all_solved; findings_fixed += 1
        On solve failure: leave finding open; do not mark fixed;
@@ -296,7 +307,7 @@ loop:
 
 | Step | Parallelism |
 |------|-------------|
-| Review | Four `grok-4.6` agents in parallel, then orchestrator merge |
+| Review | Intensity-selected `grok-4.6` agents in parallel, then orchestrator merge |
 | `/issue` creates | Parallel OK for independent findings |
 | `/solve` | **Default sequential** (one after another on local `dev`) |
 | Re-review | Full panel again, only after the cycle’s intended solves finished or failed |
@@ -353,7 +364,8 @@ Distinguish created vs solved if they differ (e.g. created 3, solved 2 → list 
 - Printing secrets into review artifacts or Linear bodies
 - Weakening the `origin/main` → `dev` merge requirement “because review passed”
 - Orchestrator writing findings instead of spawning the panel
-- Spawning fewer than four agents without a specialist failure
+- Spawning a 4-agent panel on a light ship, or skipping security on a critical ship
+- Defaulting closed-loop `/solve` to effort 5 for a localized non-critical finding
 - Using any model other than `grok-4.6` for these reviewers (including inherit-parent / Claude / GPT / Composer)
 - Treating the panel as a nit hunt — or treating P0/P1 as optional
 - Running three sequential single-reviewer passes instead of the panel

@@ -159,20 +159,21 @@ Set from Phase 0. User-stated urgency wins.
 
 Use the structure in [references/issue-body-template.md](references/issue-body-template.md). Every filed issue should include:
 
-1. **Summary** — 2–4 sentences restating the problem/request in product + technical terms
-2. **User report** — quoted or paraphrased original description
-3. **Current behavior** — what the code/UI does today (with evidence)
-4. **Expected behavior** — concrete, testable outcome
-5. **Suspected root cause / scope** — hypothesis with file evidence (not a speculative essay)
-6. **Code map** — table or list of relevant paths with role (entry point, UI, API, schema, util). Include symbol names and approximate line ranges when known (`apps/web/app/order/page.tsx` ~L40–90)
-7. **Implementation notes** — recommended approach, patterns to reuse, pitfalls, out-of-scope items
-8. **Acceptance criteria** — checklist of verifiable outcomes
-9. **Verification** — exact commands / manual checks the implementer should run (from `AGENTS.md` / README when available)
-10. **Drift check** — short list of anchors an agent should re-verify before coding (key files, exports, routes). If these still match, proceed without re-researching the whole area
-11. **Risks / blockers** — credentials, migrations, provider limits, related tickets
-12. **Platform / stack** — canonical systems this work targets; any stacks it must not use
-13. **Supersedes** — when this ticket replaces earlier open or Done work (full vs partial + override scope); omit if none
-14. **Assumptions** — anything inferred because the user was brief
+1. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure).
+2. **Summary** — 2–4 sentences restating the problem/request in product + technical terms
+3. **User report** — quoted or paraphrased original description
+4. **Current behavior** — what the code/UI does today (with evidence)
+5. **Expected behavior** — concrete, testable outcome
+6. **Suspected root cause / scope** — hypothesis with file evidence (not a speculative essay)
+7. **Code map** — table or list of relevant paths with role (entry point, UI, API, schema, util). Include symbol names and approximate line ranges when known (`apps/web/app/order/page.tsx` ~L40–90)
+8. **Implementation notes** — recommended approach, patterns to reuse, pitfalls, out-of-scope items
+9. **Acceptance criteria** — checklist of verifiable outcomes
+10. **Verification** — exact commands / manual checks the implementer should run (from `AGENTS.md` / README when available)
+11. **Drift check** — short list of anchors an agent should re-verify before coding (key files, exports, routes). If these still match, proceed without re-researching the whole area
+12. **Risks / blockers** — credentials, migrations, provider limits, related tickets
+13. **Platform / stack** — canonical systems this work targets; any stacks it must not use
+14. **Supersedes** — when this ticket replaces earlier open or Done work (full vs partial + override scope); omit if none
+15. **Assumptions** — anything inferred because the user was brief
 
 Write for another agent: specific paths, symbol names, and acceptance criteria beat vague product prose. Migration tickets should explicitly name abandoned platforms so `/solve all` batch guidance can order work correctly.
 
@@ -202,6 +203,7 @@ Rapid-fire reply format:
 **Created:** [TEAM-123](url) — <title>
 **Team / Project:** <team> / <project>
 **Priority:** <level>
+**Intensity:** <light|standard|heavy|critical> (effort <1|2|3|5>)
 **Focus:** <one-line scope, primary paths>
 ```
 
@@ -231,6 +233,7 @@ When the user sends multiple issues back-to-back:
 
 - [ ] Team resolved from repo docs / agent memory / Linear; project set when identifiable
 - [ ] Duplicate check done
+- [ ] Intensity stamp valid (`## Intensity` / `Band:`)
 - [ ] Code map lists real paths that exist in the workspace right now
 - [ ] Acceptance criteria are checklist-testable
 - [ ] Verification steps match this repo's real scripts (`AGENTS.md` / package scripts)

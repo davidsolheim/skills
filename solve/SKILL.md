@@ -42,7 +42,7 @@ Full fast protocol: [`references/fast-mode.md`](references/fast-mode.md). Batch 
 When `SOLVE_COUNT_MODE = all` (sequential or fast):
 
 1. **No soft batch cap.** There is **no** implicit limit of 5 (or any other fixed K). Do not stop because “enough issues were done,” context feels long, a wave finished, or a round number looks complete.
-2. **`all` ≠ `5`.** Default implement **effort** is 5; default **fast concurrency** is 4. Neither is a solve count. Only a bare integer token sets count mode to `N`.
+2. **`all` ≠ `5`.** Implement **effort** is auto-dialed per issue from [`../docs/intensity.md`](../docs/intensity.md) (or `--effort N`). Default **fast concurrency** is 4. Neither is a solve count. Only a bare integer token sets count mode to `N`.
 3. **Continue after every success** until Phase 2 (or F6 refill) finds **zero** eligible unblocked implementable leaves.
 4. **Mandatory drain gate before Phase 9:** re-query Linear (`list_issues`, all pages for the team/project). Re-apply eligibility (2B), blocked (2D), epic expand (2E), and guidance skip set. If any implementable leaf remains → **do not** write the final batch summary; resume the batch loop / ready-queue immediately.
 5. **Allowed exits only:**
@@ -120,7 +120,7 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast):
 | `all` | **Drain** every eligible unblocked implementable leaf. No soft cap. Mandatory re-query Linear before Phase 9; only real stop conditions apply (see [Drain contract](#drain-contract-solve-all--non-negotiable)). |
 | `fast` / `--fast` | Enable **fast mode**: batch guidance + parallel worktree workers + orchestrator merge/cleanup. Full protocol in [`references/fast-mode.md`](references/fast-mode.md). |
 | `--concurrency M` | Fast only. Max simultaneous workers (1–8). Default: `min(N, 8)` in integer mode; **4** in `all fast` mode. Ignored (warn once) if not in fast mode. |
-| `--effort N` | Implement effort 1–5 (reviewer count / specialists). Default: value in `custom-implement-instructions.md` (currently **5** — high/max rigor), else **5**. |
+| `--effort N` | Override implement effort 1–5 for this run. Default: auto from [`../docs/intensity.md`](../docs/intensity.md) per issue (`## Intensity` stamp, else infer). Hidden override — not the normal interface. |
 | `ISSUE-ID` (e.g. `TEAM-123`, `ENG-12`) | Prefer this Linear issue for the **first** slot if unblocked (still validate). Sequential: later slots re-select lowest. Fast: include in inventory when eligible. Examples use `TEAM-N`; real teams use their own prefix. |
 | other text | Extra constraints for the implementer prompt (applied to each issue in the batch unless clearly first-issue-only). |
 
@@ -148,7 +148,7 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
 5. Treat a Linear issue-id token matching `[A-Za-z][A-Za-z0-9]*-\d+` (e.g. `TEAM-123`, `ENG-12`) as preferred issue id (first issue / inventory pin).
 6. Remainder = user constraints.
 
-**Disambiguation:** `--effort 3` never sets the solve count to 3. `--concurrency 3` never sets the solve count to 3. `/solve 3` means three issues at default effort. `/solve 3 fast` means up to three issues in fast mode with concurrency up to 3. `/solve all fast --concurrency 5` drains the project with **width** 5 (not a cap of 5 issues). `/solve all` / `/solve all fast` means **unlimited until drained** — never treat default effort **5** or concurrency **4** as “solve only five (or four) tickets.”
+**Disambiguation:** `--effort 3` never sets the solve count to 3. `--concurrency 3` never sets the solve count to 3. `/solve 3` means three issues at auto-dialed effort. `/solve 3 fast` means up to three issues in fast mode with concurrency up to 3. `/solve all fast --concurrency 5` drains the project with **width** 5 (not a cap of 5 issues). `/solve all` / `/solve all fast` means **unlimited until drained** — never treat effort **5** or concurrency **4** as “solve only five (or four) tickets.”
 
 ### Concurrency defaults (fast only)
 
@@ -189,6 +189,7 @@ Linear issue ids are **`PREFIX-NUMBER`** (e.g. `ENG-12`, `OPS-9`, `TEAM-123`). O
    - `SOLVE_SKILL_DIR` = directory containing this `SKILL.md` (from skill load path).
    - `CUSTOM_IMPL_INSTRUCTIONS` = `$SOLVE_SKILL_DIR/references/custom-implement-instructions.md` — **read this file every run** (and again if the file may have changed between batch items).
    - `PROVE_IT_WORKS_MD` = `$SOLVE_SKILL_DIR/../docs/prove-it-works.md` — **read for Phase 6** (and inject the path into implementer/fast-worker prompts).
+   - `INTENSITY_MD` = `$SOLVE_SKILL_DIR/../docs/intensity.md` — **read once**; per-issue effort auto-dial (Phase 2F / 5C).
    - `GROK_MODELS_MD` = `$SOLVE_SKILL_DIR/../docs/grok-models.md` — **read once**; every spawn in this run uses Grok-only slugs.
    - `BATCH_GUIDANCE_MD` = `$SOLVE_SKILL_DIR/references/batch-guidance.md` — **read when `GUIDANCE_REQUIRED`**
    - `BATCH_GUIDANCE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/batch-guidance-template.md` — **read when `GUIDANCE_REQUIRED`**
@@ -500,6 +501,14 @@ When **every** child of an epic is in a terminal state (Done / Canceled / Cancel
 
 For the **resolved leaf** issue (after epic expansion), load full issue: description, acceptance criteria, code map, drift check, comments, relations, labels, and **parent epic id/title** when expanded.
 
+**Intensity (required before implement):** follow [`../docs/intensity.md`](../docs/intensity.md). Set `ISSUE_INTENSITY` + `ISSUE_EFFORT` for this leaf:
+
+1. If the user passed `--effort N` (1–5) this run → use that effort; still record the stamp/inferred band.
+2. Else parse `## Intensity` / `Band:` (`light`→1, `standard`→2, `heavy`→3, `critical`→5).
+3. Else infer from the body + code map (Classify in intensity.md). Ambiguous → bump one band up.
+4. Announce once: `Intensity: <band> (effort N) · <why> · proof on|n/a`.
+5. Do not spawn a classifier agent. Do not default to effort 5 unless the band is critical.
+
 If the ticket is too thin to implement safely, either:
 
 - Do minimal research and implement if scope is still clear, or
@@ -585,6 +594,7 @@ Construct a single description string for the implement loop:
 - Title: <title>
 - URL: <url>
 - Parent epic (if expanded): <TEAM-100 — title> or none
+- Intensity: <band> (effort N) · <why> · proof on|n/a
 - Description / acceptance criteria:
 <full issue body>
 
@@ -619,7 +629,7 @@ Construct a single description string for the implement loop:
 
 ### 5C. Effort
 
-Use CLI `--effort N` if valid (1–5). Else default from custom instructions (currently **5** — maximum rigor).
+Use `ISSUE_EFFORT` from Phase 2F. CLI `--effort N` already won there if valid (1–5). Do **not** fall back to a hard-coded 5. Fast workers use the **per-issue** band unless `--effort` was passed for the run.
 
 ### 5D. Run the implement skill end-to-end
 
@@ -739,7 +749,7 @@ If verification failed or dev merge failed:
 **Linear:** leaf In Review (`origin/dev`); epic <left open | rollup Done only if all children terminal>
 **Branch:** `<issue-branch>` → local `dev` → **`origin/dev` @ sha** (after checks)
 **Main/prod:** not shipped (needs explicit approval)
-**Implement:** effort N · review rounds R · 0 open review issues
+**Implement:** intensity <band> · effort N · review rounds R · 0 open review issues
 **Verify:** <matrix commands + pass/fail> · **Runtime:** <driven path + observed state | n/a out-of-scope>
 **Push:** `origin/dev` @ sha (after checks) · **main/prod:** not shipped (needs explicit approval via `/prb`)
 **Notes:** <one line if needed>
@@ -874,7 +884,9 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - Skipping Phase 3 start or Phase 8 completion comments on a claimed leaf
 - Treating `/solve` as unlimited when the user did not pass `all` (default is **1**)
 - Treating `/solve all` as a soft batch of ~5 (or any fixed K) instead of a full drain
-- Confusing `--effort N` or `--concurrency N` (or default effort **5** / concurrency **4**) with solve count `N`
+- Confusing `--effort N` or `--concurrency N` (or auto-dialed effort / concurrency **4**) with solve count `N`
+- Defaulting implement effort to **5** when the stamp/inferred band is not critical
+- Ignoring a valid `## Intensity` stamp and re-guessing lighter
 - Emitting Phase 9 for `all` while eligible unblocked leaves still exist (“re-run to continue”)
 - Skipping the **drain gate** Linear re-query in `all` mode
 - Freezing on the initial S0 inventory in `all` mode without refill after merges/closeouts

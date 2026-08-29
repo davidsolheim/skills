@@ -54,7 +54,7 @@ The skills assume a professional full-stack product shop—not a single demo app
    /solve   ──► implement on short-lived branch → merge local dev only
         │         (/solve N · /solve all · /solve all fast · or /solve 1 ID from identify)
         ▼
-   /prb     ──► grok-4.6 panel (thoroughness/security/rules/challenge)
+   /prb     ──► intensity-selected grok-4.6 panel
                 → (issue+solve loop) → push origin/dev
                 → PR main←dev → babysit CI → migrate? → merge
         or
@@ -73,7 +73,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`stat/`](./stat/) | Read-only briefing of the open Linear board, urgent → least | None |
 | [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
 | [`solve/`](./solve/) | Pick next unblocked leaf(s), implement + review, land on **local `dev`** | Local only |
-| [`prb/`](./prb/) | Four-agent grok-4.6 review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
+| [`prb/`](./prb/) | Intensity-selected grok-4.6 review gate + closed-loop fix, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
 | [`yeet/`](./yeet/) | Quick ship: push `dev`, PR into `main`, merge immediately (no panel / no CI wait). In-scope runtime proof still required | Push + PR + merge |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
@@ -120,7 +120,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 - **Implement → review** loop (bundled `/implement` or equivalent) under `/solve`.
 - **Browser / preview URL** optional for `/project-review`; **required** for `/walk` (agent-browser, Chrome DevTools, etc.).
 - **Production migrations** discovered per repo at ship time (`/prb`, `/yeet`)—never invent a stack, never `db:push` to prod by default.
-- **Local code review gate** on `/prb` before push: four `grok-4.6` reviewers (thoroughness, security, rules, challenge), then closed-loop `/issue` + `/solve` on local `dev` until the ship set is clean.
+- **Local code review gate** on `/prb` before push: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), then closed-loop `/issue` + `/solve` on local `dev` until the ship set is clean. `/solve` auto-dials implement effort from the ticket stamp.
 
 ### Platform supersession (multi-ticket runs)
 
@@ -292,7 +292,7 @@ Plain `/identify` only — no size, theme, or id args. `/solve` still works with
 
 **Path:** [`solve/`](./solve/)
 
-Selects the next unblocked leaf (or drains the board), runs the full implement→review loop, verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask.
+Selects the next unblocked leaf (or drains the board), runs the full implement→review loop, verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask. Implement effort is **auto-dialed** from the ticket’s `## Intensity` stamp ([`docs/intensity.md`](./docs/intensity.md)); `--effort N` is a hidden override.
 
 | Invocation | Behavior |
 |------------|----------|
@@ -314,7 +314,7 @@ Selects the next unblocked leaf (or drains the board), runs the full implement�
 Ship **already finished** session work:
 
 1. Refresh `origin/main` into local `main` and merge into local `dev` (**hard rule before any push**).
-2. **Local Code Review Gate** on `origin/main...dev`: four parallel `grok-4.6` reviewers (thoroughness, security, rules, challenge), merged through [`prb/references/review-rubric.md`](./prb/references/review-rubric.md). High-signal findings only; load `## Code Review Rules` from AGENTS.md. If actionable findings exist: create Linear issues via `/issue`, fix on local `dev` via `/solve`, re-run the panel until clean (default max **5** cycles). **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
+2. **Local Code Review Gate** on `origin/main...dev`: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), merged through [`prb/references/review-rubric.md`](./prb/references/review-rubric.md). High-signal findings only; load `## Code Review Rules` from AGENTS.md. If actionable findings exist: create Linear issues via `/issue`, fix on local `dev` via `/solve` at the **finding’s** effort, re-run the panel until clean (default max **2** cycles). Exhaustive second pass only on **critical** ships. **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
 3. Push `origin/dev`.
 4. Open/reuse PR `main` ← `dev`.
 5. Babysit CI/bots (default every **5** minutes for **15** minutes).
@@ -445,6 +445,7 @@ My Product Launch
 │   └── SKILL.md             # quick ship; shares prove-it-works + prb migrate discovery
 └── docs/
     ├── prove-it-works.md
+    ├── intensity.md
     ├── grok-models.md
     ├── linear-comments.md
     └── rfc-multiplayer-linear.md

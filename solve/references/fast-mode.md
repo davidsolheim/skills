@@ -46,7 +46,7 @@ Linear is the claim board (`claimed-by:` CAS). Git branches are backup + merge s
 | `/solve all fast` | **all** eligible (no soft cap) | `DEFAULT_CONCURRENCY` (4) |
 | `/solve all fast --concurrency 5` | **all** eligible | 5 |
 
-Default concurrency **4** and implement effort **5** are **not** issue counts.
+Default concurrency **4** and auto-dialed implement effort are **not** issue counts. Effort comes from [`../../docs/intensity.md`](../../docs/intensity.md) per issue (or `--effort`).
 
 ---
 
