@@ -1,10 +1,10 @@
 # First run and config
 
-Machine config (not in the vault): `${GROK_HOME:-$HOME/.grok}/feature-map.json`
+Machine config (not in the vault): `${GROK_HOME:-$HOME/.grok}/map.json`
 
 ```json
 {
-  "vault_path": "/absolute/path/to/Feature Maps",
+  "vault_path": "/absolute/path/to/Maps",
   "project_roots": [],
   "created_at": "2026-09-09T00:00:00Z",
   "updated_at": "2026-09-09T00:00:00Z"
@@ -12,6 +12,10 @@ Machine config (not in the vault): `${GROK_HOME:-$HOME/.grok}/feature-map.json`
 ```
 
 No secrets. Safe to delete → wizard runs again.
+
+If `map.json` is missing and `${GROK_HOME:-$HOME/.grok}/feature-map.json`
+exists, copy it to `map.json` (do not delete the old file). Prefer
+`map.json` when both exist.
 
 ## When to run the wizard
 
@@ -30,8 +34,8 @@ Ask **in this order**. Wait for answers before creating files.
 
 ### 1. Vault location
 
-> Where should the Feature Maps Obsidian vault live?
-> Suggested: `~/Documents/Feature Maps`
+> Where should the Maps Obsidian vault live?
+> Suggested: `~/Documents/Maps`
 > (A new folder. You will add it as a vault in Obsidian once.)
 
 Expand `~`. Resolve to an absolute path. If they pick an existing folder that
@@ -40,8 +44,8 @@ If the folder is missing or empty, create and seed.
 
 ### 2. Project roots (optional)
 
-> Optional: absolute paths of repos for `/feature-map all` (one per line, or
-> skip). You can add these later by editing the config.
+> Optional: absolute paths of repos for `/map all` (one per line, or skip).
+> You can add these later by editing the config.
 
 Skip is allowed. `all` with an empty list → ask this question then, do not
 scan the home directory.
@@ -70,9 +74,9 @@ type: vault-index
 updated: YYYY-MM-DD
 ---
 
-# Feature Maps
+# Maps
 
-Cross-project catalog of product features extracted from real codebases.
+Cross-project map of real codebases: features, stack, and more.
 
 ## Projects
 

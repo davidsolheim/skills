@@ -155,7 +155,78 @@ implementation appeared.
 
 ## Indexes
 
-**`projects/<slug>/Index.md`** — list active features, then stale.
+### `projects/<slug>/Index.md`
+
+````markdown
+# ore-max
+
+## Stack
+
+| Vendor | Role | Why it matters | Where |
+|--------|------|----------------|-------|
+| Stripe | Payments | All paid plans | `src/lib/stripe.ts`, `STRIPE_SECRET_KEY` |
+| Neon | Database | Source of truth | `drizzle.config.ts`, `DATABASE_URL` |
+| Clerk | Auth | Identity | `src/middleware.ts` |
+| Vercel | Hosting | Production | `vercel.json` |
+| Resend | Email | Receipts and magic links | `src/lib/email.ts` |
+| Next.js | Framework | App runtime | `package.json` |
+
+## Features
+
+- [[Auth]]
+- [[Billing]]
+
+### Stale
+
+- [[Old Thing]]
+
+## Human notes
+````
+
+Omit `### Stale` when none. Incomplete without `## Stack`.
+
+### Stack rules
+
+One table, this Index only. Not a feature, not a catalog row, not `stack/`
+notes. No confirmation pause; corrections go in `## Human notes`.
+
+**Row** = a named product you would tell another engineer this app runs on
+(Stripe, Neon, Clerk, Vercel, Next.js). Direct and load-bearing, with
+evidence in the repo.
+
+**Order** = how dead the product is if that row vanishes tomorrow. Rank
+*this* app, not a generic web stack (a payments product lists Stripe above
+Vercel; a brochure lists Vercel above Stripe). Row order is the rank — no
+number column.
+
+**Columns**
+
+| Column | Content |
+|--------|---------|
+| Vendor | Product name as sold (Stripe, not `stripe-js`) |
+| Role | Short noun for the job: Hosting, Database, Auth, Payments, Email, Search, Storage, Jobs, Analytics, Observability, CMS, Flags, Framework, Media, SMS, AI, … |
+| Why it matters | One clause about **this** product, not “it’s the database” |
+| Where | 1–3 paths or env **names** (never values) |
+
+**Include:** hosted platforms, databases, identity/payments/email/search/
+storage/jobs providers, the app framework/runtime, analytics/observability
+that are actually wired.
+
+**Omit:** linters, formatters, test runners, type packages, UI primitives,
+utility libraries, transitives, local-only tooling, editors, generic git/npm.
+Do not dump `package.json`. Do not rank alphabetically or by manifest order.
+
+**Evidence:** direct dependencies, deploy config (`vercel.json`,
+`wrangler.toml`, `fly.toml`, `railway.toml`, `docker-compose*.yml`), ORM
+adapters, env *names* in examples, README/VISION vendor names the **code**
+uses. Do not invent vendors.
+
+**Same role, two vendors:** two rows; heavier use first.
+
+**Empty table:** only if there is no framework and no third party. If
+`package.json` names Next.js, that is a row.
+
+### Other indexes
 
 **`patterns/Index.md`** — all canonical patterns.
 
@@ -163,6 +234,8 @@ implementation appeared.
 Keep the intro line; replace the “no projects” placeholder once any exist.
 
 ## Re-run
+
+### Project feature / pattern
 
 1. Read the existing note (if any).
 2. Capture from `## Human notes` through EOF (exact heading). If missing,
@@ -174,6 +247,12 @@ Keep the intro line; replace the “no projects” placeholder once any exist.
    generated sections (do not invent a new flow from empty evidence); keep
    Human notes.
 5. Do not delete the file. Do not merge Human notes into generated sections.
+
+### Project index
+
+1. Capture from `## Human notes` through EOF.
+2. Rewrite frontmatter, `## Stack`, and `## Features` from current evidence.
+3. Append Human notes. Do not delete the file.
 
 Anything the user wrote *above* `## Human notes` is generated and will be
 replaced. Point that out in the first-run handoff once.

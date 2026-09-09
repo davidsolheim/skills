@@ -19,6 +19,10 @@ primary and note others in `reason`.
 tooling, lockfile-adjacent config, secrets path, CI, design tokens with no
 product behavior, vendored-adjacent leftovers the script kept.
 
+Those paths still feed the project Index **Stack** table when they name a
+vendor (`vercel.json`, env examples, ORM config). Do not assign the vendor
+as a canonical. Stack shape: [`templates.md`](templates.md).
+
 Tests that **are** the spec for a product capability (e.g. impersonation e2e)
 assign to that feature, not `not-a-feature`.
 
@@ -53,10 +57,11 @@ Merge rows here. Then this run does catalog confirmation and vault writes.
 Worker prompt (fill the slice):
 
 ```text
-You classify paths for /feature-map. You do not write files.
+You classify paths for /map. You do not write files.
 
 Feature = a capability you could ship, drop, or copy on its own.
 Auth ≠ Impersonation. A helper or button is not a feature.
+A vendor is not a feature (`vercel.json` → not-a-feature).
 
 Assign every path in the JSON slice to a Canonical name or not-a-feature
 with a one-line reason. Return a markdown table: path | assignment | reason.

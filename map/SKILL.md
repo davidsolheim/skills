@@ -1,23 +1,24 @@
 ---
-name: feature-map
+name: map
 description: >
-  Use when the user runs /feature-map, /feature-map all, or /feature-map <path>,
-  or asks to map a project's features into Obsidian, extract features from a
-  codebase, build a cross-project feature catalog, or leapfrog implementations
-  from past apps.
+  Use when the user runs /map, /map all, /map <path>, or /feature-map, or asks
+  to map a project into Obsidian (features, tech stack, vendors), extract
+  features from a codebase, build a cross-project catalog, or leapfrog
+  implementations from past apps.
 argument-hint: "[all | path]"
 metadata:
-  short-description: "Map project features into an Obsidian vault"
+  short-description: "Map projects into an Obsidian vault"
 ---
 
-# /feature-map — Codebase → Obsidian feature vault
+# /map — Codebase → Obsidian project map
 
-Extract **features** from a codebase into a shared Obsidian vault so later
-projects can leapfrog. One note per feature per project, plus a shared pattern
-note for the same capability across apps.
+Extract a **map** of a codebase into a shared Obsidian vault so later
+projects can leapfrog. Today that is features plus a ranked vendor **Stack**;
+more layers land on the same project Index. One note per feature per project,
+plus a shared pattern note for the same capability across apps.
 
-This skill is **read-only on the app repo**. It writes the Feature Maps vault
-and `${GROK_HOME:-~/.grok}/feature-map.json` only.
+This skill is **read-only on the app repo**. It writes the Maps vault and
+`${GROK_HOME:-~/.grok}/map.json` only.
 
 ## Operating contract
 
@@ -38,14 +39,19 @@ and `${GROK_HOME:-~/.grok}/feature-map.json` only.
 6. **`all` is sequential.** Full pipeline per root, then the next. Catalog
    updates after each project so the next one can match.
 7. **No browser, no screenshots, no Linear, no app commits, no other vaults.**
+8. **Stack.** Every project Index has a ranked vendor table (most
+   load-bearing first). Vendors are not features. Refresh on re-run. Shape
+   and ranking: [`references/templates.md`](references/templates.md).
 
 ## Invocation
 
 ```text
-/feature-map
-/feature-map /path/to/repo
-/feature-map all
+/map
+/map /path/to/repo
+/map all
 ```
+
+`/feature-map` is an alias of `/map`.
 
 | Arg | Target |
 |-----|--------|
@@ -56,13 +62,13 @@ and `${GROK_HOME:-~/.grok}/feature-map.json` only.
 ## Skill paths
 
 ```text
-FEATURE_MAP_SKILL_DIR = directory containing this SKILL.md
-INVENTORY             = $FEATURE_MAP_SKILL_DIR/scripts/inventory
-FIRST_RUN_MD          = $FEATURE_MAP_SKILL_DIR/references/first-run.md
-TEMPLATES_MD          = $FEATURE_MAP_SKILL_DIR/references/templates.md
-CATALOG_MD            = $FEATURE_MAP_SKILL_DIR/references/catalog.md
-COVERAGE_MD           = $FEATURE_MAP_SKILL_DIR/references/coverage.md
-CONFIG                = ${GROK_HOME:-$HOME/.grok}/feature-map.json
+MAP_SKILL_DIR = directory containing this SKILL.md
+INVENTORY     = $MAP_SKILL_DIR/scripts/inventory
+FIRST_RUN_MD  = $MAP_SKILL_DIR/references/first-run.md
+TEMPLATES_MD  = $MAP_SKILL_DIR/references/templates.md
+CATALOG_MD    = $MAP_SKILL_DIR/references/catalog.md
+COVERAGE_MD   = $MAP_SKILL_DIR/references/coverage.md
+CONFIG        = ${GROK_HOME:-$HOME/.grok}/map.json
 ```
 
 Vault layout (created on first run):
@@ -96,7 +102,7 @@ Read [`references/first-run.md`](references/first-run.md).
 - Slug = directory name, lowercased, spaces → hyphens.
 - If `projects/<slug>/Index.md` exists and its `repo_path` is a **different**
   repo, ask once for a new slug or reuse.
-- Scratch: `$TMPDIR/feature-map-<slug>/`.
+- Scratch: `$TMPDIR/map-<slug>/`.
 
 ### 2 — Inventory
 
@@ -132,7 +138,9 @@ Read [`references/templates.md`](references/templates.md).
 - Existing → refresh generated body; keep `## Human notes`.
 - Gone → `status: stale`; keep file; do not regenerate from empty evidence.
 - Create/update `patterns/<Canonical>.md`.
-- Update `projects/<slug>/Index.md`, `patterns/Index.md`, vault `Index.md`.
+- Update `projects/<slug>/Index.md` (**Stack** + feature list),
+  `patterns/Index.md`, vault `Index.md`. Index is incomplete without
+  `## Stack`.
 
 Wikilinks: siblings `[[Canonical]]`; pattern `[[patterns/Canonical]]`; other
 project `[[projects/<slug>/Canonical]]`.
@@ -146,13 +154,14 @@ If this root failed, record the error and continue. Do not abort the batch.
 Then **stop**.
 
 ```markdown
-## Feature map
+## Map
 - Vault: <absolute path>
 - Project: <slug> (<repo path>)   # or list for `all`
 - Added: …
 - Updated: …
 - Stale: …
 - Confirmed names: …
+- Stack: N vendors
 - Coverage: kept N · assigned N · not-a-feature N
 - Failed roots: …                 # `all` only
 ```
@@ -161,11 +170,13 @@ Then **stop**.
 
 - Folding Impersonation into Auth
 - A note per component, route, or helper
+- A note per vendor; cataloging Stripe as a canonical
+- Dumping `package.json` into Stack; ranking by manifest order or alphabet
 - Walking the tree by hand instead of the inventory script
 - Writing notes before unknown confirmation
 - Overwriting Human notes
 - Deleting stale notes
-- Hardcoding `~/Documents/Feature Maps`
+- Hardcoding `~/Documents/Maps`
 - Committing the app repo or editing product code
 - Opening a browser or capturing screenshots
 - Smearing two projects into one `projects/` folder
@@ -177,6 +188,8 @@ Then **stop**.
 - About to invent a canonical name that already has an alias in `catalog.md`
 - About to rewrite a note that has Human notes without extracting that section
 - About to run `all` roots in parallel
+- About to skip `## Stack` or list eslint/lodash as vendors
+- About to propose a vendor as a canonical because it is a vendor
 
 ## Failure modes
 

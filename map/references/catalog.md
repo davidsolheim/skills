@@ -9,6 +9,9 @@ copied into a new vault.
 Use the feature definition in `SKILL.md` § Operating contract. Do not fold a
 capability into a sibling because it requires that sibling.
 
+A vendor is not a feature. Stripe is not Billing. Vendors go on the project
+Index Stack table ([`templates.md`](templates.md)).
+
 ## Match algorithm
 
 1. Read vault `catalog.md`.
@@ -51,7 +54,7 @@ updated: YYYY-MM-DD
 
 # Feature catalog
 
-Canonical names and aliases. Updated by `/feature-map` after confirmation.
+Canonical names and aliases. Updated by `/map` after confirmation.
 
 | Canonical | Aliases | Pattern | Projects |
 |-----------|---------|---------|----------|
