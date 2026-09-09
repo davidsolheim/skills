@@ -7,7 +7,7 @@ when there is a flow; flowchart otherwise). No screenshots, no canvas files.
 
 | From | To | Link |
 |------|----|------|
-| Project note | Sibling feature | `[[Canonical]]` |
+| Project note | Depends-on / unlocks sibling only | `[[Canonical]]` |
 | Project note | Pattern | `[[patterns/Canonical]]` |
 | Pattern / home / catalog | Project feature | `[[projects/<slug>/Canonical]]` |
 | Anywhere | Pattern | `[[patterns/Canonical]]` |
@@ -24,7 +24,10 @@ type: project-feature
 canonical: Impersonation
 project: ore-max
 status: active
-aliases: []
+aliases: [login-as, act-as]
+tags:
+  - status/active
+  - domain/auth
 depends_on:
   - Auth
 related: []
@@ -46,6 +49,9 @@ type: pattern
 canonical: Impersonation
 status: active
 aliases: [login-as, act-as]
+tags:
+  - type/pattern
+  - domain/auth
 projects: [ore-max]
 updated: YYYY-MM-DD
 ---
@@ -58,6 +64,9 @@ updated: YYYY-MM-DD
 type: project-index
 slug: ore-max
 repo_path: /abs/path/to/repo
+aliases: [Ore-Max]
+tags:
+  - type/project
 updated: YYYY-MM-DD
 ---
 ```
@@ -126,21 +135,22 @@ Empty Human notes: leave the heading and a blank line.
 
 ## Pattern note body
 
+Prose rules: [`leapfrog.md`](leapfrog.md).
+
 ```markdown
 # Impersonation
 
-Portable definition (what the capability *is*, not how one repo did it).
+Portable definition (what the capability *is*).
 
 ## Across projects
 
-| Project | How they do it | Worth stealing | Caveats | Note |
-|---------|----------------|----------------|---------|------|
-| ore-max | … | … | … | [[projects/ore-max/Impersonation]] |
+| Project | Mechanism | Steal | Skip | Note |
+|---------|-----------|-------|------|------|
+| Ore-Max | Auth.js credentials; session in Neon | `lib/auth.ts` mapping | Brand copy | [[projects/ore-max/Impersonation]] |
 
 ## Default recipe
 
-Best of what is in the vault when starting fresh. Point at the project note
-to copy from.
+Steal from [[projects/ore-max/Impersonation]] because … Then ordered steps.
 
 ## Aliases
 
@@ -205,8 +215,8 @@ number column.
 |--------|---------|
 | Vendor | Product name as sold (Stripe, not `stripe-js`) |
 | Role | Short noun for the job: Hosting, Database, Auth, Payments, Email, Search, Storage, Jobs, Analytics, Observability, CMS, Flags, Framework, Media, SMS, AI, … |
-| Why it matters | One clause about **this** product, not “it’s the database” |
-| Where | 1–3 paths or env **names** (never values) |
+| Why it matters | One clause about **this** product, not “it’s the database” and not “direct dependency `foo`” |
+| Where | 1–3 **code** paths or env **names** (never values). Not only `package.json` when an import lives in `src/` |
 
 **Include:** hosted platforms, databases, identity/payments/email/search/
 storage/jobs providers, the app framework/runtime, analytics/observability
@@ -230,8 +240,8 @@ uses. Do not invent vendors.
 
 **`patterns/Index.md`** — all canonical patterns.
 
-**Vault `Index.md`** — link each project index + pattern index + catalog.
-Keep the intro line; replace the “no projects” placeholder once any exist.
+**Vault `Index.md`** — grouped home (Start here, Products, Sites, Tools,
+Empty). Shape: [`obsidian.md`](obsidian.md).
 
 ## Re-run
 

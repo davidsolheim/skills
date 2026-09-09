@@ -37,10 +37,12 @@ Add the folder as a vault in Obsidian (Open folder as vault).
   patterns/<Feature>.md      # cross-project comparison + default recipe
 ```
 
-Each **project Index** has a ranked **Stack** table (vendors, most
-load-bearing first) plus the feature list. Each project feature note covers
-how it works, connections, a mermaid diagram, key files, gotchas, and a
-**port to a new app** recipe. `## Human notes` is yours on re-run.
+Each **project Index** has a ranked **Stack** (code/env evidence, most
+load-bearing first) plus features. Feature notes are leapfrog write-ups
+(real flow, mermaid, port recipe). Pattern notes **compare** implementations
+and name one donor. The vault home groups products / sites / tools; the
+catalog is a list of pattern hubs, not a giant table. `## Human notes` is
+yours on re-run. Token cost is not a constraint — thoroughness is.
 
 ## License
 

@@ -12,8 +12,16 @@ reason: one line
 Write `$SCRATCH/coverage.md` (or `.jsonl`) before slicing features.
 
 **Feature** — this path implements or substantially configures a capability
-(see `SKILL.md` granularity). One path may serve several features; list the
-primary and note others in `reason`.
+(see `SKILL.md` granularity) **and** that capability has a real surface.
+One path may serve several features; list the primary and note others in
+`reason`.
+
+Do **not** assign:
+
+- `app/api/**/route.ts` → **Public API** unless it is a documented/public/partner API
+- a file that merely contains the string `webhook` / `upload` / `session` → that canonical
+- `app/admin/**` → **Admin** unless there is a distinct operator console (otherwise the capability those pages implement)
+- leftover buckets **Application**, or **Gameplay** on a non-game
 
 **not-a-feature** — infra, generated, tests-only harness, one-off util,
 tooling, lockfile-adjacent config, secrets path, CI, design tokens with no

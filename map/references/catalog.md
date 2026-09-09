@@ -46,6 +46,9 @@ Known matches do **not** appear in this table.
 
 ## Vault `catalog.md` shape
 
+List of pattern notes with **app counts**. Project lists live on the pattern
+page. Full chrome: [`obsidian.md`](obsidian.md).
+
 ```markdown
 ---
 type: catalog
@@ -54,11 +57,8 @@ updated: YYYY-MM-DD
 
 # Feature catalog
 
-Canonical names and aliases. Updated by `/map` after confirmation.
-
-| Canonical | Aliases | Pattern | Projects |
-|-----------|---------|---------|----------|
-| Impersonation | login-as, act-as, masquerade | [[patterns/Impersonation]] | [[projects/ore-max/Impersonation]] |
+- [[patterns/Auth|Auth]] — 49 apps · login, session, authentication
+- [[patterns/Impersonation|Impersonation]] — 12 apps · login-as, act-as
 ```
 
 ## Starter table (seed + proposal hints)

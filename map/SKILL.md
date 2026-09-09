@@ -22,10 +22,17 @@ This skill is **read-only on the app repo**. It writes the Maps vault and
 
 ## Operating contract
 
-1. **Feature** = a capability you could ship, drop, or copy on its own. Auth
+1. **Feature** = a capability you could ship, drop, or copy on its own, with
+   a **real surface** (route, operator action, or API a client calls). Auth
    and Impersonation are both features; Impersonation `depends_on` Auth. A
-   login button or `validateSession` helper is not a feature. Prefer split
-   over stuff.
+   login button, `validateSession` helper, or `app/api/**/route.ts` is not a
+   feature. **Admin** is a feature only if there is a distinct operator
+   console; otherwise assign those files to the capabilities behind it.
+   **Public API** only if it is a documented/partner/public HTTP API — not
+   every Next handler. **Webhooks** only inbound/outbound product webhooks,
+   not a string in a comment. **File uploads** only if a user/operator
+   attaches a file. Never mint **Application** as a bucket. **Gameplay**
+   only for actual games. Prefer split over stuffing Auth.
 2. **Inventory script is the universe.** Every kept path is assigned a feature
    or `not-a-feature`. No silent skips. Do not eyeball the tree instead of
    running the script.
@@ -40,8 +47,15 @@ This skill is **read-only on the app repo**. It writes the Maps vault and
    updates after each project so the next one can match.
 7. **No browser, no screenshots, no Linear, no app commits, no other vaults.**
 8. **Stack.** Every project Index has a ranked vendor table (most
-   load-bearing first). Vendors are not features. Refresh on re-run. Shape
-   and ranking: [`references/templates.md`](references/templates.md).
+   load-bearing first: “if this vanished, is the product dead?”). **Where**
+   is code paths and env **names**, not only `package.json`. Vendors are not
+   features. Shape: [`references/templates.md`](references/templates.md).
+9. **Leapfrog.** Read key source files, then write original prose. Token
+   cost is not a constraint. Notes fail if a builder cannot tell what to
+   copy. Rules: [`references/leapfrog.md`](references/leapfrog.md).
+10. **Vault chrome.** Display names, home Index groups, catalog-as-list,
+    tags, aliases, graph color groups:
+    [`references/obsidian.md`](references/obsidian.md).
 
 ## Invocation
 
@@ -68,6 +82,8 @@ FIRST_RUN_MD  = $MAP_SKILL_DIR/references/first-run.md
 TEMPLATES_MD  = $MAP_SKILL_DIR/references/templates.md
 CATALOG_MD    = $MAP_SKILL_DIR/references/catalog.md
 COVERAGE_MD   = $MAP_SKILL_DIR/references/coverage.md
+LEAPFROG_MD   = $MAP_SKILL_DIR/references/leapfrog.md
+OBSIDIAN_MD   = $MAP_SKILL_DIR/references/obsidian.md
 CONFIG        = ${GROK_HOME:-$HOME/.grok}/map.json
 ```
 
@@ -108,6 +124,8 @@ Read [`references/first-run.md`](references/first-run.md).
 
 ```bash
 python3 "$INVENTORY" "$REPO_ROOT" > "$SCRATCH/inventory.json"
+# Optional bulk helper for huge `all` batches (still apply leapfrog.md to hubs):
+# python3 "$MAP_SKILL_DIR/scripts/regen"
 ```
 
 Non-zero exit → **stop**. No vault writes for this project.
@@ -132,18 +150,24 @@ paths). Apply answers, then update vault `catalog.md`.
 
 ### 5 — Write notes
 
-Read [`references/templates.md`](references/templates.md).
+Read [`references/templates.md`](references/templates.md),
+[`references/leapfrog.md`](references/leapfrog.md), and
+[`references/obsidian.md`](references/obsidian.md).
 
-- New feature → new project note.
+- **Read** the 3–8 key files for each feature. Then write. Do not invent flow
+  from paths alone.
+- New feature → new project note (tags, aliases, display-quality prose).
 - Existing → refresh generated body; keep `## Human notes`.
-- Gone → `status: stale`; keep file; do not regenerate from empty evidence.
-- Create/update `patterns/<Canonical>.md`.
-- Update `projects/<slug>/Index.md` (**Stack** + feature list),
-  `patterns/Index.md`, vault `Index.md`. Index is incomplete without
-  `## Stack`.
+- Gone → `status: stale`; keep the file; do not regenerate from empty evidence.
+- Create/update `patterns/<Canonical>.md` as a **comparison**, not a paste of
+  project blurbs. Name one default donor.
+- Update `projects/<slug>/Index.md` (**Stack** with code/env **Where** +
+  feature list + display name). Incomplete without `## Stack`.
+- Rebuild vault `Index.md` (grouped) and `catalog.md` (list of patterns with
+  app counts). Seed graph color groups if empty.
 
-Wikilinks: siblings `[[Canonical]]`; pattern `[[patterns/Canonical]]`; other
-project `[[projects/<slug>/Canonical]]`.
+Wikilinks: `depends_on` / `unlocks` siblings only; pattern
+`[[patterns/Canonical]]`; other project `[[projects/<slug>/Canonical]]`.
 
 ### 6 — Next root (`all` only)
 
@@ -170,8 +194,14 @@ Then **stop**.
 
 - Folding Impersonation into Auth
 - A note per component, route, or helper
+- **Public API** / **Webhooks** / **File uploads** on every Next app
+- **Application** as a junk bucket; **Gameplay** on a non-game
 - A note per vendor; cataloging Stripe as a canonical
 - Dumping `package.json` into Stack; ranking by manifest order or alphabet
+- README dump or “is a capability you could ship” as What it is
+- Identical pattern-table rows; catalog cell with 40 wikilinks
+- Linking every sibling feature (hairball graph)
+- Flat alphabetical slug list as the vault home
 - Walking the tree by hand instead of the inventory script
 - Writing notes before unknown confirmation
 - Overwriting Human notes
@@ -190,6 +220,9 @@ Then **stop**.
 - About to run `all` roots in parallel
 - About to skip `## Stack` or list eslint/lodash as vendors
 - About to propose a vendor as a canonical because it is a vendor
+- About to paste the README as What it is
+- About to write a pattern table with identical Steal/Skip cells
+- About to put forty project wikilinks in one catalog cell
 
 ## Failure modes
 

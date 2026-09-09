@@ -59,12 +59,15 @@ Set `created_at` on first write; always bump `updated_at`.
 Create:
 
 ```text
-<vault>/.obsidian/app.json     # {}
+<vault>/.obsidian/app.json
+<vault>/.obsidian/graph.json   # color groups: patterns vs projects
 <vault>/Index.md
 <vault>/catalog.md
 <vault>/projects/.gitkeep
 <vault>/patterns/Index.md
 ```
+
+Home Index, catalog list, and graph groups: [`obsidian.md`](obsidian.md).
 
 ### `Index.md`
 
@@ -76,7 +79,11 @@ updated: YYYY-MM-DD
 
 # Maps
 
-Cross-project map of real codebases: features, stack, and more.
+Cross-project map of real codebases: features, stack, and leapfrog patterns.
+
+## Start here
+
+_No patterns yet._
 
 ## Projects
 
@@ -112,6 +119,8 @@ _No patterns yet._
 ```json
 {}
 ```
+
+`.obsidian/graph.json` `colorGroups`: `path:patterns` (warm), `path:projects` (cool), `tag:#status/stale` and `tag:#status/empty` (muted). Exact RGB is in [`obsidian.md`](obsidian.md) — seed if the file is missing or `colorGroups` is empty.
 
 Tell the user once: add `<vault_path>` as a vault in Obsidian (Open folder as
 vault). Do not try to launch Obsidian.

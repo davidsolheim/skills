@@ -1,0 +1,1068 @@
+#!/usr/bin/env python3
+"""Bulk /map writer: inventory → coverage → leapfrog-shaped vault notes.
+
+Agents still own interactive /map; this exists so `all` over many roots can
+emit useful notes (real files, mechanisms, comparison hubs) in one pass.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+from collections import defaultdict
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+TODAY = date.today().isoformat()
+HERE = Path(__file__).resolve().parent
+INVENTORY = HERE / "inventory"
+CONFIG = Path.home() / ".grok/map.json"
+LEGACY = Path.home() / ".grok/feature-map.json"
+
+STARTER = [
+    ("Auth", "login, sign-in, session, authentication"),
+    ("Impersonation", "impersonate, login-as, act-as"),
+    ("Magic link", "magic-link, passwordless-email"),
+    ("Two-factor authentication", "2fa, totp, mfa"),
+    ("SSO", "sso, saml, oidc"),
+    ("Password reset", "password-reset, forgot-password"),
+    ("Onboarding", "onboarding, first-run"),
+    ("Team invites", "invites, invitations"),
+    ("Roles and permissions", "rbac, roles, permissions"),
+    ("Organizations", "orgs, workspaces, tenants"),
+    ("Billing", "billing, customer-portal"),
+    ("Checkout", "checkout, collect-payment"),
+    ("Subscriptions", "subscriptions, plans"),
+    ("Invoices", "invoices"),
+    ("Audit log", "audit-log, activity-log"),
+    ("Feature flags", "feature-flags, kill-switch"),
+    ("File uploads", "uploads, attachments"),
+    ("Transactional email", "mailer, resend, sendgrid, postmark"),
+    ("Notifications", "notifications, in-app-alerts"),
+    ("Search", "search, full-text-search"),
+    ("Analytics", "analytics, tracking-events"),
+    ("Feedback", "feedback, feedback-widget"),
+    ("Webhooks", "webhooks"),
+    ("Public API", "public-api, partner-api"),
+    ("API keys", "api-keys, personal-access-tokens"),
+    ("Background jobs", "background-jobs, queues"),
+    ("Scheduled tasks", "cron, scheduled-jobs"),
+    ("Import and export", "csv-import, csv-export"),
+    ("Waitlist", "waitlist"),
+    ("Referrals", "referrals"),
+    ("Profile", "profile, account-settings"),
+]
+
+DOMAIN = {
+    "Auth": "auth", "Impersonation": "auth", "SSO": "auth", "Magic link": "auth",
+    "Password reset": "auth", "Two-factor authentication": "auth", "Profile": "auth",
+    "Team invites": "auth", "Roles and permissions": "auth", "Organizations": "auth",
+    "Billing": "commerce", "Checkout": "commerce", "Subscriptions": "commerce",
+    "Invoices": "commerce", "Orders": "commerce", "Products": "commerce",
+    "Loyalty": "commerce", "Donate": "commerce",
+    "CMS": "content", "Blog": "content", "Gallery": "content", "Media": "content",
+    "Compose": "content", "Posts": "content", "Reports": "content",
+    "Audit log": "ops", "Feature flags": "ops", "Background jobs": "ops",
+    "Scheduled tasks": "ops", "Webhooks": "ops", "Public API": "ops",
+    "API keys": "ops", "Import and export": "ops", "Admin": "ops", "Dashboard": "ops",
+    "Analytics": "growth", "Referrals": "growth", "Waitlist": "growth",
+    "Newsletter": "growth", "Feedback": "growth", "Search": "growth",
+    "Homepage": "site", "About": "site", "Contact": "site", "Legal": "site",
+    "SEO": "site", "Localization": "site",
+}
+
+LOCALES = {
+    "en", "es", "fr", "de", "it", "pt", "ja", "zh", "ar", "ko", "af", "nl",
+    "sv", "da", "fi", "no", "pl", "ru", "uk", "cs", "hu", "ro", "tr", "vi",
+    "th", "id", "hi", "he", "fa",
+}
+
+SEGMENT = {
+    "login": "Auth", "signin": "Auth", "sign-in": "Auth", "signup": "Auth",
+    "register": "Auth", "logout": "Auth", "auth": "Auth",
+    "forgot-password": "Password reset", "reset-password": "Password reset",
+    "impersonate": "Impersonation",
+    "pricing": "Billing", "billing": "Billing",
+    "checkout": "Checkout", "cart": "Checkout",
+    "subscribe": "Subscriptions", "subscription": "Subscriptions",
+    "invoice": "Invoices", "invoices": "Invoices",
+    "blog": "Blog", "posts": "Posts", "news": "Blog",
+    "contact": "Contact", "privacy": "Legal", "terms": "Legal", "legal": "Legal",
+    "about": "About", "dashboard": "Dashboard",
+    "invite": "Team invites", "invites": "Team invites",
+    "settings": "Profile", "account": "Profile", "profile": "Profile",
+    "onboarding": "Onboarding", "waitlist": "Waitlist",
+    "search": "Search", "analytics": "Analytics",
+    "orgs": "Organizations", "organizations": "Organizations",
+    "inbox": "Inbox", "compose": "Compose", "calendar": "Calendar",
+    "media": "Media", "gallery": "Gallery", "approvals": "Approvals",
+    "chat": "Chat", "booking": "Booking", "products": "Products",
+    "shop": "Products", "orders": "Orders", "events": "Events",
+    "membership": "Membership", "newsletter": "Newsletter", "donate": "Donate",
+    "cms": "CMS", "globe": "Globe map", "explorer": "Data explorer",
+    "methodology": "Methodology", "reports": "Reports",
+    "og": "SEO", "rss": "SEO", "sitemap": "SEO",
+}
+
+CLIENT_MAP = {
+    "authloginclient": "Auth",
+    "authforgotpasswordclient": "Password reset",
+    "authresetpasswordclient": "Password reset",
+    "accountclient": "Profile",
+    "adminclient": None,
+    "homeclient": "Homepage",
+    "notfoundclient": None,
+    "termsclient": "Legal",
+}
+
+VENDOR_PACKAGES = {
+    "next": ("Next.js", "Framework"),
+    "electron": ("Electron", "Framework"),
+    "stripe": ("Stripe", "Payments"),
+    "@stripe/stripe-js": ("Stripe", "Payments"),
+    "@neondatabase/serverless": ("Neon", "Database"),
+    "postgres": ("Postgres", "Database"),
+    "pg": ("Postgres", "Database"),
+    "prisma": ("Prisma", "Database"),
+    "@clerk/nextjs": ("Clerk", "Auth"),
+    "next-auth": ("Auth.js", "Auth"),
+    "@auth/core": ("Auth.js", "Auth"),
+    "resend": ("Resend", "Email"),
+    "nodemailer": ("Nodemailer", "Email"),
+    "@sendgrid/mail": ("SendGrid", "Email"),
+    "inngest": ("Inngest", "Jobs"),
+    "bullmq": ("BullMQ", "Jobs"),
+    "openai": ("OpenAI", "AI"),
+    "@vercel/blob": ("Vercel Blob", "Storage"),
+    "@vercel/analytics": ("Vercel Analytics", "Analytics"),
+    "posthog-js": ("PostHog", "Analytics"),
+    "posthog-node": ("PostHog", "Analytics"),
+    "cloudinary": ("Cloudinary", "Media"),
+    "twilio": ("Twilio", "SMS"),
+    "@googlemaps/js-api-loader": ("Google Maps", "Maps"),
+}
+
+VENDOR_IMPORT = {
+    "Stripe": ["stripe", "@stripe"],
+    "Auth.js": ["next-auth", "@auth/"],
+    "Clerk": ["@clerk"],
+    "Neon": ["@neondatabase", "neon"],
+    "Resend": ["resend"],
+    "Inngest": ["inngest"],
+    "OpenAI": ["openai"],
+    "PostHog": ["posthog"],
+}
+
+ROLE_RANK = {
+    "Payments": 0, "Auth": 1, "Database": 2, "Email": 3, "Jobs": 4,
+    "Storage": 5, "CMS": 6, "AI": 7, "Maps": 8, "Media": 9, "SMS": 10,
+    "Analytics": 11, "Hosting": 12, "Framework": 13,
+}
+
+DEPS = {
+    "Impersonation": ["Auth"], "Password reset": ["Auth"], "Magic link": ["Auth"],
+    "Two-factor authentication": ["Auth"], "SSO": ["Auth"],
+    "Team invites": ["Auth"], "Roles and permissions": ["Auth"], "Profile": ["Auth"],
+    "Checkout": ["Billing"], "Subscriptions": ["Billing"], "Invoices": ["Billing"],
+    "API keys": ["Public API"],
+}
+
+SOURCE_EXT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".py", ".go", ".rs", ".mdx", ".html"}
+ENV_RE = re.compile(r"(?:process\.env|import\.meta\.env)\.([A-Z][A-Z0-9_]{2,})")
+HUMAN_H = "## Human notes"
+HUBS = ["Auth", "Impersonation", "Billing", "Checkout", "File uploads", "Team invites", "Magic link", "SSO"]
+
+
+def yaml_list(items: list[str], indent: str = "  ") -> str:
+    if not items:
+        return "[]"
+    return "\n".join(f"{indent}- {x}" for x in items)
+
+
+def preserve_human(existing: str | None) -> str:
+    if not existing:
+        return ""
+    i = existing.find(HUMAN_H)
+    if i < 0:
+        return ""
+    return existing[i + len(HUMAN_H) :].lstrip("\n")
+
+
+def slug_for(root: Path) -> str:
+    return root.name.lower().replace(" ", "-")
+
+
+def display_name(root: Path, slug: str) -> str:
+    for name in ("README.md", "VISION.md"):
+        p = root / name
+        if not p.is_file():
+            continue
+        try:
+            for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("# "):
+                    t = line[2:].strip().strip("*")
+                    t = re.sub(r"^Welcome to\s+", "", t, flags=re.I)
+                    if 2 < len(t) < 60 and "http" not in t.lower():
+                        return t
+                    break
+        except OSError:
+            pass
+    pkg = root / "package.json"
+    if pkg.is_file():
+        try:
+            n = json.loads(pkg.read_text()).get("name") or ""
+            if n and not n.startswith("@") and n.replace("-", "") != slug.replace("-", ""):
+                return n
+        except (OSError, json.JSONDecodeError):
+            pass
+    return "-".join(s[:1].upper() + s[1:] for s in slug.split("-") if s)
+
+
+def domain_for(canon: str) -> str:
+    return DOMAIN.get(canon, "other")
+
+
+def is_junk(name: str) -> bool:
+    if not name or "." in name or name.endswith("Client"):
+        return True
+    if len(name) <= 2:
+        return True
+    if name in {"Application", "Widget", "Route", "Handler", "Debug", "Test"}:
+        return True
+    return False
+
+
+def read_text(root: Path, rel: str, limit: int = 12000) -> str:
+    p = root / rel
+    try:
+        data = p.read_bytes()[:limit]
+    except OSError:
+        return ""
+    if b"\x00" in data[:200]:
+        return ""
+    return data.decode("utf-8", errors="replace")
+
+
+def page_route(path: str) -> str | None:
+    posix = path.replace("\\", "/")
+    if "/components/pages/" in posix:
+        return None
+    if re.search(r"(?:^|/)app/page\.(tsx|ts|jsx|js)$", posix):
+        return "/"
+    m = re.search(r"(?:^|/)app/(.+)/page\.(tsx|ts|jsx|js)$", posix)
+    if m:
+        segs = [p for p in m.group(1).split("/") if not (p.startswith("(") and p.endswith(")")) and not p.startswith("@")]
+        return "/" + "/".join(segs) if segs else "/"
+    m = re.search(r"(?:^|/)app/(.+)/route\.(ts|js)$", posix)
+    if m:
+        segs = [p for p in m.group(1).split("/") if not (p.startswith("(") and p.endswith(")"))]
+        return "/" + "/".join(segs)
+    return None
+
+
+def route_canonical(route: str) -> str | None:
+    parts = [p for p in route.strip("/").split("/") if p and not p.startswith("[")]
+    if not parts:
+        return "Homepage"
+    if "." in parts[0]:
+        return "SEO" if parts[0].lower() in {"rss.xml", "sitemap.xml", "robots.txt"} else None
+    low = parts[0].lower()
+    if low in LOCALES:
+        return "Localization"
+    if parts[0] == "api":
+        rest = "/".join(parts[1:]).lower()
+        if rest.startswith("auth") or "session" in rest:
+            return "Auth"
+        if "webhook" in rest:
+            return "Webhooks"
+        if rest.startswith("v1") or rest.startswith("public") or "openapi" in rest:
+            return "Public API"
+        return None
+    return SEGMENT.get(low)
+
+
+def public_api_ok(path: str) -> bool:
+    p = path.lower()
+    if re.search(r"/api/(v1|v2|public|partner|openapi)", p):
+        return True
+    if "swagger" in p or "openapi" in p:
+        return True
+    return False
+
+
+def webhook_ok(path: str, text: str) -> bool:
+    p = path.lower()
+    if "webhook" not in p and "webhook" not in text.lower():
+        return False
+    blob = p + " " + text.lower()
+    return any(s in blob for s in ("stripe", "svix", "signature", "constructevent", "inbound", "signing"))
+
+
+def upload_ok(path: str, text: str) -> bool:
+    p = path.lower()
+    if not any(s in p for s in ("upload", "attachment", "blob")):
+        return "formdata" in text.lower() and "file" in text.lower()
+    blob = text.lower()
+    return any(s in blob or s in p for s in ("formdata", "putobject", "vercel/blob", "multer", "presign", "type=\"file\""))
+
+
+def impersonation_ok(path: str, text: str) -> bool:
+    p = path.lower()
+    if re.search(r"/(legal|terms|privacy|cookies)/", p):
+        return False
+    return "impersonat" in p or bool(re.search(r"\bimpersonat", text.lower()))
+
+
+def classify(root: Path, row: dict) -> tuple[str, str]:
+    path = row["path"]
+    posix = path.replace("\\", "/")
+    name = Path(path).name
+    skipped = bool(row.get("skipped_read"))
+    hits = row.get("hits") or []
+
+    if skipped or name in {"package.json", "tsconfig.json"} or name.startswith(".env"):
+        return "not-a-feature", "infra"
+    if any(x in posix for x in ("node_modules", ".github", "components/ui/", ".next/")):
+        return "not-a-feature", "infra"
+    if posix.lower().endswith("readme.md") or name in {"LICENSE", "CHANGELOG.md", "AGENTS.md"}:
+        return "not-a-feature", "docs"
+    if name.lower() in {"index.html", "index.htm"} and len(Path(path).parts) == 1:
+        return "Homepage", "root index html"
+
+    stem = Path(path).stem.lower()
+    if stem in CLIENT_MAP:
+        c = CLIENT_MAP[stem]
+        return (c, "client helper") if c else ("not-a-feature", "not-found helper")
+
+    text = "" if skipped else read_text(root, path, 8000)
+
+    if impersonation_ok(path, text) or any("impersonat" in h for h in hits):
+        if impersonation_ok(path, text):
+            return "Impersonation", "impersonation implementation"
+
+    if "webhook" in posix.lower() or "webhook" in hits:
+        if webhook_ok(path, text):
+            return "Webhooks", "signed webhook"
+        return "not-a-feature", "webhook string only"
+
+    if any(h in hits for h in ("upload", "attachment")) or "upload" in posix.lower():
+        if upload_ok(path, text):
+            return "File uploads", "upload implementation"
+
+    route = page_route(path)
+    rc = route_canonical(route) if route else None
+    if rc == "Public API" and not public_api_ok(path):
+        rc = None
+    if rc == "Admin":
+        rc = None
+    if rc:
+        return rc, f"route {route}"
+
+    if re.search(r"(^|/)app/\(auth\)/|(^|/)login/|(^|/)lib/auth\.(ts|js)", posix):
+        return "Auth", "auth path"
+    if re.search(r"forgot-password|reset-password", posix):
+        return "Password reset", "reset path"
+
+    # short catalog hits with corroboration
+    hit_map = {
+        "stripe": "Billing", "checkout": "Checkout", "subscription": "Subscriptions",
+        "totp": "Two-factor authentication", "2fa": "Two-factor authentication",
+        "saml": "SSO", "oidc": "SSO", "magic-link": "Magic link",
+        "sendgrid": "Transactional email", "postmark": "Transactional email",
+        "inngest": "Background jobs", "bullmq": "Background jobs",
+        "invite": "Team invites", "onboarding": "Onboarding",
+    }
+    for h in hits:
+        if h in hit_map:
+            token = h.split()[0]
+            if token in posix.lower() or re.search(rf"\b{re.escape(token)}\b", text.lower()):
+                return hit_map[h], f"hit {h}"
+
+    return "not-a-feature", "no surface"
+
+
+def mechanism(canon: str, blob: str, paths: list[str]) -> str:
+    b = blob.lower()
+    joined = " ".join(paths).lower()
+    if canon == "Auth":
+        if "@clerk" in b or "clerk" in joined:
+            return "Clerk hosts identity; this app wraps session checks around it."
+        if "next-auth" in b or "@auth/" in b or "from \"next-auth\"" in b:
+            kind = "email/password credentials" if "credentials" in b else "Auth.js providers"
+            store = "Neon/Drizzle" if "drizzle" in b else "the app database"
+            return f"Auth.js ({kind}); sessions via {store}."
+        if "better-auth" in b:
+            return "Better Auth handles sign-in and sessions."
+        if "supabase" in b and "auth" in b:
+            return "Supabase Auth issues sessions; the app trusts the JWT."
+        return "Custom session/login in this repo (read `lib/auth` / login route)."
+    if canon == "Impersonation":
+        return "An operator starts a session as another user; requires an existing admin Auth session."
+    if canon in {"Billing", "Checkout", "Subscriptions"}:
+        if "stripe" in b:
+            return "Stripe (Checkout/Billing Portal or PaymentIntents) with webhook confirmation."
+        return "Payment collection in-app; confirm the provider in the implementation map."
+    if canon == "File uploads":
+        if "@vercel/blob" in b or "put(" in b:
+            return "Vercel Blob (or S3-compatible) after the client submits a file."
+        return "User/operator picks a file; the server stores an object and returns a URL."
+    if canon == "Transactional email":
+        if "resend" in b:
+            return "Resend sends transactional mail (auth, receipts) from server code."
+        if "sendgrid" in b:
+            return "SendGrid sends transactional mail from server code."
+        return "A mailer module sends transactional email; do not copy API keys."
+    if canon == "Webhooks":
+        return "Inbound HTTP with signature verification, then internal side effects."
+    if canon == "Magic link":
+        return "Email contains a one-time URL that creates a session without a password."
+    if canon == "SSO":
+        return "Third-party IdP (OIDC/SAML/OAuth) maps to an app user."
+    if canon == "Compose":
+        return "Operator writes a post in-app and sends it to connected accounts."
+    return f"{canon} is implemented in this repo’s own modules (see the file map)."
+
+
+def who_for(canon: str) -> str:
+    if canon in {"Auth", "Impersonation", "Admin", "Dashboard", "Audit log", "CMS", "Compose"}:
+        return "operators"
+    if canon in {"Checkout", "Billing", "Subscriptions", "Homepage", "Blog"}:
+        return "customers / visitors"
+    return "users or operators"
+
+
+def mermaid(canon: str, surfaces: list[str], mech: str) -> str:
+    s = surfaces[0] if surfaces else "/app"
+    if canon == "Auth":
+        return f"""sequenceDiagram
+  actor User
+  participant Login as {s}
+  participant Auth as Auth
+  participant DB as Store
+  User->>Login: submit credentials
+  Login->>Auth: verify
+  Auth->>DB: lookup user
+  DB-->>Auth: user or empty
+  Auth-->>User: session or error"""
+    if canon == "Impersonation":
+        return """sequenceDiagram
+  actor Admin
+  participant App
+  participant Auth
+  Admin->>App: impersonate target
+  App->>Auth: require admin session
+  Auth-->>App: ok
+  App-->>Admin: act as target"""
+    if canon in {"Checkout", "Billing", "Subscriptions"}:
+        return f"""sequenceDiagram
+  actor User
+  participant App
+  participant Pay as Payments
+  User->>App: {s}
+  App->>Pay: create session
+  Pay-->>App: status
+  App-->>User: confirmation"""
+    if canon == "File uploads":
+        return """sequenceDiagram
+  actor User
+  participant App
+  participant Store as Blob
+  User->>App: choose file
+  App->>Store: put object
+  Store-->>App: url
+  App-->>User: attached"""
+    if canon == "Compose":
+        return f"""sequenceDiagram
+  actor Operator
+  participant Compose as {s}
+  participant Queue
+  Operator->>Compose: write post
+  Compose->>Queue: schedule or publish
+  Queue-->>Operator: status"""
+    return f"""sequenceDiagram
+  actor User
+  participant App
+  User->>App: {s}
+  App-->>User: {canon} result"""
+
+
+def role_for(path: str, text: str) -> str:
+    posix = path.replace("\\", "/")
+    if posix.endswith("/page.tsx") or posix.endswith("/page.ts"):
+        return "Route UI"
+    if posix.endswith("/route.ts"):
+        return "HTTP handler"
+    if "schema" in posix:
+        return "Data model"
+    if "next-auth" in text or "NextAuth" in text:
+        return "Auth.js config"
+    if "CredentialsProvider" in text:
+        return "Credentials provider"
+    if "impersonat" in text.lower():
+        return "Impersonation entry"
+    if "stripe" in text.lower():
+        return "Stripe integration"
+    if "resend" in text.lower():
+        return "Resend mailer"
+    return "Core module"
+
+
+def detect_vendors(root: Path, files: list[dict]) -> list[dict]:
+    names = {Path(f["path"]).name for f in files}
+    paths = [f["path"] for f in files]
+    found: dict[str, dict] = {}
+
+    def add(vendor: str, role: str, why: str, where: str) -> None:
+        cur = found.get(vendor)
+        if cur is None or ROLE_RANK.get(role, 99) < ROLE_RANK.get(cur["role"], 99):
+            found[vendor] = {"vendor": vendor, "role": role, "why": why, "where": where}
+
+    pkg = root / "package.json"
+    deps: dict = {}
+    if pkg.is_file():
+        try:
+            raw = json.loads(pkg.read_text(encoding="utf-8"))
+            deps = {**raw.get("dependencies", {}), **raw.get("devDependencies", {})}
+        except (OSError, json.JSONDecodeError):
+            deps = {}
+        for dep, (vendor, role) in VENDOR_PACKAGES.items():
+            if dep in deps:
+                add(vendor, role, f"{vendor} is wired as this app’s {role.lower()}.", "`package.json`")
+    if any(n.startswith("next.config") for n in names):
+        add("Next.js", "Framework", "App runtime (Next config in repo).", next((f"`{n}`" for n in names if n.startswith("next.config")), "`next.config`"))
+    if "vercel.json" in names:
+        add("Vercel", "Hosting", "Production host (Vercel project).", "`vercel.json`")
+    if any(n.startswith("wrangler") for n in names):
+        add("Cloudflare", "Hosting", "Workers/Pages via Wrangler.", "`wrangler.toml`")
+    if "fly.toml" in names:
+        add("Fly.io", "Hosting", "Fly deploy config.", "`fly.toml`")
+
+    # Prefer code paths for Where
+    for f in files:
+        txt = ""
+        rel = f["path"]
+        low = rel.lower()
+        for vendor, needles in VENDOR_IMPORT.items():
+            if vendor not in found:
+                continue
+            if any(len(n) >= 5 and n.lower() in low for n in needles):
+                found[vendor]["where"] = f"`{rel}`"
+    # env names
+    env_hint = {
+        "Stripe": "STRIPE_", "Auth.js": "AUTH_", "Neon": "DATABASE_URL",
+        "Resend": "RESEND_", "Clerk": "CLERK_", "OpenAI": "OPENAI_",
+    }
+    for vendor, prefix in env_hint.items():
+        if vendor in found and found[vendor]["where"] == "`package.json`":
+            found[vendor]["where"] = f"`{prefix}*`"
+
+    rows = list(found.values())
+    if any(r["vendor"] == "Stripe" for r in rows):
+        rows.sort(key=lambda r: (0 if r["vendor"] == "Stripe" else 1 + ROLE_RANK.get(r["role"], 50), r["vendor"]))
+    else:
+        rows.sort(key=lambda r: (ROLE_RANK.get(r["role"], 50), r["vendor"]))
+    return rows
+
+
+def write_note(*, dest: Path, canon: str, slug: str, display: str, root: Path,
+               sources: list[str], aliases: list[str], depends: list[str],
+               unlocks: list[str], surfaces: list[str], stack: list[str],
+               existing: str | None) -> dict:
+    blobs = []
+    roles = []
+    envs: set[str] = set()
+    for rel in sources[:8]:
+        t = read_text(root, rel)
+        blobs.append(t)
+        roles.append((rel, role_for(rel, t)))
+        envs.update(ENV_RE.findall(t))
+    blob = "\n".join(blobs)
+    mech = mechanism(canon, blob, sources)
+    who = who_for(canon)
+    surf = ", ".join(f"`{s}`" for s in surfaces[:4]) or "in-app UI"
+    what = (
+        f"{display}’s **{canon}** is for {who}. {mech} "
+        f"Primary entry: {surf}."
+    )
+    how = (
+        f"Traffic hits {surf}. {mech} "
+        f"The code to read first is `{sources[0] if sources else 'the implementation map'}`."
+    )
+    if canon == "Auth" and "credentials" in blob.lower() and "oauth" not in blob.lower():
+        how += " There is no OAuth provider in the sampled files — email/password only unless you add one."
+    gotcha = (
+        f"Keep **{canon}** separate from {', '.join(depends) or 'unrelated helpers'}. "
+        "Do not copy secrets, brand copy, or one-off schema names."
+    )
+    if canon == "Impersonation":
+        gotcha = "Do not fold this into Auth. Audit who can impersonate; never expose it on a public route."
+    dep_l = ", ".join(f"[[{d}]]" for d in depends)
+    un_l = ", ".join(f"[[{u}]]" for u in unlocks)
+    impl = "\n".join(f"| {p} | {r} |" for p, r in roles) or "| _(none)_ | |"
+    surf_md = "\n".join(f"- `{s}`" for s in surfaces[:8]) or "- _In-app / library — see file map._"
+    env_txt = ", ".join(f"`{e}`" for e in sorted(envs)[:16]) or "_None named in sampled sources._"
+    stack_txt = ", ".join(stack) if stack else "this repo’s runtime"
+    human = preserve_human(existing)
+    tags = ["status/active", f"domain/{domain_for(canon)}"]
+    body = f"""---
+type: project-feature
+canonical: {canon}
+project: {slug}
+status: active
+aliases:
+{yaml_list(aliases) if aliases else "  []"}
+tags:
+{yaml_list(tags)}
+depends_on:
+{yaml_list(depends) if depends else "  []"}
+related:
+{yaml_list(depends) if depends else "  []"}
+sources:
+{yaml_list(sources[:8]) if sources else "  []"}
+repo_path: {root}
+updated: {TODAY}
+---
+
+# {canon}
+
+## What it is
+
+{what}
+
+## How it works
+
+{how}
+
+## Sequence
+
+```mermaid
+{mermaid(canon, surfaces, mech)}
+```
+
+## Connections
+
+- **Depends on:** {dep_l}
+- **Unlocks:** {un_l}
+- **Pattern:** [[patterns/{canon}]]
+
+## Surfaces
+
+{surf_md}
+
+## Implementation map
+
+| Path | Role |
+|------|------|
+{impl}
+
+## Data and config
+
+Env names (never values): {env_txt}
+
+## Gotchas
+
+{gotcha}
+
+## Port to a new app
+
+1. **Prerequisites** — {', '.join(depends) if depends else 'host app only'}
+2. **Stack assumptions** — {stack_txt}; {mech}
+3. **Recreate** — {', '.join(f'`{p}`' for p, _ in roles[:5]) or 'the modules in the map'}, in that order
+4. **Env** — {env_txt}
+5. **Verify** — {surfaces[0] if surfaces else 'the primary entry'}: signed-out, signed-in, one failure
+6. **Do not copy** — secrets, Doppler values, brand copy, generated migrations, `node_modules`
+
+## Human notes
+{('' + human) if human else ''}
+"""
+    dest.write_text(body if body.endswith("\n") else body + "\n", encoding="utf-8")
+    return {"mechanism": mech, "display": display, "steal": roles[0][0] if roles else "", "surfaces": surfaces}
+
+
+def mark_stale(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    text = re.sub(r"^status:\s*\w+", "status: stale", text, count=1, flags=re.M)
+    text = re.sub(r"^updated:.*$", f"updated: {TODAY}", text, count=1, flags=re.M)
+    text = text.replace("- status/active", "- status/stale")
+    if "**Stale:**" not in text:
+        text = re.sub(r"(^# .+\n)", rf"\1\n> **Stale:** not found in the latest inventory ({TODAY}).\n", text, count=1, flags=re.M)
+    path.write_text(text, encoding="utf-8")
+
+
+def run_inventory(root: Path, out: Path) -> dict:
+    proc = subprocess.run([sys.executable, str(INVENTORY), str(root)], capture_output=True, timeout=600)
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr.decode("utf-8", errors="replace")[:800] or f"exit {proc.returncode}")
+    out.write_bytes(proc.stdout)
+    return json.loads(proc.stdout.decode("utf-8"))
+
+
+def process_root(root: Path, vault: Path, catalog_aliases: dict[str, list[str]], facts: dict, scratch: Path) -> dict:
+    slug = slug_for(root)
+    display = display_name(root, slug)
+    proj = vault / "projects" / slug
+    data = run_inventory(root, scratch / "inventories" / f"{slug}.json")
+    files = data.get("files") or []
+    assigned: dict[str, list[str]] = defaultdict(list)
+    not_feat = 0
+    for row in files:
+        canon, _reason = classify(root, row)
+        if canon == "not-a-feature" or is_junk(canon):
+            not_feat += 1
+            continue
+        assigned[canon].append(row["path"])
+
+    features: dict[str, list[str]] = {}
+    for canon, paths in assigned.items():
+        src = [p for p in paths if Path(p).suffix.lower() in SOURCE_EXT]
+        if not src and canon not in {"Homepage", "Legal", "About", "Contact"}:
+            not_feat += len(paths)
+            continue
+        features[canon] = src or paths
+
+    if "Auth" in features:
+        keep = [
+            p
+            for p in features["Auth"]
+            if re.search(r"(auth\)|/auth/|login|signin|lib/auth)", p, re.I)
+            and "calculator" not in p.lower()
+        ]
+        if keep:
+            keep.sort(key=lambda p: (0 if "lib/auth" in p.replace("\\", "/") else 1 if "login" in p else 2, p))
+            features["Auth"] = keep
+
+    if "Impersonation" in features and "Auth" in features:
+        features["Auth"] = [p for p in features["Auth"] if "impersonat" not in p.lower()]
+
+    vendors = detect_vendors(root, files)
+    stack_names = [v["vendor"] for v in vendors]
+    present = set(features)
+    added = updated = stale = 0
+    auto: list[str] = []
+    proj.mkdir(parents=True, exist_ok=True)
+    existing = {p.stem: p for p in proj.glob("*.md") if p.name != "Index.md"}
+
+    for canon, paths in features.items():
+        surfs = []
+        seen = set()
+        for p in paths:
+            r = page_route(p)
+            if r and r not in seen:
+                seen.add(r)
+                surfs.append(r)
+        if canon not in catalog_aliases and canon not in {c for c, _ in STARTER}:
+            auto.append(canon)
+        depends = [d for d in DEPS.get(canon, []) if d in present]
+        unlocks = [o for o, ds in DEPS.items() if canon in ds and o in present]
+        note_path = proj / f"{canon}.md"
+        prev = note_path.read_text(encoding="utf-8") if note_path.exists() else None
+        meta = write_note(
+            dest=note_path, canon=canon, slug=slug, display=display, root=root,
+            sources=paths, aliases=catalog_aliases.get(canon, []),
+            depends=depends, unlocks=unlocks, surfaces=surfs,
+            stack=stack_names, existing=prev,
+        )
+        facts.setdefault(canon, []).append({"slug": slug, "display": display, **meta})
+        added += prev is None
+        updated += prev is not None
+
+    for stem, npath in existing.items():
+        if stem in features:
+            continue
+        if is_junk(stem):
+            npath.unlink()
+            continue
+        mark_stale(npath)
+        stale += 1
+
+    active = sorted(features)
+    stale_names = sorted(s for s in existing if s not in features and not is_junk(s) and (proj / f"{s}.md").exists())
+    if vendors:
+        table = ["| Vendor | Role | Why it matters | Where |", "|--------|------|----------------|-------|"]
+        table.extend(f"| {v['vendor']} | {v['role']} | {v['why']} | {v['where']} |" for v in vendors)
+        stack_md = "\n".join(table)
+    else:
+        stack_md = "_No hosted vendors or app framework detected._"
+    feat_md = "\n".join(f"- [[{n}]]" for n in active) or "_None._"
+    stale_sec = ("\n### Stale\n\n" + "\n".join(f"- [[{n}]]" for n in stale_names) + "\n") if stale_names else ""
+    idx_path = proj / "Index.md"
+    human = preserve_human(idx_path.read_text(encoding="utf-8") if idx_path.exists() else None)
+    tags = ["type/project"]
+    if not active:
+        tags.append("status/empty")
+    idx_path.write_text(
+        f"""---
+type: project-index
+slug: {slug}
+repo_path: {root}
+aliases:
+  - {display}
+tags:
+{yaml_list(tags)}
+updated: {TODAY}
+---
+
+# {display}
+
+Mapped from `{root.name}`.
+
+## Stack
+
+{stack_md}
+
+## Features
+
+{feat_md}
+{stale_sec}
+## Human notes
+{('' + human) if human else ''}
+"""
+    )
+    kind = "empty"
+    if not active:
+        kind = "empty"
+    elif "Auth" in present or "Billing" in present or "Checkout" in present:
+        kind = "product"
+    elif any(c in present for c in ("Homepage", "About", "Contact", "Legal")) and "Dashboard" not in present:
+        kind = "site"
+    else:
+        kind = "tool"
+    return {
+        "slug": slug, "display": display, "root": str(root), "ok": True, "kind": kind,
+        "added": added, "updated": updated, "stale": stale, "features": active,
+        "kept": len(files), "assigned": len(files), "not_a_feature": not_feat,
+        "auto_names": auto, "stack_n": len(vendors), "error": None,
+    }
+
+
+def seed_graph(vault: Path) -> None:
+    ob = vault / ".obsidian"
+    ob.mkdir(exist_ok=True)
+    gp = ob / "graph.json"
+    data = {}
+    if gp.exists():
+        try:
+            data = json.loads(gp.read_text())
+        except json.JSONDecodeError:
+            data = {}
+    data.setdefault("showTags", False)
+    data.setdefault("showOrphans", True)
+    data["colorGroups"] = [
+        {"query": "path:patterns", "color": {"a": 1, "rgb": 14725458}},
+        {"query": "path:projects", "color": {"a": 1, "rgb": 5431532}},
+        {"query": "tag:#status/stale", "color": {"a": 1, "rgb": 8947848}},
+        {"query": "tag:#status/empty", "color": {"a": 1, "rgb": 6710886}},
+    ]
+    gp.write_text(json.dumps(data, indent=2) + "\n")
+    app = ob / "app.json"
+    if not app.exists():
+        app.write_text("{}\n")
+
+
+def rebuild_hubs(vault: Path, results: list[dict], facts: dict, catalog_aliases: dict[str, list[str]]) -> None:
+    patterns = vault / "patterns"
+    patterns.mkdir(exist_ok=True)
+    used = sorted(facts)
+    defs = {
+        "Auth": "Sign-in and a session the rest of the app can trust. Not impersonation, invites, or 2FA.",
+        "Impersonation": "An operator acts as another user without knowing their password. Requires Auth; never a login button.",
+        "Billing": "Customer payment method and plan state. Stripe (or similar) is the vendor — this is the capability.",
+        "Checkout": "Collecting a payment for a specific cart or paywall. Distinct from storing a card on file.",
+        "File uploads": "A person attaches a file and the app stores it. Not every `upload` string in a dependency.",
+        "Magic link": "Email a one-time URL that creates a session. Separate from password Auth.",
+        "Team invites": "Bring another person into an org/workspace. Depends on Auth.",
+        "SSO": "Enterprise IdP (OIDC/SAML) mapped to an app user.",
+    }
+    for canon, rows in facts.items():
+        if is_junk(canon):
+            continue
+        ppath = patterns / f"{canon}.md"
+        human = preserve_human(ppath.read_text(encoding="utf-8") if ppath.exists() else None)
+        aliases = catalog_aliases.get(canon, [])
+        lines = [
+            "| Project | Mechanism | Steal | Skip | Note |",
+            "|---------|-----------|-------|------|------|",
+        ]
+        best = rows[0]
+        for row in sorted(rows, key=lambda r: r["slug"]):
+            mech = (row.get("mechanism") or "")[:160].replace("|", "/")
+            steal = f"`{row['steal']}`" if row.get("steal") else "file map"
+            lines.append(
+                f"| {row['display']} | {mech} | {steal} | Brand copy, secrets | [[projects/{row['slug']}/{canon}]] |"
+            )
+            if row.get("steal") and "lib/" in row.get("steal", ""):
+                best = row
+        donor = best["slug"]
+        donor_disp = best["display"]
+        body = f"""---
+type: pattern
+canonical: {canon}
+status: active
+aliases:
+{yaml_list(aliases) if aliases else "  []"}
+tags:
+  - type/pattern
+  - domain/{domain_for(canon)}
+projects:
+{yaml_list([r['slug'] for r in sorted(rows, key=lambda x: x['slug'])])}
+updated: {TODAY}
+---
+
+# {canon}
+
+{defs.get(canon, f'{canon} as a shippable capability across apps in this vault.')}
+
+## Across projects
+
+{chr(10).join(lines)}
+
+## Default recipe
+
+Steal from [[{donor_disp}]]([[projects/{donor}/{canon}]]) — clearest `{best.get("steal") or "implementation"}` in the vault.
+
+1. Recreate the files in that note’s implementation map, in order
+2. Copy env **names** only
+3. Verify the surfaces listed there
+4. Do not copy secrets or brand copy
+
+## Aliases
+
+{', '.join(aliases) if aliases else '_None._'}
+
+## Human notes
+{('' + human) if human else ''}
+"""
+        # wikilink donor properly
+        body = body.replace(
+            f"Steal from [[{donor_disp}]]([[projects/{donor}/{canon}]])",
+            f"Steal from [[projects/{donor}/{canon}|{donor_disp}]]",
+        )
+        ppath.write_text(body if body.endswith("\n") else body + "\n", encoding="utf-8")
+
+    for p in patterns.glob("*.md"):
+        if p.name != "Index.md" and is_junk(p.stem):
+            p.unlink()
+
+    # catalog list
+    cat = ["---", "type: catalog", f"updated: {TODAY}", "---", "", "# Feature catalog", ""]
+    cat.append("Pattern hubs. Project lists live on each pattern page.")
+    cat.append("")
+    starter_names = [c for c, _ in STARTER]
+    all_c = list(dict.fromkeys(starter_names + [c for c in used if c not in starter_names]))
+    for canon in all_c:
+        rows = facts.get(canon) or []
+        aliases = catalog_aliases.get(canon) or next((a for n, a in STARTER if n == canon), "")
+        if isinstance(aliases, list):
+            alias_s = ", ".join(aliases)
+        else:
+            alias_s = aliases
+        if rows:
+            cat.append(f"- [[patterns/{canon}|{canon}]] — {len(rows)} apps" + (f" · {alias_s}" if alias_s else ""))
+        else:
+            cat.append(f"- {canon} — 0 apps" + (f" · {alias_s}" if alias_s else ""))
+    cat += ["", "```dataview", "TABLE length(rows) AS Apps", 'FROM "projects"',
+            "WHERE type = \"project-feature\" AND status = \"active\"",
+            "GROUP BY canonical", "SORT length(rows) DESC", "```", ""]
+    (vault / "catalog.md").write_text("\n".join(cat) + "\n")
+
+    pidx = ["---", "type: pattern-index", f"updated: {TODAY}", "---", "", "# Patterns", "",
+            "Shared hubs. Open one and use **local graph** to see every app that has it.", ""]
+    pidx.extend(f"- [[{c}]]" for c in used)
+    (patterns / "Index.md").write_text("\n".join(pidx) + "\n")
+
+    ok = [r for r in results if r.get("ok")]
+    by = defaultdict(list)
+    for r in ok:
+        by[r.get("kind") or "tool"].append(r)
+    start = [h for h in HUBS if h in facts]
+
+    def links(rows: list[dict]) -> str:
+        if not rows:
+            return "_None._"
+        return "\n".join(f"- [[projects/{r['slug']}/Index|{r['display']}]]" for r in sorted(rows, key=lambda x: x["display"].lower()))
+
+    home = f"""---
+type: vault-index
+updated: {TODAY}
+---
+
+# Maps
+
+Features and stacks from real codebases, so the next app can leapfrog.
+
+## Start here
+
+{chr(10).join(f"- [[patterns/{h}|{h}]] — {len(facts.get(h, []))} apps" for h in start) or "_No hubs yet._"}
+
+## Products
+
+{links(by.get("product") or [])}
+
+## Sites
+
+{links(by.get("site") or [])}
+
+## Tools
+
+{links(by.get("tool") or [])}
+
+## Empty
+
+{links(by.get("empty") or [])}
+
+## Patterns
+
+See [[patterns/Index]] and [[catalog]].
+"""
+    (vault / "Index.md").write_text(home)
+
+
+def load_aliases(vault: Path) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for name, aliases in STARTER:
+        out[name] = [a.strip() for a in aliases.split(",") if a.strip()]
+    return out
+
+
+def main() -> int:
+    cfg_path = CONFIG if CONFIG.exists() else LEGACY
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    vault = Path(cfg["vault_path"])
+    roots = [Path(r) for r in cfg["project_roots"]]
+    scratch = Path.home() / ".grok/cache/map-regen"
+    (scratch / "inventories").mkdir(parents=True, exist_ok=True)
+    aliases = load_aliases(vault)
+    facts: dict[str, list[dict]] = {}
+    results: list[dict] = []
+    seed_graph(vault)
+    for i, root in enumerate(roots, 1):
+        print(f"[{i}/{len(roots)}] {root}", flush=True)
+        if not root.is_dir():
+            results.append({"slug": slug_for(root), "root": str(root), "ok": False, "error": "not a directory",
+                            "added": 0, "updated": 0, "stale": 0, "features": [], "kept": 0, "assigned": 0,
+                            "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": slug_for(root)})
+            continue
+        try:
+            rec = process_root(root, vault, aliases, facts, scratch)
+            results.append(rec)
+            print(f"  ok {rec['display']} features={len(rec['features'])} kind={rec['kind']}", flush=True)
+        except Exception as exc:
+            print(f"  FAIL {exc}", flush=True)
+            results.append({"slug": slug_for(root), "root": str(root), "ok": False, "error": str(exc)[:400],
+                            "added": 0, "updated": 0, "stale": 0, "features": [], "kept": 0, "assigned": 0,
+                            "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": slug_for(root)})
+    rebuild_hubs(vault, results, facts, aliases)
+    cfg["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    payload = json.dumps(cfg, indent=2) + "\n"
+    CONFIG.write_text(payload)
+    LEGACY.write_text(payload)
+    (scratch / "results.json").write_text(json.dumps(results, indent=2))
+    print(f"DONE ok={sum(1 for r in results if r.get('ok'))} fail={sum(1 for r in results if not r.get('ok'))}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
