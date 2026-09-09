@@ -1,0 +1,457 @@
+#!/usr/bin/env python3
+"""Walk a repo and emit JSON for /feature-map. Stdout = JSON, stderr = errors."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from collections import Counter
+from pathlib import Path
+
+MAX_READ_BYTES = 262144  # 256 KiB
+
+SKIP_DIR_NAMES = frozenset(
+    {
+        ".git",
+        "node_modules",
+        ".next",
+        ".nuxt",
+        ".output",
+        ".svelte-kit",
+        "dist",
+        "build",
+        "out",
+        "coverage",
+        ".turbo",
+        ".vercel",
+        ".cache",
+        "__pycache__",
+        ".venv",
+        "venv",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "target",
+        "vendor",
+        "Pods",
+        "DerivedData",
+        ".gradle",
+        ".idea",
+        ".parcel-cache",
+        ".yarn",
+        ".pnpm-store",
+        "tmp",
+        "temp",
+        ".terragrunt-cache",
+        "storybook-static",
+        ".docusaurus",
+        "playwright-report",
+        "test-results",
+        ".DS_Store",
+    }
+)
+
+LOCKFILE_NAMES = frozenset(
+    {
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "bun.lock",
+        "bun.lockb",
+        "Cargo.lock",
+        "poetry.lock",
+        "Gemfile.lock",
+        "composer.lock",
+        "go.sum",
+        "Pipfile.lock",
+        "pdm.lock",
+        "uv.lock",
+        "flake.lock",
+    }
+)
+
+BINARY_EXT = frozenset(
+    {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".ico",
+        ".icns",
+        ".bmp",
+        ".tif",
+        ".tiff",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".otf",
+        ".eot",
+        ".mp4",
+        ".webm",
+        ".mov",
+        ".mp3",
+        ".wav",
+        ".ogg",
+        ".pdf",
+        ".zip",
+        ".gz",
+        ".tar",
+        ".bz2",
+        ".7z",
+        ".rar",
+        ".wasm",
+        ".so",
+        ".dylib",
+        ".dll",
+        ".exe",
+        ".bin",
+        ".parquet",
+        ".sqlite",
+        ".db",
+        ".psd",
+        ".ai",
+        ".sketch",
+        ".fig",
+        ".lockb",
+    }
+)
+
+MINIFIED_SUFFIXES = (".min.js", ".min.css", ".min.mjs")
+
+EXT_LANG = {
+    ".ts": "ts",
+    ".tsx": "tsx",
+    ".js": "js",
+    ".jsx": "jsx",
+    ".mjs": "js",
+    ".cjs": "js",
+    ".py": "py",
+    ".go": "go",
+    ".rs": "rs",
+    ".rb": "rb",
+    ".php": "php",
+    ".java": "java",
+    ".kt": "kt",
+    ".swift": "swift",
+    ".md": "md",
+    ".mdx": "mdx",
+    ".css": "css",
+    ".scss": "scss",
+    ".sass": "scss",
+    ".less": "css",
+    ".html": "html",
+    ".vue": "vue",
+    ".svelte": "svelte",
+    ".json": "json",
+    ".yml": "yml",
+    ".yaml": "yml",
+    ".toml": "toml",
+    ".sql": "sql",
+    ".graphql": "graphql",
+    ".gql": "graphql",
+    ".prisma": "prisma",
+    ".sh": "sh",
+    ".bash": "sh",
+    ".zsh": "sh",
+    ".tf": "tf",
+    ".cs": "cs",
+    ".ex": "elixir",
+    ".exs": "elixir",
+    ".erl": "erlang",
+    ".hs": "haskell",
+    ".lua": "lua",
+    ".r": "r",
+    ".xml": "xml",
+    ".svg": "svg",
+}
+
+# Hints only — not the feature list. Longer / distinctive first is unnecessary;
+# we scan with `needle in text`.
+NEEDLES = (
+    "impersonat",
+    "login-as",
+    "log in as",
+    "act-as",
+    "act as user",
+    "masquerade",
+    "sign-in",
+    "signin",
+    "sign-on",
+    "oauth",
+    "openid",
+    "oidc",
+    "saml",
+    "magic link",
+    "magic-link",
+    "passwordless",
+    "password reset",
+    "forgot password",
+    "two-factor",
+    "totp",
+    "2fa",
+    "mfa",
+    "stripe",
+    "checkout",
+    "subscription",
+    "billing",
+    "invoice",
+    "webhook",
+    "rbac",
+    "permission",
+    "role-based",
+    "invite",
+    "invitation",
+    "onboarding",
+    "feature flag",
+    "featureflag",
+    "audit log",
+    "auditlog",
+    "upload",
+    "attachment",
+    "sendgrid",
+    "resend",
+    "postmark",
+    "nodemailer",
+    "notification",
+    "full-text",
+    "meilisearch",
+    "algolia",
+    "elasticsearch",
+    "posthog",
+    "segment",
+    "analytics",
+    "feedback",
+    "waitlist",
+    "referral",
+    "cron",
+    "sidekiq",
+    "bullmq",
+    "graphile-worker",
+    "inngest",
+    "trigger.dev",
+    "api key",
+    "apikey",
+    "personal access token",
+    "rate limit",
+    "gdpr",
+    "impersonation",
+    "session",
+    "jwt",
+)
+
+
+def die(msg: str, code: int = 1) -> None:
+    print(msg, file=sys.stderr)
+    raise SystemExit(code)
+
+
+def is_git_repo(root: Path) -> bool:
+    return (root / ".git").exists()
+
+
+def git_files(root: Path) -> list[str] | None:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z"],
+            check=False,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        return None
+    if proc.returncode != 0:
+        return None
+    raw = proc.stdout.split(b"\0")
+    out: list[str] = []
+    for item in raw:
+        if not item:
+            continue
+        try:
+            out.append(item.decode("utf-8"))
+        except UnicodeDecodeError:
+            out.append(item.decode("utf-8", errors="replace"))
+    return out
+
+
+def walk_files(root: Path) -> tuple[list[str], int]:
+    """Return relative posix paths and count of files skipped via pruned dirs."""
+    kept: list[str] = []
+    skipped_dir = 0
+    root_s = str(root)
+    for dirpath, dirnames, filenames in os.walk(root_s, followlinks=False):
+        rel_dir = os.path.relpath(dirpath, root_s)
+        parts = Path(rel_dir).parts if rel_dir != "." else ()
+        if any(p in SKIP_DIR_NAMES for p in parts):
+            dirnames[:] = []
+            continue
+        live: list[str] = []
+        for name in dirnames:
+            if name in SKIP_DIR_NAMES:
+                skipped_dir += 1
+                continue
+            live.append(name)
+        dirnames[:] = live
+        for name in filenames:
+            rel = name if rel_dir == "." else f"{rel_dir}/{name}"
+            kept.append(Path(rel).as_posix())
+    return kept, skipped_dir
+
+
+def path_in_skip_dir(rel: str) -> bool:
+    return any(part in SKIP_DIR_NAMES for part in Path(rel).parts)
+
+
+def is_env_file(name: str) -> bool:
+    return name.startswith(".env")
+
+
+def is_minified(name: str) -> bool:
+    lower = name.lower()
+    return lower.endswith(MINIFIED_SUFFIXES) or lower.endswith(".map")
+
+
+def language_for(path: Path) -> str:
+    if path.name == "Dockerfile" or path.name.startswith("Dockerfile."):
+        return "docker"
+    return EXT_LANG.get(path.suffix.lower(), "")
+
+
+def classify_read(rel: str) -> str | None:
+    """Return skip category if contents must not be read, else None."""
+    name = Path(rel).name
+    if is_env_file(name):
+        return "secret_env"
+    if name in LOCKFILE_NAMES:
+        return "lockfile"
+    suffix = Path(rel).suffix.lower()
+    if suffix in BINARY_EXT:
+        return "binary"
+    if is_minified(name):
+        return "binary"
+    return None
+
+
+def scan_hits(text: str) -> list[str]:
+    lower = text.lower()
+    return [n for n in NEEDLES if n in lower]
+
+
+def read_text(abs_path: Path, bytes_len: int) -> tuple[str | None, str | None]:
+    """Return (text, skip_category). skip oversized or undecodable."""
+    if bytes_len > MAX_READ_BYTES:
+        return None, "oversized"
+    try:
+        data = abs_path.read_bytes()
+    except OSError:
+        return None, "binary"
+    if b"\x00" in data[:8192]:
+        return None, "binary"
+    try:
+        return data.decode("utf-8"), None
+    except UnicodeDecodeError:
+        try:
+            return data.decode("utf-8", errors="replace"), None
+        except Exception:
+            return None, "binary"
+
+
+def collect(root: Path) -> dict:
+    git = is_git_repo(root)
+    skipped = {
+        "dir": 0,
+        "ignored": 0,
+        "binary": 0,
+        "lockfile": 0,
+        "oversized": 0,
+        "secret_env": 0,
+    }
+    names: list[str]
+    if git:
+        listed = git_files(root)
+        if listed is None:
+            names, skipped["dir"] = walk_files(root)
+            git = False
+        else:
+            names = listed
+    else:
+        names, skipped["dir"] = walk_files(root)
+
+    files: list[dict] = []
+    hit_counts: Counter[str] = Counter()
+
+    for rel in names:
+        if path_in_skip_dir(rel):
+            skipped["dir"] += 1
+            continue
+        if rel.endswith("/") or rel == "":
+            continue
+        abs_path = root / rel
+        if not abs_path.is_file():
+            continue
+        try:
+            size = abs_path.stat().st_size
+        except OSError:
+            continue
+
+        skip_cat = classify_read(rel)
+        hits: list[str] = []
+        skipped_read = False
+        if skip_cat:
+            skipped_read = True
+            skipped[skip_cat] = skipped.get(skip_cat, 0) + 1
+        else:
+            text, read_cat = read_text(abs_path, size)
+            if read_cat:
+                skipped_read = True
+                skipped[read_cat] = skipped.get(read_cat, 0) + 1
+            elif text is not None:
+                hits = scan_hits(text)
+                for h in hits:
+                    hit_counts[h] += 1
+            else:
+                skipped_read = True
+
+        files.append(
+            {
+                "path": Path(rel).as_posix(),
+                "language": language_for(Path(rel)),
+                "bytes": size,
+                "skipped_read": skipped_read,
+                "hits": hits,
+            }
+        )
+
+    files.sort(key=lambda row: row["path"])
+    return {
+        "repo_root": str(root),
+        "git": git,
+        "file_count": len(files),
+        "hit_counts": dict(hit_counts.most_common()),
+        "files": files,
+        "skipped": skipped,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Emit a JSON file inventory for /feature-map."
+    )
+    parser.add_argument("repo_root", help="Absolute or relative path to the project")
+    args = parser.parse_args()
+    root = Path(args.repo_root).expanduser().resolve()
+    if not root.is_dir():
+        die(f"not a directory: {root}", 1)
+    try:
+        os.listdir(root)
+    except OSError as exc:
+        die(f"unreadable: {root}: {exc}", 1)
+    payload = collect(root)
+    json.dump(payload, sys.stdout, ensure_ascii=False, separators=(",", ":"))
+    sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()

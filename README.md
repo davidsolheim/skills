@@ -76,6 +76,12 @@ The skills assume a professional full-stack product shop—not a single demo app
 | [`prb/`](./prb/) | Intensity-selected grok-4.6 review gate + scratch fixer, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
 | [`yeet/`](./yeet/) | Quick ship: push `dev`, PR into `main`, merge immediately (no panel / no CI wait). In-scope runtime proof still required | Push + PR + merge |
 
+**Also (not in the delivery loop):**
+
+| Skill | Role | Default git effect |
+|-------|------|--------------------|
+| [`feature-map/`](./feature-map/) | Map a codebase into an Obsidian vault: one note per feature, plus cross-project pattern pages for leapfrog | None (vault + local config only) |
+
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
 
 ---
@@ -347,6 +353,26 @@ Ship **already finished** session work **now**. `/prb` is the careful path. `/ye
 
 ---
 
+### `/feature-map` — codebase → Obsidian feature vault
+
+**Path:** [`feature-map/`](./feature-map/)
+
+Walk a repo (inventory script + coverage gate), extract **features** you could ship or copy on their own, and write a shared Obsidian vault: one project note per feature (how it works, mermaid, port-to-a-new-app recipe) plus a **pattern** note so later apps can leapfrog. Auth and Impersonation stay separate; Impersonation `depends_on` Auth. First run asks where the vault lives (never hardcodes a machine path). Read-only on the app repo.
+
+| Invocation | Target |
+|------------|--------|
+| `/feature-map` | Current workspace |
+| `/feature-map /path/to/repo` | That repo |
+| `/feature-map all` | Each configured project root, one at a time |
+
+**Triggers:** `/feature-map`, “map this project's features”, “Obsidian feature vault”, “extract features for leapfrog”
+
+**Needs:** Python 3 · optional git · Obsidian (to open the vault; the skill does not launch it)
+
+**Companion refs:** [`feature-map/references/first-run.md`](./feature-map/references/first-run.md), [`feature-map/references/templates.md`](./feature-map/references/templates.md), [`feature-map/references/catalog.md`](./feature-map/references/catalog.md), [`feature-map/references/coverage.md`](./feature-map/references/coverage.md)
+
+---
+
 ## Install
 
 Each skill is a directory with a `SKILL.md` and optional `references/`.
@@ -356,7 +382,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/start skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet ~/.grok/skills/
+cp -R skills/start skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet skills/feature-map ~/.grok/skills/
 mkdir -p ~/.grok/roles
 cp skills/roles/*.toml ~/.grok/roles/
 ```
@@ -371,7 +397,7 @@ Clone or submodule this repository and configure your agent’s skills path to i
 cp -R skills/issue ~/.grok/skills/issue
 ```
 
-After install, invoke skills by slash command (`/start`, `/project-review fast`, `/walk`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, …) or the trigger phrases in each `SKILL.md` frontmatter.
+After install, invoke skills by slash command (`/start`, `/project-review fast`, `/walk`, `/issue`, `/tidy`, `/stat`, `/identify`, `/solve all`, `/prb`, `/yeet`, `/feature-map`, …) or the trigger phrases in each `SKILL.md` frontmatter.
 
 ---
 
@@ -445,6 +471,10 @@ My Product Launch
 │   └── references/          # local-code-review, review-rubric, reviewer-prompts, db-migrations
 ├── yeet/
 │   └── SKILL.md             # quick ship; shares prove-it-works + prb migrate discovery
+├── feature-map/
+│   ├── SKILL.md
+│   ├── scripts/inventory    # repo file index + keyword hits
+│   └── references/          # first-run, templates, catalog, coverage
 ├── roles/                   # solve-implementer / solve-reviewer / prb-reviewer / prb-fixer
 └── docs/
     ├── prove-it-works.md
