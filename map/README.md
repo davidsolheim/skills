@@ -31,7 +31,9 @@ Add the folder as a vault in Obsidian (Open folder as vault).
 ```text
 <vault>/
   Index.md
-  catalog.md                 # canonical names + aliases
+  catalog.md                 # feature pattern hubs
+  stacks/Index.md            # vendor hubs (who uses Stripe, Neon, …)
+  stacks/<Vendor>.md
   projects/<slug>/Index.md   # ranked Stack + feature list
   projects/<slug>/<Feature>.md
   patterns/<Feature>.md      # cross-project comparison + default recipe

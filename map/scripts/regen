@@ -699,7 +699,14 @@ def run_inventory(root: Path, out: Path) -> dict:
     return json.loads(proc.stdout.decode("utf-8"))
 
 
-def process_root(root: Path, vault: Path, catalog_aliases: dict[str, list[str]], facts: dict, scratch: Path) -> dict:
+def process_root(
+    root: Path,
+    vault: Path,
+    catalog_aliases: dict[str, list[str]],
+    facts: dict,
+    stack_facts: dict,
+    scratch: Path,
+) -> dict:
     slug = slug_for(root)
     display = display_name(root, slug)
     proj = vault / "projects" / slug
@@ -738,6 +745,16 @@ def process_root(root: Path, vault: Path, catalog_aliases: dict[str, list[str]],
 
     vendors = detect_vendors(root, files)
     stack_names = [v["vendor"] for v in vendors]
+    for v in vendors:
+        stack_facts.setdefault(v["vendor"], []).append(
+            {
+                "slug": slug,
+                "display": display,
+                "role": v["role"],
+                "why": v["why"],
+                "where": v["where"],
+            }
+        )
     present = set(features)
     added = updated = stale = 0
     auto: list[str] = []
@@ -781,7 +798,10 @@ def process_root(root: Path, vault: Path, catalog_aliases: dict[str, list[str]],
     stale_names = sorted(s for s in existing if s not in features and not is_junk(s) and (proj / f"{s}.md").exists())
     if vendors:
         table = ["| Vendor | Role | Why it matters | Where |", "|--------|------|----------------|-------|"]
-        table.extend(f"| {v['vendor']} | {v['role']} | {v['why']} | {v['where']} |" for v in vendors)
+        table.extend(
+            f"| [[stacks/{v['vendor']}|{v['vendor']}]] | {v['role']} | {v['why']} | {v['where']} |"
+            for v in vendors
+        )
         stack_md = "\n".join(table)
     else:
         stack_md = "_No hosted vendors or app framework detected._"
@@ -851,6 +871,7 @@ def seed_graph(vault: Path) -> None:
     data.setdefault("showOrphans", True)
     data["colorGroups"] = [
         {"query": "path:patterns", "color": {"a": 1, "rgb": 14725458}},
+        {"query": "path:stacks", "color": {"a": 1, "rgb": 11403055}},
         {"query": "path:projects", "color": {"a": 1, "rgb": 5431532}},
         {"query": "tag:#status/stale", "color": {"a": 1, "rgb": 8947848}},
         {"query": "tag:#status/empty", "color": {"a": 1, "rgb": 6710886}},
@@ -861,7 +882,13 @@ def seed_graph(vault: Path) -> None:
         app.write_text("{}\n")
 
 
-def rebuild_hubs(vault: Path, results: list[dict], facts: dict, catalog_aliases: dict[str, list[str]]) -> None:
+def rebuild_hubs(
+    vault: Path,
+    results: list[dict],
+    facts: dict,
+    stack_facts: dict,
+    catalog_aliases: dict[str, list[str]],
+) -> None:
     patterns = vault / "patterns"
     patterns.mkdir(exist_ok=True)
     used = sorted(facts)
@@ -972,11 +999,78 @@ Steal from [[{donor_disp}]]([[projects/{donor}/{canon}]]) — clearest `{best.ge
     pidx.extend(f"- [[{c}]]" for c in used)
     (patterns / "Index.md").write_text("\n".join(pidx) + "\n")
 
+    stacks_dir = vault / "stacks"
+    stacks_dir.mkdir(exist_ok=True)
+    role_tag = lambda role: "role/" + role.lower().replace(" ", "-")
+    for vendor, rows in stack_facts.items():
+        spath = stacks_dir / f"{vendor}.md"
+        human = preserve_human(spath.read_text(encoding="utf-8") if spath.exists() else None)
+        role = rows[0].get("role") or "Vendor"
+        tlines = [
+            "| Project | Role | Why | Where |",
+            "|---------|------|-----|-------|",
+        ]
+        for row in sorted(rows, key=lambda r: r["display"].lower()):
+            why = (row.get("why") or "").replace("|", "/")
+            where = (row.get("where") or "").replace("|", "/")
+            tlines.append(
+                f"| {row['display']} | {row.get('role') or role} | {why} | {where} · [[projects/{row['slug']}/Index]] |"
+            )
+        body = f"""---
+type: stack
+vendor: {vendor}
+role: {role}
+tags:
+  - type/stack
+  - {role_tag(role)}
+projects:
+{yaml_list([r['slug'] for r in sorted(rows, key=lambda x: x['slug'])])}
+updated: {TODAY}
+---
+
+# {vendor}
+
+{role} vendor. Apps below wire it as a load-bearing dependency — not a product feature.
+
+## Across projects
+
+{chr(10).join(tlines)}
+
+## Human notes
+{('' + human) if human else ''}
+"""
+        spath.write_text(body if body.endswith("\n") else body + "\n", encoding="utf-8")
+
+    existing_stack = {p.stem for p in stacks_dir.glob("*.md") if p.name != "Index.md"}
+    for stem in existing_stack:
+        if stem not in stack_facts:
+            p = stacks_dir / f"{stem}.md"
+            mark_stale(p)
+
+    ranked = sorted(stack_facts.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))
+    sidx = [
+        "---",
+        "type: stack-index",
+        f"updated: {TODAY}",
+        "---",
+        "",
+        "# Stacks",
+        "",
+        "Vendor hubs. Open one and use **local graph** to see every app that uses it.",
+        "",
+    ]
+    for vendor, rows in ranked:
+        sidx.append(f"- [[stacks/{vendor}|{vendor}]] — {len(rows)} apps · {rows[0].get('role') or 'Vendor'}")
+    if not ranked:
+        sidx.append("_No vendors mapped yet._")
+    (stacks_dir / "Index.md").write_text("\n".join(sidx) + "\n")
+
     ok = [r for r in results if r.get("ok")]
     by = defaultdict(list)
     for r in ok:
         by[r.get("kind") or "tool"].append(r)
     start = [h for h in HUBS if h in facts]
+    stack_start = ranked[:8]
 
     def links(rows: list[dict]) -> str:
         if not rows:
@@ -995,6 +1089,12 @@ Features and stacks from real codebases, so the next app can leapfrog.
 ## Start here
 
 {chr(10).join(f"- [[patterns/{h}|{h}]] — {len(facts.get(h, []))} apps" for h in start) or "_No hubs yet._"}
+
+## Stacks
+
+{chr(10).join(f"- [[stacks/{v}|{v}]] — {len(rows)} apps" for v, rows in stack_start) or "_No vendors yet._"}
+
+See [[stacks/Index]].
 
 ## Products
 
@@ -1035,6 +1135,7 @@ def main() -> int:
     (scratch / "inventories").mkdir(parents=True, exist_ok=True)
     aliases = load_aliases(vault)
     facts: dict[str, list[dict]] = {}
+    stack_facts: dict[str, list[dict]] = {}
     results: list[dict] = []
     seed_graph(vault)
     for i, root in enumerate(roots, 1):
@@ -1045,7 +1146,7 @@ def main() -> int:
                             "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": slug_for(root)})
             continue
         try:
-            rec = process_root(root, vault, aliases, facts, scratch)
+            rec = process_root(root, vault, aliases, facts, stack_facts, scratch)
             results.append(rec)
             print(f"  ok {rec['display']} features={len(rec['features'])} kind={rec['kind']}", flush=True)
         except Exception as exc:
@@ -1053,7 +1154,7 @@ def main() -> int:
             results.append({"slug": slug_for(root), "root": str(root), "ok": False, "error": str(exc)[:400],
                             "added": 0, "updated": 0, "stale": 0, "features": [], "kept": 0, "assigned": 0,
                             "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": slug_for(root)})
-    rebuild_hubs(vault, results, facts, aliases)
+    rebuild_hubs(vault, results, facts, stack_facts, aliases)
     cfg["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     payload = json.dumps(cfg, indent=2) + "\n"
     CONFIG.write_text(payload)

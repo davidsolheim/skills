@@ -31,6 +31,7 @@ tags:
 ```
 
 Pattern: `type/pattern` plus the same `domain/…`.
+Stack hub: `type/stack` plus `role/payments` (or auth, database, …).
 Project Index: `type/project`.
 Empty project (zero active features): also `status/empty`.
 
@@ -52,11 +53,12 @@ Not a flat slug list. Required sections, in order:
 
 1. One-line what this vault is
 2. **Start here** — 4–8 pattern hubs that exist (Auth, Impersonation, Billing, Checkout, File uploads, Team invites, Magic link, SSO). Skip missing.
-3. **Products** — apps with Auth or Billing or a distinct operator console
-4. **Sites** — brochure/marketing (Homepage/About/Contact/Legal dominate)
-5. **Tools** — CLI, scripts, small utilities
-6. **Empty** — zero active features (collapsed; do not omit the link)
-7. **Patterns** — link `[[patterns/Index]]` and `[[catalog]]`
+3. **Stacks** — 4–8 vendor hubs by app count (Next.js, Stripe, Neon, Auth.js, …) plus `[[stacks/Index]]`
+4. **Products** — apps with Auth or Billing or a distinct operator console
+5. **Sites** — brochure/marketing (Homepage/About/Contact/Legal dominate)
+6. **Tools** — CLI, scripts, small utilities
+7. **Empty** — zero active features (collapsed; do not omit the link)
+8. **Patterns** — link `[[patterns/Index]]` and `[[catalog]]`
 
 ## Catalog (`catalog.md`)
 
@@ -86,7 +88,8 @@ pattern link.
 
 Seed `<vault>/.obsidian/graph.json` `colorGroups` if missing or empty:
 
-- query `path:patterns` — warm (pattern hubs)
+- query `path:patterns` — warm (feature hubs)
+- query `path:stacks` — distinct (vendor hubs)
 - query `path:projects` — cool (instances)
 - query `tag:#status/stale` — muted
 - query `tag:#status/empty` — muted

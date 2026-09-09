@@ -11,6 +11,8 @@ when there is a flow; flowchart otherwise). No screenshots, no canvas files.
 | Project note | Pattern | `[[patterns/Canonical]]` |
 | Pattern / home / catalog | Project feature | `[[projects/<slug>/Canonical]]` |
 | Anywhere | Pattern | `[[patterns/Canonical]]` |
+| Project Index Stack row | Stack hub | `[[stacks/Stripe]]` |
+| Stack hub | Project Index | `[[projects/<slug>/Index]]` |
 
 Filenames = canonical name + `.md` (spaces allowed). Title = canonical name.
 
@@ -174,7 +176,7 @@ implementation appeared.
 
 | Vendor | Role | Why it matters | Where |
 |--------|------|----------------|-------|
-| Stripe | Payments | All paid plans | `src/lib/stripe.ts`, `STRIPE_SECRET_KEY` |
+| [[stacks/Stripe\\|Stripe]] | Payments | All paid plans | `src/lib/stripe.ts`, `STRIPE_SECRET_KEY` |
 | Neon | Database | Source of truth | `drizzle.config.ts`, `DATABASE_URL` |
 | Clerk | Auth | Identity | `src/middleware.ts` |
 | Vercel | Hosting | Production | `vercel.json` |
@@ -202,7 +204,38 @@ notes. No confirmation pause; corrections go in `## Human notes`.
 
 **Row** = a named product you would tell another engineer this app runs on
 (Stripe, Neon, Clerk, Vercel, Next.js). Direct and load-bearing, with
-evidence in the repo.
+evidence in the repo. Vendor cell **wikilinks** `[[stacks/Stripe]]`.
+
+### `stacks/<Vendor>.md`
+
+Not a feature. One hub per vendor. Project lists live here, not in a giant
+home-page table.
+
+```markdown
+---
+type: stack
+vendor: Stripe
+role: Payments
+tags: [type/stack, role/payments]
+projects: [ore-max]
+updated: YYYY-MM-DD
+---
+
+# Stripe
+
+Payments vendor. Apps below wire it as a load-bearing dependency.
+
+## Across projects
+
+| Project | Role | Why | Where |
+|---------|------|-----|-------|
+| Ore-Max | Payments | Paid plans | `src/lib/stripe.ts` · [[projects/ore-max/Index]] |
+
+## Human notes
+```
+
+**`stacks/Index.md`** — list of vendors with app counts, same shape as
+`catalog.md` (list, not a 40-link cell).
 
 **Order** = how dead the product is if that row vanishes tomorrow. Rank
 *this* app, not a generic web stack (a payments product lists Stripe above

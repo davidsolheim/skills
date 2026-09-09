@@ -49,7 +49,8 @@ This skill is **read-only on the app repo**. It writes the Maps vault and
 8. **Stack.** Every project Index has a ranked vendor table (most
    load-bearing first: “if this vanished, is the product dead?”). **Where**
    is code paths and env **names**, not only `package.json`. Vendors are not
-   features. Shape: [`references/templates.md`](references/templates.md).
+   **features** — they are **stack hubs** under `stacks/<Vendor>.md` (who uses
+   Stripe, Neon, Auth.js). Shape: [`references/templates.md`](references/templates.md).
 9. **Leapfrog.** Read key source files, then write original prose. Token
    cost is not a constraint. Notes fail if a builder cannot tell what to
    copy. Rules: [`references/leapfrog.md`](references/leapfrog.md).
@@ -97,6 +98,8 @@ Vault layout (created on first run):
   projects/<slug>/<Canonical>.md
   patterns/Index.md
   patterns/<Canonical>.md
+  stacks/Index.md
+  stacks/<Vendor>.md
 ```
 
 ## Workflow
@@ -161,10 +164,12 @@ Read [`references/templates.md`](references/templates.md),
 - Gone → `status: stale`; keep the file; do not regenerate from empty evidence.
 - Create/update `patterns/<Canonical>.md` as a **comparison**, not a paste of
   project blurbs. Name one default donor.
-- Update `projects/<slug>/Index.md` (**Stack** with code/env **Where** +
-  feature list + display name). Incomplete without `## Stack`.
-- Rebuild vault `Index.md` (grouped) and `catalog.md` (list of patterns with
-  app counts). Seed graph color groups if empty.
+- Update `projects/<slug>/Index.md` (**Stack** with `[[stacks/Vendor]]` links,
+  code/env **Where** + feature list + display name). Incomplete without
+  `## Stack`.
+- Rebuild vault `Index.md` (grouped), `catalog.md` (pattern list), and
+  `stacks/Index.md` (vendor list with app counts). Seed graph color groups
+  if empty.
 
 Wikilinks: `depends_on` / `unlocks` siblings only; pattern
 `[[patterns/Canonical]]`; other project `[[projects/<slug>/Canonical]]`.
@@ -196,7 +201,7 @@ Then **stop**.
 - A note per component, route, or helper
 - **Public API** / **Webhooks** / **File uploads** on every Next app
 - **Application** as a junk bucket; **Gameplay** on a non-game
-- A note per vendor; cataloging Stripe as a canonical
+- Minting Stripe (or any vendor) as a **feature** canonical — vendors live under `stacks/`
 - Dumping `package.json` into Stack; ranking by manifest order or alphabet
 - README dump or “is a capability you could ship” as What it is
 - Identical pattern-table rows; catalog cell with 40 wikilinks
