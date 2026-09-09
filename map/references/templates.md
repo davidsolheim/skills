@@ -204,7 +204,9 @@ notes. No confirmation pause; corrections go in `## Human notes`.
 
 **Row** = a named product you would tell another engineer this app runs on
 (Stripe, Neon, Clerk, Vercel, Next.js). Direct and load-bearing, with
-evidence in the repo. Vendor cell **wikilinks** `[[stacks/Stripe]]`.
+evidence in the repo. Vendor cell wikilinks with an **escaped** alias pipe so the table does not
+split: `[[stacks/Stripe\|Stripe]]`. A raw `|` inside `[[note|label]]` is a
+new column.
 
 ### `stacks/<Vendor>.md`
 

@@ -799,7 +799,7 @@ def process_root(
     if vendors:
         table = ["| Vendor | Role | Why it matters | Where |", "|--------|------|----------------|-------|"]
         table.extend(
-            f"| [[stacks/{v['vendor']}|{v['vendor']}]] | {v['role']} | {v['why']} | {v['where']} |"
+            f"| [[stacks/{v['vendor']}\\|{v['vendor']}]] | {v['role']} | {v['why']} | {v['where']} |"
             for v in vendors
         )
         stack_md = "\n".join(table)

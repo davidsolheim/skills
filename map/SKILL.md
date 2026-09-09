@@ -228,6 +228,7 @@ Then **stop**.
 - About to paste the README as What it is
 - About to write a pattern table with identical Steal/Skip cells
 - About to put forty project wikilinks in one catalog cell
+- About to put `[[stacks/Stripe|Stripe]]` in a markdown table without escaping the alias pipe (`\|`)
 
 ## Failure modes
 
