@@ -120,8 +120,11 @@ CLIENT_MAP = {
 VENDOR_PACKAGES = {
     "next": ("Next.js", "Framework"),
     "electron": ("Electron", "Framework"),
+    "@tanstack/react-start": ("TanStack Start", "Framework"),
     "stripe": ("Stripe", "Payments"),
     "@stripe/stripe-js": ("Stripe", "Payments"),
+    "convex": ("Convex", "Database"),
+    "@convex-dev/react-query": ("Convex", "Database"),
     "@neondatabase/serverless": ("Neon", "Database"),
     "postgres": ("Postgres", "Database"),
     "pg": ("Postgres", "Database"),
@@ -129,6 +132,8 @@ VENDOR_PACKAGES = {
     "@clerk/nextjs": ("Clerk", "Auth"),
     "next-auth": ("Auth.js", "Auth"),
     "@auth/core": ("Auth.js", "Auth"),
+    "better-auth": ("Better Auth", "Auth"),
+    "@convex-dev/better-auth": ("Better Auth", "Auth"),
     "resend": ("Resend", "Email"),
     "nodemailer": ("Nodemailer", "Email"),
     "@sendgrid/mail": ("SendGrid", "Email"),
@@ -148,11 +153,14 @@ VENDOR_IMPORT = {
     "Stripe": ["stripe", "@stripe"],
     "Auth.js": ["next-auth", "@auth/"],
     "Clerk": ["@clerk"],
+    "Better Auth": ["better-auth"],
+    "Convex": ["convex", "@convex-dev"],
     "Neon": ["@neondatabase", "neon"],
     "Resend": ["resend"],
     "Inngest": ["inngest"],
     "OpenAI": ["openai"],
     "PostHog": ["posthog"],
+    "TanStack Start": ["@tanstack/react-start"],
 }
 
 ROLE_RANK = {
@@ -538,6 +546,8 @@ def detect_vendors(root: Path, files: list[dict]) -> list[dict]:
         add("Cloudflare", "Hosting", "Workers/Pages via Wrangler.", "`wrangler.toml`")
     if "fly.toml" in names:
         add("Fly.io", "Hosting", "Fly deploy config.", "`fly.toml`")
+    if (root / "convex").is_dir() or "convex.json" in names:
+        add("Convex", "Database", "Convex backend (`convex/`) is this app’s data and server functions.", "`convex/`")
 
     # Prefer code paths for Where
     for f in files:
@@ -553,6 +563,7 @@ def detect_vendors(root: Path, files: list[dict]) -> list[dict]:
     env_hint = {
         "Stripe": "STRIPE_", "Auth.js": "AUTH_", "Neon": "DATABASE_URL",
         "Resend": "RESEND_", "Clerk": "CLERK_", "OpenAI": "OPENAI_",
+        "Convex": "CONVEX_",
     }
     for vendor, prefix in env_hint.items():
         if vendor in found and found[vendor]["where"] == "`package.json`":
