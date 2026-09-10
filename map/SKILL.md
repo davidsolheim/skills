@@ -99,7 +99,9 @@ Vault layout (created on first run):
   patterns/Index.md
   patterns/<Canonical>.md
   stacks/Index.md
+  stacks/by-project.md
   stacks/<Vendor>.md
+  stacks/projects/<slug>.md
 ```
 
 ## Workflow
@@ -168,8 +170,9 @@ Read [`references/templates.md`](references/templates.md),
   code/env **Where** + feature list + display name). Incomplete without
   `## Stack`.
 - Rebuild vault `Index.md` (grouped), `catalog.md` (pattern list), and
-  `stacks/Index.md` (vendor list with app counts). Seed graph color groups
-  if empty.
+  `stacks/` (vendor hubs **and** one stack note per project so you can
+  click through stacks without opening every project Index). Seed graph
+  color groups if empty.
 
 Wikilinks: `depends_on` / `unlocks` siblings only; pattern
 `[[patterns/Canonical]]`; other project `[[projects/<slug>/Canonical]]`.

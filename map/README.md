@@ -32,8 +32,10 @@ Add the folder as a vault in Obsidian (Open folder as vault).
 <vault>/
   Index.md
   catalog.md                 # feature pattern hubs
-  stacks/Index.md            # vendor hubs (who uses Stripe, Neon, …)
-  stacks/<Vendor>.md
+  stacks/Index.md            # by vendor + by project
+  stacks/by-project.md       # every app’s vendors on one page
+  stacks/<Vendor>.md         # who uses Stripe, Neon, …
+  stacks/projects/<slug>.md  # that app’s Stack table (click-through)
   projects/<slug>/Index.md   # ranked Stack + feature list
   projects/<slug>/<Feature>.md
   patterns/<Feature>.md      # cross-project comparison + default recipe

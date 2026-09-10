@@ -1041,13 +1041,79 @@ updated: {TODAY}
 """
         spath.write_text(body if body.endswith("\n") else body + "\n", encoding="utf-8")
 
-    existing_stack = {p.stem for p in stacks_dir.glob("*.md") if p.name != "Index.md"}
+    existing_stack = {
+        p.stem for p in stacks_dir.glob("*.md") if p.name not in {"Index.md", "by-project.md"}
+    }
     for stem in existing_stack:
         if stem not in stack_facts:
             p = stacks_dir / f"{stem}.md"
             mark_stale(p)
 
     ranked = sorted(stack_facts.items(), key=lambda kv: (-len(kv[1]), kv[0].lower()))
+
+    by_proj: dict[str, list[dict]] = defaultdict(list)
+    proj_display: dict[str, str] = {}
+    for vendor, rows in stack_facts.items():
+        for row in rows:
+            by_proj[row["slug"]].append({**row, "vendor": vendor})
+            proj_display[row["slug"]] = row["display"]
+    for slug in by_proj:
+        by_proj[slug].sort(key=lambda r: r.get("role") or r["vendor"])
+
+    proj_dir = stacks_dir / "projects"
+    proj_dir.mkdir(exist_ok=True)
+    for slug, rows in by_proj.items():
+        display = proj_display.get(slug, slug)
+        table = [
+            "| Vendor | Role | Why it matters | Where |",
+            "|--------|------|----------------|-------|",
+        ]
+        for r in rows:
+            table.append(
+                f"| [[stacks/{r['vendor']}\\|{r['vendor']}]] | {r.get('role') or ''} | "
+                f"{(r.get('why') or '').replace('|', '/')} | {(r.get('where') or '').replace('|', '/')} |"
+            )
+        chips = " · ".join(f"[[stacks/{r['vendor']}|{r['vendor']}]]" for r in rows)
+        ppath = proj_dir / f"{slug}.md"
+        human = preserve_human(ppath.read_text(encoding="utf-8") if ppath.exists() else None)
+        ppath.write_text(
+            f"""---
+type: stack-project
+slug: {slug}
+aliases:
+  - {display}
+tags:
+  - type/stack-project
+updated: {TODAY}
+---
+
+# {display}
+
+{chips}
+
+Full project: [[projects/{slug}/Index|{display}]]
+
+## Stack
+
+{chr(10).join(table)}
+
+## Human notes
+{('' + human) if human else ''}
+"""
+        )
+    for p in proj_dir.glob("*.md"):
+        if p.stem not in by_proj:
+            p.unlink()
+
+    by_proj_lines = ["---", "type: stack-by-project", f"updated: {TODAY}", "---", "",
+                     "# Stacks by project", "",
+                     "Click a project in `stacks/projects/` or scan below. Vendor hubs stay at `stacks/<Vendor>.md`.", ""]
+    for slug in sorted(by_proj, key=lambda s: proj_display.get(s, s).lower()):
+        display = proj_display[slug]
+        chips = " · ".join(f"[[stacks/{r['vendor']}|{r['vendor']}]]" for r in by_proj[slug])
+        by_proj_lines.append(f"- [[stacks/projects/{slug}|{display}]] — {chips}")
+    (stacks_dir / "by-project.md").write_text("\n".join(by_proj_lines) + "\n")
+
     sidx = [
         "---",
         "type: stack-index",
@@ -1056,9 +1122,19 @@ updated: {TODAY}
         "",
         "# Stacks",
         "",
-        "Vendor hubs. Open one and use **local graph** to see every app that uses it.",
+        "Click **By project** to walk each app’s stack without opening project Indexes. "
+        "Vendor hubs answer “who uses Stripe?”",
+        "",
+        "## By project",
+        "",
+        "See [[stacks/by-project]] or the `stacks/projects/` folder.",
         "",
     ]
+    for slug in sorted(by_proj, key=lambda s: proj_display.get(s, s).lower()):
+        display = proj_display[slug]
+        names = ", ".join(r["vendor"] for r in by_proj[slug])
+        sidx.append(f"- [[stacks/projects/{slug}|{display}]] — {names}")
+    sidx += ["", "## By vendor", ""]
     for vendor, rows in ranked:
         sidx.append(f"- [[stacks/{vendor}|{vendor}]] — {len(rows)} apps · {rows[0].get('role') or 'Vendor'}")
     if not ranked:
@@ -1094,7 +1170,7 @@ Features and stacks from real codebases, so the next app can leapfrog.
 
 {chr(10).join(f"- [[stacks/{v}|{v}]] — {len(rows)} apps" for v, rows in stack_start) or "_No vendors yet._"}
 
-See [[stacks/Index]].
+See [[stacks/Index]] and [[stacks/by-project]].
 
 ## Products
 

@@ -66,6 +66,8 @@ Create:
 <vault>/projects/.gitkeep
 <vault>/patterns/Index.md
 <vault>/stacks/Index.md
+<vault>/stacks/by-project.md
+<vault>/stacks/projects/
 ```
 
 Home Index, catalog list, and graph groups: [`obsidian.md`](obsidian.md).

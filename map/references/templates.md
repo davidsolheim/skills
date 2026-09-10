@@ -236,8 +236,14 @@ Payments vendor. Apps below wire it as a load-bearing dependency.
 ## Human notes
 ```
 
-**`stacks/Index.md`** — list of vendors with app counts, same shape as
-`catalog.md` (list, not a 40-link cell).
+**`stacks/Index.md`** — **By vendor** (app counts) and **By project**
+(link to `stacks/projects/<slug>.md`).
+
+**`stacks/by-project.md`** — every project on one page with vendor
+wikilinks (escaped pipes not needed; this is a list, not a table).
+
+**`stacks/projects/<slug>.md`** — that app’s Stack table only (same
+escaped-pipe wikilinks as the project Index). File-tree click-through.
 
 **Order** = how dead the product is if that row vanishes tomorrow. Rank
 *this* app, not a generic web stack (a payments product lists Stripe above
