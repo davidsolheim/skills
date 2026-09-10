@@ -96,6 +96,8 @@ Vault layout (created on first run):
   catalog.md
   projects/<slug>/Index.md
   projects/<slug>/<Canonical>.md
+  projects/<mono>/Index.md              # monorepo parent (package list only)
+  projects/<mono>/<pkg>/Index.md        # workspace package
   patterns/Index.md
   patterns/<Canonical>.md
   stacks/Index.md
@@ -120,7 +122,13 @@ Read [`references/first-run.md`](references/first-run.md).
 
 - Repo root must exist and be a directory. Else **stop** (do not write
   `projects/`).
-- Slug = directory name, lowercased, spaces → hyphens.
+- **Monorepo:** if `pnpm-workspace.yaml`, `package.json` `workspaces`, or
+  `apps/`+`packages/` exist, map **each workspace package** as its own
+  project (`projects/<mono>/<pkg>/`) plus a parent Index that only lists
+  children. Do not smear web + native + db into one feature list. Skip
+  eslint/tsconfig/prettier-config packages.
+- Slug = directory name, lowercased, spaces → hyphens. Child slug =
+  `<mono>/<pkg>`.
 - If `projects/<slug>/Index.md` exists and its `repo_path` is a **different**
   repo, ask once for a new slug or reuse.
 - Scratch: `$TMPDIR/map-<slug>/`.
@@ -218,6 +226,7 @@ Then **stop**.
 - Committing the app repo or editing product code
 - Opening a browser or capturing screenshots
 - Smearing two projects into one `projects/` folder
+- Mapping a monorepo as one blob (web + native + packages in a single Index)
 
 ## Red flags — stop and resume the protocol
 

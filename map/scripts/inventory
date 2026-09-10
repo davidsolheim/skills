@@ -250,13 +250,22 @@ def die(msg: str, code: int = 1) -> None:
 
 
 def is_git_repo(root: Path) -> bool:
-    return (root / ".git").exists()
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return False
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
 
 
 def git_files(root: Path) -> list[str] | None:
     try:
         proc = subprocess.run(
-            ["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z"],
+            ["git", "-C", str(root), "ls-files", "-co", "--exclude-standard", "-z", "--", "."],
             check=False,
             capture_output=True,
         )

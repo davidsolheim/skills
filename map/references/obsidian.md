@@ -54,11 +54,12 @@ Not a flat slug list. Required sections, in order:
 1. One-line what this vault is
 2. **Start here** — 4–8 pattern hubs that exist (Auth, Impersonation, Billing, Checkout, File uploads, Team invites, Magic link, SSO). Skip missing.
 3. **Stacks** — 4–8 vendor hubs by app count plus `[[stacks/Index]]` (by vendor **and** by project). Per-app stack notes live in `stacks/projects/<slug>.md` so you can click through the folder without opening each project Index.
-4. **Products** — apps with Auth or Billing or a distinct operator console
-5. **Sites** — brochure/marketing (Homepage/About/Contact/Legal dominate)
-6. **Tools** — CLI, scripts, small utilities
-7. **Empty** — zero active features (collapsed; do not omit the link)
-8. **Patterns** — link `[[patterns/Index]]` and `[[catalog]]`
+4. **Monorepos** — parent Indexes that list workspace packages
+5. **Products** — apps with Auth or Billing or a distinct operator console (includes monorepo children)
+6. **Sites** — brochure/marketing (Homepage/About/Contact/Legal dominate)
+7. **Tools** — CLI, scripts, small utilities
+8. **Empty** — zero active features (collapsed; do not omit the link)
+9. **Patterns** — link `[[patterns/Index]]` and `[[catalog]]`
 
 ## Catalog (`catalog.md`)
 

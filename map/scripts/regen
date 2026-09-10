@@ -699,6 +699,159 @@ def run_inventory(root: Path, out: Path) -> dict:
     return json.loads(proc.stdout.decode("utf-8"))
 
 
+CONFIG_PKG = re.compile(
+    r"(eslint-config|prettier-config|tsconfig|^config$|oxlint)", re.I
+)
+
+
+def parse_workspace_globs(root: Path) -> list[str]:
+    globs: list[str] = []
+    ws = root / "pnpm-workspace.yaml"
+    if ws.is_file():
+        in_packages = False
+        for line in ws.read_text(encoding="utf-8", errors="replace").splitlines():
+            raw = line.split("#")[0].rstrip()
+            if not raw.strip():
+                continue
+            if raw.startswith("packages:"):
+                in_packages = True
+                continue
+            if in_packages:
+                s = raw.strip()
+                if s.startswith("-"):
+                    globs.append(s[1:].strip().strip("\"'"))
+                elif not raw.startswith((" ", "\t")):
+                    in_packages = False
+    pkg = root / "package.json"
+    if pkg.is_file():
+        try:
+            data = json.loads(pkg.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        w = data.get("workspaces")
+        if isinstance(w, list):
+            globs.extend(str(x) for x in w)
+        elif isinstance(w, dict):
+            globs.extend(str(x) for x in (w.get("packages") or []))
+    return list(dict.fromkeys(globs))
+
+
+def discover_units(root: Path) -> list[dict]:
+    """Parent + workspace packages. Single-package repos return one unit."""
+    parent_slug = slug_for(root)
+    parent = {
+        "path": root,
+        "slug": parent_slug,
+        "display": display_name(root, parent_slug),
+        "parent": None,
+        "kind": "root",
+    }
+    globs = parse_workspace_globs(root)
+    if not globs:
+        apps = root / "apps"
+        packages = root / "packages"
+        if apps.is_dir() and packages.is_dir():
+            globs = ["apps/*", "packages/*"]
+    if not globs:
+        return [parent]
+    children: list[Path] = []
+    for g in globs:
+        for match in sorted(root.glob(g)):
+            if match.is_dir() and (match / "package.json").is_file():
+                if match.resolve() != root.resolve():
+                    children.append(match)
+    units_children = []
+    used: set[str] = set()
+    for child in children:
+        leaf = child.name
+        try:
+            pname = json.loads((child / "package.json").read_text()).get("name") or ""
+        except (OSError, json.JSONDecodeError):
+            pname = ""
+        if CONFIG_PKG.search(leaf) or CONFIG_PKG.search(pname):
+            continue
+        child_slug = leaf if leaf not in used else child.relative_to(root).as_posix().replace("/", "-")
+        used.add(child_slug)
+        disp = display_name(child, child_slug)
+        if disp.lower() in {child_slug.lower(), pname.lower().rsplit("/", 1)[-1]}:
+            disp = f"{parent['display']} / {leaf}"
+        units_children.append(
+            {
+                "path": child,
+                "slug": f"{parent_slug}/{child_slug}",
+                "display": disp,
+                "parent": parent_slug,
+                "kind": "package",
+            }
+        )
+    if not units_children:
+        return [parent]
+    parent["kind"] = "monorepo"
+    return [parent, *units_children]
+
+
+def write_monorepo_index(
+    root: Path,
+    vault: Path,
+    parent: dict,
+    children: list[dict],
+) -> dict:
+    slug = parent["slug"]
+    display = parent["display"]
+    proj = vault / "projects" / slug
+    proj.mkdir(parents=True, exist_ok=True)
+    for p in proj.glob("*.md"):
+        if p.name != "Index.md":
+            mark_stale(p)
+    idx_path = proj / "Index.md"
+    human = preserve_human(idx_path.read_text(encoding="utf-8") if idx_path.exists() else None)
+    child_md = "\n".join(
+        f"- [[projects/{c['slug']}/Index|{c['display']}]] (`{c['path'].relative_to(root).as_posix()}`)"
+        for c in children
+    )
+    idx_path.write_text(
+        f"""---
+type: monorepo-index
+slug: {slug}
+repo_path: {root}
+aliases:
+  - {display}
+tags:
+  - type/monorepo
+updated: {TODAY}
+---
+
+# {display}
+
+Monorepo. Each workspace package is mapped on its own — open a child, not this page, for features and stack.
+
+## Packages
+
+{child_md}
+
+## Human notes
+{('' + human) if human else ''}
+"""
+    )
+    return {
+        "slug": slug,
+        "display": display,
+        "root": str(root),
+        "ok": True,
+        "kind": "monorepo",
+        "added": 0,
+        "updated": 0,
+        "stale": 0,
+        "features": [],
+        "kept": 0,
+        "assigned": 0,
+        "not_a_feature": 0,
+        "auto_names": [],
+        "stack_n": 0,
+        "error": None,
+    }
+
+
 def process_root(
     root: Path,
     vault: Path,
@@ -706,11 +859,14 @@ def process_root(
     facts: dict,
     stack_facts: dict,
     scratch: Path,
+    slug: str | None = None,
+    display: str | None = None,
 ) -> dict:
-    slug = slug_for(root)
-    display = display_name(root, slug)
+    slug = slug or slug_for(root)
+    display = display or display_name(root, slug.split("/")[-1])
     proj = vault / "projects" / slug
-    data = run_inventory(root, scratch / "inventories" / f"{slug}.json")
+    inv_name = slug.replace("/", "__") + ".json"
+    data = run_inventory(root, scratch / "inventories" / inv_name)
     files = data.get("files") or []
     assigned: dict[str, list[str]] = defaultdict(list)
     not_feat = 0
@@ -1075,6 +1231,7 @@ updated: {TODAY}
             )
         chips = " · ".join(f"[[stacks/{r['vendor']}|{r['vendor']}]]" for r in rows)
         ppath = proj_dir / f"{slug}.md"
+        ppath.parent.mkdir(parents=True, exist_ok=True)
         human = preserve_human(ppath.read_text(encoding="utf-8") if ppath.exists() else None)
         ppath.write_text(
             f"""---
@@ -1101,8 +1258,9 @@ Full project: [[projects/{slug}/Index|{display}]]
 {('' + human) if human else ''}
 """
         )
-    for p in proj_dir.glob("*.md"):
-        if p.stem not in by_proj:
+    for p in proj_dir.rglob("*.md"):
+        rel = p.relative_to(proj_dir).as_posix()[:-3]  # drop .md
+        if rel not in by_proj:
             p.unlink()
 
     by_proj_lines = ["---", "type: stack-by-project", f"updated: {TODAY}", "---", "",
@@ -1172,6 +1330,10 @@ Features and stacks from real codebases, so the next app can leapfrog.
 
 See [[stacks/Index]] and [[stacks/by-project]].
 
+## Monorepos
+
+{links(by.get("monorepo") or [])}
+
 ## Products
 
 {links(by.get("product") or [])}
@@ -1214,22 +1376,33 @@ def main() -> int:
     stack_facts: dict[str, list[dict]] = {}
     results: list[dict] = []
     seed_graph(vault)
-    for i, root in enumerate(roots, 1):
-        print(f"[{i}/{len(roots)}] {root}", flush=True)
+    units: list[dict] = []
+    for root in roots:
         if not root.is_dir():
             results.append({"slug": slug_for(root), "root": str(root), "ok": False, "error": "not a directory",
                             "added": 0, "updated": 0, "stale": 0, "features": [], "kept": 0, "assigned": 0,
                             "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": slug_for(root)})
             continue
+        units.extend(discover_units(root))
+    for i, unit in enumerate(units, 1):
+        root = unit["path"]
+        print(f"[{i}/{len(units)}] {unit['slug']}  {root}", flush=True)
         try:
-            rec = process_root(root, vault, aliases, facts, stack_facts, scratch)
+            if unit["kind"] == "monorepo":
+                kids = [u for u in units if u.get("parent") == unit["slug"]]
+                rec = write_monorepo_index(root, vault, unit, kids)
+            else:
+                rec = process_root(
+                    root, vault, aliases, facts, stack_facts, scratch,
+                    slug=unit["slug"], display=unit["display"],
+                )
             results.append(rec)
             print(f"  ok {rec['display']} features={len(rec['features'])} kind={rec['kind']}", flush=True)
         except Exception as exc:
             print(f"  FAIL {exc}", flush=True)
-            results.append({"slug": slug_for(root), "root": str(root), "ok": False, "error": str(exc)[:400],
+            results.append({"slug": unit["slug"], "root": str(root), "ok": False, "error": str(exc)[:400],
                             "added": 0, "updated": 0, "stale": 0, "features": [], "kept": 0, "assigned": 0,
-                            "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": slug_for(root)})
+                            "not_a_feature": 0, "auto_names": [], "stack_n": 0, "kind": "empty", "display": unit["display"]})
     rebuild_hubs(vault, results, facts, stack_facts, aliases)
     cfg["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     payload = json.dumps(cfg, indent=2) + "\n"
