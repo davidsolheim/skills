@@ -27,6 +27,7 @@ or guess which files to touch — the ticket is **not ready**.
 | Layer | Minimum bar |
 |-------|-------------|
 | **Where** | Real paths that exist now; primary package/app; symbol names; ~line ranges |
+| **Occupancy** | Primary write path + symbol; sibling overlap ([`../../docs/wcp.md`](../../docs/wcp.md)). N/A if no application writes |
 | **What today** | Current behavior with code evidence (not “it seems broken”) |
 | **What done looks like** | Checklist AC that a stranger can pass/fail without asking you |
 | **How** | Ordered step-by-step plan + file-by-file change list (not only a hypothesis) |

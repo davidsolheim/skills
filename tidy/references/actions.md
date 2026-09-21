@@ -75,12 +75,13 @@ Tidy applies it to **every due** issue).
 
 **Ready** (no body write) if all exist: code map of real paths, checklist AC,
 repo verification commands, ≥3 drift anchors, ordered plan or file-by-file
-list.
+list. Missing Occupancy (WCP) or Intensity alone does not make a ticket thin.
 
 **Thin** → investigate (read-only), update the **existing** issue. Do not
 create a replacement ticket. Do not change priority unless it is obviously
 mislabeled vs a broken primary path (promote) or a title-only Urgent chore
-(leave it; list in report).
+(leave it; list in report). When you **do** rewrite, fill Occupancy (WCP)
+from the `/issue` template ([`../../docs/wcp.md`](../../docs/wcp.md)).
 
 Fail closed: no half-rewritten body.
 

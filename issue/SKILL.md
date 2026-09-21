@@ -161,20 +161,20 @@ Use the structure in [references/issue-body-template.md](references/issue-body-t
 
 1. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
 2. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure).
-2. **Summary** — 2–4 sentences restating the problem/request in product + technical terms
-3. **User report** — quoted or paraphrased original description
-4. **Current behavior** — what the code/UI does today (with evidence)
-5. **Expected behavior** — concrete, testable outcome
-6. **Suspected root cause / scope** — hypothesis with file evidence (not a speculative essay)
-7. **Code map** — table or list of relevant paths with role (entry point, UI, API, schema, util). Include symbol names and approximate line ranges when known (`apps/web/app/order/page.tsx` ~L40–90)
-8. **Implementation notes** — recommended approach, patterns to reuse, pitfalls, out-of-scope items
-9. **Acceptance criteria** — checklist of verifiable outcomes
-10. **Verification** — exact commands / manual checks the implementer should run (from `AGENTS.md` / README when available)
-11. **Drift check** — short list of anchors an agent should re-verify before coding (key files, exports, routes). If these still match, proceed without re-researching the whole area
-12. **Risks / blockers** — credentials, migrations, provider limits, related tickets
-13. **Platform / stack** — canonical systems this work targets; any stacks it must not use
-14. **Supersedes** — when this ticket replaces earlier open or Done work (full vs partial + override scope); omit if none
-15. **Assumptions** — anything inferred because the user was brief
+3. **Summary** — 2–4 sentences restating the problem/request in product + technical terms
+4. **User report** — quoted or paraphrased original description
+5. **Current behavior** — what the code/UI does today (with evidence)
+6. **Expected behavior** — concrete, testable outcome
+7. **Suspected root cause / scope** — hypothesis with file evidence (not a speculative essay)
+8. **Code map** — table or list of relevant paths with role (entry point, UI, API, schema, util). Include symbol names and approximate line ranges when known (`apps/web/app/order/page.tsx` ~L40–90)
+9. **Implementation notes** — recommended approach, patterns to reuse, pitfalls, out-of-scope items
+10. **Acceptance criteria** — checklist of verifiable outcomes
+11. **Verification** — exact commands / manual checks the implementer should run (from `AGENTS.md` / README when available)
+12. **Drift check** — short list of anchors an agent should re-verify before coding (key files, exports, routes). If these still match, proceed without re-researching the whole area
+13. **Risks / blockers** — credentials, migrations, provider limits, related tickets
+14. **Platform / stack** — canonical systems this work targets; any stacks it must not use
+15. **Supersedes** — when this ticket replaces earlier open or Done work (full vs partial + override scope); omit if none
+16. **Assumptions** — anything inferred because the user was brief
 
 Write for another agent: specific paths, symbol names, and acceptance criteria beat vague product prose. Migration tickets should explicitly name abandoned platforms so `/solve all` batch guidance can order work correctly.
 

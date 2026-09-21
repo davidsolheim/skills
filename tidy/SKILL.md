@@ -31,7 +31,9 @@ push, or open PRs.
 - **Cooldown: 7 days** per issue unless overridden. Ledger + stamp:
   [`references/ledger.md`](references/ledger.md).
 - **Quality bar** = `/issue` (same as Identify upgrades). Do not invent a
-  second template.
+  second template. When thickening, fill **Occupancy (WCP)** from that
+  template ([`../docs/wcp.md`](../docs/wcp.md)). Sharing a file is occupancy,
+  not extra `blockedBy`.
 - **Status** matches `/solve` + `/prb`: **In Review** if shipped to
   `origin/dev` and not on `main`; **Done** only if merged to `origin/main`
   (or the team’s trunk). Never Done from **local-only** work.

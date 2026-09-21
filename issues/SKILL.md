@@ -226,22 +226,22 @@ Each **create** leaf uses the body structure in
 (same bar as `/issue`):
 
 1. Occupancy (WCP) — primary write path + symbol; sibling overlap
-2. Summary  
-2. User report (quote the specific bullet/fragment)  
-3. Current behavior + evidence  
-4. Expected behavior  
-5. Suspected root cause / scope  
-6. Code map (real paths)  
-7. Implementation notes  
-8. Acceptance criteria (checklist)  
-9. Verification (real package commands)  
-10. Drift check  
-11. Risks / blockers  
-12. Platform / stack  
-13. Related / blockedBy / parent (temp ids ok pre-file; replace with real ids in Linear relations)  
-14. Supersedes (if any)  
-15. Assumptions  
-16. Batch metadata (optional): `temp_id`, `class`, sibling plan title  
+2. Summary
+3. User report (quote the specific bullet/fragment)
+4. Current behavior + evidence
+5. Expected behavior
+6. Suspected root cause / scope
+7. Code map (real paths)
+8. Implementation notes
+9. Acceptance criteria (checklist)
+10. Verification (real package commands)
+11. Drift check
+12. Risks / blockers
+13. Platform / stack
+14. Related / blockedBy / parent (temp ids ok pre-file; replace with real ids in Linear relations)
+15. Supersedes (if any)
+16. Assumptions
+17. Batch metadata (optional): `temp_id`, `class`, sibling plan title  
 
 **Titles:** problem-focused, area prefix when helpful  
 `[web] Settings page double-counts active seats`  

@@ -65,6 +65,7 @@ Infer product name from README `#` heading or VISION title.
 | AGENTS Linear | `## Linear` with team + project | Add from answers / `.linear-project` |
 | AGENTS Secrets | Doppler project is **this** slug, not `next-starter-template` | Retarget |
 | AGENTS Database / Auth / Conventions | migrations-only, `/login`, no `db:push`, `dev` branch | Fill from platform section |
+| AGENTS WCP | `## Water Cooler Protocol` (skill, `wcp init`, no agent push) | Add from onboard-docs |
 | `VISION.md` (not `vision.md`) | exists; **Intent** + **V1 Must ship** (3–8 outcomes) | Create/upgrade via onboard-docs; rename lowercase `vision.md` → `VISION.md` |
 | `README.md` | product title + job; install uses **this** slug; no `cd next-starter-template` as *this* repo | Rewrite product README |
 | `.linear-project` | one line, product Linear name | Write it |
