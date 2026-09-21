@@ -304,6 +304,7 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 4. Runtime proof: surface you actually drove + observed end state
    ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
 5. Do-not-touch lists stay tight so `/solve` does not restyle the whole app.
+6. Fill **Occupancy (WCP)** (primary write path). Prefer disjoint paths so `/solve` can lease in one wave.
 
 ---
 

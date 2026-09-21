@@ -297,6 +297,11 @@ Do not call Linear. Do not push. Do not stage scratch files.
 
 Work on local **dev** only.
 
+Occupancy: you are `prb-fix`. `export WCP_AGENT=prb-fix`. Read skill
+`water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md).
+look → acquire → write-ok → re-read disk → edit → release. Never rewind.
+Never push (orchestrator unsets `WCP_AGENT` before `git push`).
+
 When done, append to <abs path to …-c${C}-fixes.md>:
 - Finding id → what you changed (path + one sentence)
 - Tests/commands you ran

@@ -45,7 +45,8 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 - **Closed-loop fixes on local `dev` only:** when the gate finds issues, merge findings into scratch markdown and spawn **one** `prb-fixer`. Do **not** file Linear issues or nested `/solve`. Do not push mid-loop. Cap full review→fix→re-review cycles (default **2**, override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push. Post **one** `/prb — local review gate` comment on the first ship issue.
 - **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb` outside the review closed-loop fixes.
 - **No force-push to `main`.** Prefer normal push to `dev`. If `dev` needs rewrite, use `--force-with-lease` only after a clear reason and never against `main`.
-- **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them.
+- **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them. Do not commit `.WCP/`.
+- **WCP export:** this skill is the human push to `origin/dev` ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; if live leases remain, wait or report. Fixer uses player verbs (`WCP_AGENT=prb-fix`). **`unset WCP_AGENT` immediately before `git push origin dev`** (hooks refuse push while it is set).
 - **Secrets:** never print Doppler/tokens/connection strings; never commit `.env`.
 - **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Auto-merge is forbidden while those exist.
 - **Human veto:** if the user says stop/don’t merge in-session, cancel scheduled watches and do not merge.

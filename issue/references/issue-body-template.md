@@ -3,6 +3,20 @@
 Copy this structure into `linear__save_issue` `description`. Use literal markdown newlines. Omit a section only if truly N/A (note why).
 
 ```markdown
+## Occupancy (WCP)
+
+Shared local `dev` may have other writers. Spec: [watercoolerprotocol.com](https://watercoolerprotocol.com). Skill: `water-cooler-protocol`.
+
+- Primary write path: `<path>` (the file this leaf occupies first)
+- Primary symbol: `<Symbol>`
+- Other write paths: `<path>`, … (or none)
+- Barrels (lockfile / generated client / root schema): `<path>` or none
+- Sibling overlap: disjoint | shares `<path>` with L# / TEAM-n (occupancy serializes; mint `blockedBy` only if AC depends)
+
+Implementer: `export WCP_AGENT=<id>`; look → acquire → write-ok → re-read disk → edit → release. Tests first with `// WCP <id>:`. Never rewind sibling hunks. Never push `origin/dev`.
+
+Docs-only / no source edit: `- N/A: no application writes`.
+
 ## Intensity
 
 Stamp required. Canonical: [`../../docs/intensity.md`](../../docs/intensity.md).

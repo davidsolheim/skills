@@ -81,6 +81,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | Skill | Role | Default git effect |
 |-------|------|--------------------|
 | [`map/`](./map/) | Map a codebase into an Obsidian vault: features, ranked vendor Stack, plus cross-project pattern pages for leapfrog | None (vault + local config only) |
+| [`water-cooler-protocol/`](./water-cooler-protocol/) | Occupancy leases on shared local `dev` ([watercoolerprotocol.com](https://watercoolerprotocol.com)). Wiring: [`docs/wcp.md`](./docs/wcp.md) | Never push while `WCP_AGENT` is set |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
 
@@ -298,7 +299,7 @@ Plain `/identify` only — no size, theme, or id args. `/solve` still works with
 
 **Path:** [`solve/`](./solve/)
 
-Selects the next unblocked leaf (or drains the board), runs **cheap construction** (one `solve-implementer`; optional one bug-only reviewer on heavy/critical), verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask. Inner-review yes/no is **auto-dialed** from the ticket’s `## Intensity` stamp ([`docs/intensity.md`](./docs/intensity.md)); `--effort N` is a hidden inner-review override, capped at 1. Deep review is `/prb`.
+Selects the next unblocked leaf (or drains the board), runs **cheap construction** (one `solve-implementer`; optional one bug-only reviewer on heavy/critical), verifies, commits on a short-lived branch, and **merges into local `dev` only**. Does not push or open a PR unless you ask. Inner-review yes/no is **auto-dialed** from the ticket’s `## Intensity` stamp ([`docs/intensity.md`](./docs/intensity.md)); `--effort N` is a hidden inner-review override, capped at 1. Deep review is `/prb`. File occupancy on a shared checkout is **WCP** ([`docs/wcp.md`](./docs/wcp.md)).
 
 | Invocation | Behavior |
 |------------|----------|
@@ -382,7 +383,7 @@ Each skill is a directory with a `SKILL.md` and optional `references/`.
 ```bash
 git clone https://github.com/davidsolheim/skills.git
 # Example for Grok user skills (path varies by agent):
-cp -R skills/start skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet skills/map ~/.grok/skills/
+cp -R skills/start skills/issue skills/issues skills/project-review skills/walk skills/tidy skills/stat skills/identify skills/solve skills/prb skills/yeet skills/map skills/water-cooler-protocol skills/docs ~/.grok/skills/
 mkdir -p ~/.grok/roles
 cp skills/roles/*.toml ~/.grok/roles/
 ```
@@ -475,13 +476,17 @@ My Product Launch
 │   ├── SKILL.md
 │   ├── scripts/inventory    # repo file index + keyword hits
 │   └── references/          # first-run, templates, catalog, coverage
+├── water-cooler-protocol/
+│   ├── SKILL.md             # player verbs (look / acquire / write-ok / release)
+│   └── references/playbook.md
 ├── roles/                   # solve-implementer / solve-reviewer / prb-reviewer / prb-fixer
 └── docs/
     ├── prove-it-works.md
     ├── intensity.md
     ├── grok-models.md
     ├── linear-comments.md
-    └── rfc-multiplayer-linear.md
+    ├── rfc-multiplayer-linear.md
+    └── wcp.md               # how /solve /issues /prb use WCP
 ```
 
 ---

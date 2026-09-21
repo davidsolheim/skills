@@ -50,6 +50,9 @@ for `/solve`. Do not implement code. Do not open a PR.
   (not `\n` escape sequences).
 - **Teton Web eng SoT:** for Teton Web / `teton-web` engineering tickets, file on **Teton Web Platform**. Do not file new eng work on content-only projects (e.g. `tetonweb.com` when marked content-only). Content/copy/asset tickets may use content projects.
 - **Unassigned backlog only**: do not assign; do not set In Progress/Done.
+- **Occupancy (WCP)**: prefer leaves with **disjoint primary write paths** so
+  `/solve` can lease them in one wave ([`../docs/wcp.md`](../docs/wcp.md)).
+  Sharing a file is occupancy, not extra `blockedBy`.
 
 ## Args
 
@@ -222,7 +225,8 @@ Each **create** leaf uses the body structure in
 [references/issue-body-template.md](references/issue-body-template.md)
 (same bar as `/issue`):
 
-1. Summary  
+1. Occupancy (WCP) — primary write path + symbol; sibling overlap
+2. Summary  
 2. User report (quote the specific bullet/fragment)  
 3. Current behavior + evidence  
 4. Expected behavior  
@@ -325,6 +329,7 @@ Then stop. Do not implement.
 - [ ] Leaves are atomic (one outcome each)  
 - [ ] Connectivity not over-blocked (soft vs hard deps)  
 - [ ] Filing order: foundation before feature/polish  
+- [ ] Occupancy (WCP) primary write path on every create leaf (or N/A)
 - [ ] Every create leaf has real code map paths that exist now  
 - [ ] Acceptance criteria checklist-testable  
 - [ ] Verification uses this repo’s real scripts  
@@ -345,7 +350,9 @@ Then stop. Do not implement.
 - Asking team/project when docs already say  
 - Implementing fixes under this skill  
 - Inventing findings the user never mentioned (that’s `/project-review`)  
-- Mixing two packages’ runtime ownership in one leaf without an explicit integration AC  
+- Mixing two packages’ runtime ownership in one leaf without an explicit integration AC
+- Two leaves with the same primary write path when they could split
+- Minting `blockedBy` only because two leaves share a file (that is WCP occupancy)  
 
 ---
 

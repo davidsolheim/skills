@@ -4,6 +4,20 @@ Same quality bar as `/issue`. Copy into `linear__save_issue` `description`
 with **literal markdown newlines**. Omit a section only if truly N/A (note why).
 
 ```markdown
+## Occupancy (WCP)
+
+Shared local `dev` may have other writers. Spec: [watercoolerprotocol.com](https://watercoolerprotocol.com). Skill: `water-cooler-protocol`.
+
+- Primary write path: `<path>`
+- Primary symbol: `<Symbol>`
+- Other write paths: `<path>`, … (or none)
+- Barrels: `<path>` or none
+- Sibling overlap: disjoint | shares `<path>` with L#
+
+Implementer: `export WCP_AGENT=<id>`; look → acquire → write-ok → re-read disk → edit → release. Tests first with `// WCP <id>:`. Never rewind. Never push `origin/dev`.
+
+Docs-only: `- N/A: no application writes`.
+
 ## Summary
 
 <2–4 sentences: problem + impact + where in the product>

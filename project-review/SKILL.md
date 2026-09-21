@@ -389,6 +389,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 6. Explicit “do not change” lists prevent scope expansion.
 7. Code map + drift check required for filed leaves.
 8. Write for another agent: paths, symbols, AC beat vague product prose.
+9. Fill **Occupancy (WCP)** on every leaf (primary write path). Prefer disjoint paths across the batch ([`../docs/wcp.md`](../docs/wcp.md)).
 
 ---
 

@@ -96,7 +96,21 @@ Examples that **do not**:
 
 ---
 
-## 5. Monorepo ownership
+## 5. Occupancy (WCP)
+
+`/solve` may run several leaves on one local `dev`. Exclusive file leases:
+[`../../docs/wcp.md`](../../docs/wcp.md).
+
+- Give each leaf **one primary write path** (and symbol). Put it in
+  **Occupancy (WCP)** on the body.
+- Prefer splits whose primary paths **differ**, so two `/solve` workers can
+  hold leases at once.
+- Sharing a file is occupancy (next wave), not a reason to merge tickets.
+- Mint Linear `blockedBy` only when B’s AC is impossible until A lands.
+- Keep lockfiles / generated clients / root schema off most leaves. A leaf
+  that must write a barrel says so under Occupancy.
+
+## 6. Monorepo ownership
 
 Never put two packages’ runtime work in one leaf unless the ticket is an
 explicit integration with AC on both sides.
@@ -112,7 +126,7 @@ Do not invent product brand names that are not in the dump or docs.
 
 ---
 
-## 6. Duplicate & supersede
+## 7. Duplicate & supersede
 
 | Board match | Action |
 |-------------|--------|
@@ -122,7 +136,7 @@ Do not invent product brand names that are not in the dump or docs.
 
 ---
 
-## 7. Filing order
+## 8. Filing order
 
 ```text
 1. foundation  (priority Urgent → Low)
@@ -135,7 +149,7 @@ and human scan order match the graph.
 
 ---
 
-## 8. Temp id graph sketch
+## 9. Temp id graph sketch
 
 Before file:
 

@@ -16,6 +16,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 4. **Repo rules**: follow root `AGENTS.md` / `CLAUDE.md` / `README.md` for this workspace (Linear tracking, package manager, validation matrix, no reintroducing removed systems).
 5. **Secrets**: never commit `.env`, print Doppler/tokens/connection strings, or log secrets.
 6. **Git while implementing**: stay on the issue branch created by `/solve`. Do not switch to `main` or `dev`. Do not push. Do not open PRs.
+6b. **Occupancy (WCP)**: load skill `water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md). `export WCP_AGENT` as assigned. look → acquire → write-ok → re-read disk → edit → release. Tests first with `// WCP <id>:`. Never rewind sibling edits. Never hold a lease through tests.
 7. **Commits**: prefer **not** committing during construction. Leave a clean, reviewable working tree (or only intentional WIP commits on the issue branch). The `/solve` orchestrator stages and commits after verification. Scratch files under `$TMPDIR` are never staged.
 8. **Files**: stage-worthy changes only for this issue (including intentional overrides of earlier work). Leave unrelated dirty files untouched.
 9. **Summary**: always write the implement summary file requested by the orchestrator (paths changed, design decisions, supersession overrides, verification notes, **runtime-proof evidence**).

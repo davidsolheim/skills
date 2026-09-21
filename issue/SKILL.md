@@ -159,7 +159,8 @@ Set from Phase 0. User-stated urgency wins.
 
 Use the structure in [references/issue-body-template.md](references/issue-body-template.md). Every filed issue should include:
 
-1. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure).
+1. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
+2. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure).
 2. **Summary** — 2–4 sentences restating the problem/request in product + technical terms
 3. **User report** — quoted or paraphrased original description
 4. **Current behavior** — what the code/UI does today (with evidence)
@@ -234,6 +235,7 @@ When the user sends multiple issues back-to-back:
 - [ ] Team resolved from repo docs / agent memory / Linear; project set when identifiable
 - [ ] Duplicate check done
 - [ ] Intensity stamp valid (`## Intensity` / `Band:`)
+- [ ] Occupancy (WCP) primary write path filled (or N/A: no application writes)
 - [ ] Code map lists real paths that exist in the workspace right now
 - [ ] Acceptance criteria are checklist-testable
 - [ ] Verification steps match this repo's real scripts (`AGENTS.md` / package scripts)

@@ -90,6 +90,7 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast; project-wide **or** scoped):
 - **Linear MCP**: `search_tool` then `use_tool`. Read schemas before calling. Literal newlines in markdown bodies. **Before every `save_comment`:** `list_comments` on that issue; skip if this moment already exists ([`../docs/linear-comments.md`](../docs/linear-comments.md)).
 - **Scope discipline**: satisfy the issue’s acceptance criteria; file follow-ups (e.g. via `/issue`) instead of expanding scope.
 - **Dirty tree**: never discard unrelated user changes. Only stage files for this issue.
+- **Occupancy (WCP)**: every implementer load of `water-cooler-protocol` + [`../docs/wcp.md`](../docs/wcp.md). Orchestrator starts the run. Workers `look` / `acquire` / `write-ok` / `release`. File overlap is occupancy, not Linear `blockedBy`. Never rewind sibling edits. Never push while `WCP_AGENT` is set. Worktree `fast` mode does not share one WCP board across worktrees.
 
 ## Invocation
 
@@ -194,6 +195,7 @@ When `SOLVE_COUNT_MODE = all` (sequential or fast; project-wide **or** scoped):
    - `BATCH_GUIDANCE_MD` = `$SOLVE_SKILL_DIR/references/batch-guidance.md` — **read when `GUIDANCE_REQUIRED`**
    - `BATCH_GUIDANCE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/batch-guidance-template.md` — **read when `GUIDANCE_REQUIRED`**
    - `FAST_MODE_MD` = `$SOLVE_SKILL_DIR/references/fast-mode.md` — **read when `FAST_MODE`**
+   - `WCP_MD` = `$SOLVE_SKILL_DIR/../docs/wcp.md` — **read every run**. Player skill: `$SOLVE_SKILL_DIR/../water-cooler-protocol/SKILL.md` (inject path into every implementer prompt).
    - `ARCHITECTURE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/architecture-guidance-template.md` — optional fast supplement; prefer batch guidance as authority
    - `IMPLEMENT_SKILL_MD` = optional, **not used** for the construction loop (standalone `/implement` is a different skill). Do not fail `/solve` if it is missing.
    - Worker spawn types: `solve-implementer` (required), `solve-reviewer` (heavy/critical only). Authority: [`../docs/grok-models.md`](../docs/grok-models.md) + [`../docs/intensity.md`](../docs/intensity.md).
@@ -526,6 +528,7 @@ Rules:
 - If merge conflicts on `dev`←`main` block progress, resolve them first or stop with a clear report—do not implement the feature on a diverged broken base.
 - Never `git push` under default contract.
 - Never `git reset --hard` or force-delete user work.
+- Start a WCP run on this checkout if none exists ([`../docs/wcp.md`](../docs/wcp.md)). Sequential implementers still lease paths.
 
 ---
 
@@ -568,6 +571,12 @@ Construct a single description string for the implementer:
 - Re-scoped AC (if action=rescope): …
 - If guidance and the original ticket disagree on platform/stack, **guidance wins**
 - Selective override of prior Done/open work is required inside override scope
+
+## Occupancy (WCP) — hard
+- You are <WCP_AGENT> (issue id lowercased, e.g. team-331). `export WCP_AGENT=<id>`
+- Read `$SOLVE_SKILL_DIR/../water-cooler-protocol/SKILL.md` and `$SOLVE_SKILL_DIR/../docs/wcp.md`
+- look → acquire → write-ok → re-read disk → edit → release. Tests first with `// WCP <id>:`
+- Never rewind sibling edits. Never hold a lease through tests. Never push.
 
 ## Solve delivery constraints (hard)
 - Work only on the current git branch: <issue-branch>
@@ -871,6 +880,9 @@ Canonical policy for status, assignee, and comments under `/solve`.
 - **Fast:** using only `git worktree remove` for tool-created worktrees — use `grok worktree rm --force`
 - **Fast:** exceeding concurrency 8 or spawning separate `grok` CLI processes (v1)
 - **Fast:** starting a dependent while its hard dep is only done in a worktree, not yet on local `dev`
+- Implementing without WCP look/acquire/write-ok/release on a shared checkout
+- Holding a WCP lease through the test runner
+- `git push` with `WCP_AGENT` set (hooks refuse; `/prb` / `/yeet` unset it)
 
 ---
 

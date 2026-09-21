@@ -86,7 +86,19 @@ say `pending`.
 
 Use the **Onboarded AGENTS.md** block from the first-run file (filled).
 Must not contain `first-run: starter-onboard`. Must include Linear, Product,
-Secrets (`<slug>` / `development`), Database, Auth, Conventions.
+Secrets (`<slug>` / `development`), Database, Auth, Conventions, and:
+
+```markdown
+## Water Cooler Protocol
+
+This checkout may have many coding agents on one local `dev` working tree.
+
+- Skill: `water-cooler-protocol`
+- Start a run: `wcp init --arch "<aim of this session>" --branch dev`
+- Each agent: `you are <id>` and `export WCP_AGENT=<id>`
+- Agents call `wcp look` / `acquire` / `write-ok` / `release`. They do not push, reset HEAD, or rewind sibling edits
+- `.WCP/` is gitignored occupancy state. Do not commit it
+```
 
 ## README.md (rewrite)
 

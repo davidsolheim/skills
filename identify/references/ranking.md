@@ -93,9 +93,11 @@ never drops the pin; drop the overlapping non-pin instead.
 
 ## Overlap cut (after size)
 
-Read primary paths from each proposed body’s code map (or infer from title /
-obvious route files). Two leaves **overlap** when they share a path or one path
-is the same feature file (same route/module, not merely the same app package).
+Read **Occupancy (WCP)** primary write path, else the code map (or infer from
+title / obvious route files). Two leaves **overlap** when they share a path or
+one path is the same feature file (same route/module, not merely the same app
+package). Overlap is WCP exclusive-lease occupancy
+([`../../docs/wcp.md`](../../docs/wcp.md)), not Linear `blockedBy`.
 
 ```text
 kept = []

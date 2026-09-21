@@ -35,6 +35,7 @@ via nested `/solve` after approve (unless `--pick-only`).
 - **First present = one batch.** Reply parsing (subset / drop / swap / theme)
   is [`references/replies.md`](references/replies.md).
 - **Hard cap 4.** Default cut prefers **2**. Do not pad with Low/`U=0` chores.
+- **Occupancy:** overlap cut is WCP exclusive paths ([`../docs/wcp.md`](../docs/wcp.md)). Nested `/solve` starts the run. Identify does not write app source.
 - **Secrets:** never put tokens, env values, connection strings, or Doppler
   secrets in Linear or chat.
 - **Linear MCP:** `search_tool` then `use_tool`. Schemas first. Literal

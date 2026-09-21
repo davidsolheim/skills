@@ -30,6 +30,7 @@ Ship **this session’s finished work now**. `/prb` is the careful path (deep lo
 
 - Integration branch is lowercase **`dev`**. Trunk is **`main`**. If this repo has no `dev` (local or `origin/dev`), **stop** — do not invent a branch.
 - **Never** `git push origin dev` until `git fetch origin`, local `main` matches `origin/main` (ff-only), and `origin/main` is an ancestor of local `dev`.
+- **WCP:** this skill is the human export ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; wait if live leases remain. **`unset WCP_AGENT` immediately before `git push origin dev`**. Do not commit `.WCP/`.
 - **No review gate. No CI wait. No babysit.** Merge as soon as the PR exists, **in-scope runtime proof** succeeded ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)), and migrate (if any) succeeded. `/yeet` does not run the `/prb` panel. It still must drive user-visible / auth / billing / API / schema / shared-helper ships.
 - Merge with `gh pr merge --rebase --admin` so `main` lands on dev's already-pushed commits. If rebase is refused, `gh pr merge --merge --admin`. If `--admin` is denied, report the error and **stop**.
 - **One dev preview + one main production per ship.** dev's preview comes from the Phase 2 dev push (or from merging `--via-dev-pr` into dev). main's production comes from the dev→main merge. Never push dev again after that merge — a dev push of the merge commit starts a second dev preview for the same ship.
