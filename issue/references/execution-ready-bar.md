@@ -54,6 +54,7 @@ or guess which files to touch — the ticket is **not ready**.
 | Expand into a rewrite | “Smallest complete change”; list non-goals |
 | Guess stack (Neon vs old DB, etc.) | **Platform / stack** section filled |
 | Implement the old direction and the new one | Direction-conflict search; **retire** unstarted contradicted issues |
+| Overwrite a sibling’s file or `git checkout` to go first | **Occupancy (WCP)** primary path + load `water-cooler-protocol` |
 | Block on a decision | **Assumptions / pre-decided** section so work proceeds |
 
 ---

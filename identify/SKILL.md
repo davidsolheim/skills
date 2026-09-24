@@ -2,15 +2,15 @@
 name: identify
 description: >
   Use when the user runs /identify, says "identify work", "pick a batch",
-  "what should we solve", "recommend issues to solve", "choose Linear tickets
-  to work", or wants a human-approved set of Linear tickets before /solve.
+  "what should we solve", "recommend issues to solve", "choose tickets
+  to work", or wants a human-approved set of `.WCP/issues/` files before /solve.
   Also /identify N, /identify TEAM-123, area/theme words, --pick-only, or fast.
 argument-hint: "[N] [TEAM-123] [--pick-only] [fast] [area…]"
 ---
 
 # /identify — Recommend a batch, then `/solve` on approve
 
-Look at **open Linear issues for the current repo’s project**. Pick a **small
+Look at **`.WCP/issues/open/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. Pick a **small
 highest-value mix** of eligible leaves. Upgrade thin members of that set to the
 `/issue` bar. **Stop and wait.**
 
@@ -35,14 +35,9 @@ via nested `/solve` after approve (unless `--pick-only`).
 - **First present = one batch.** Reply parsing (subset / drop / swap / theme)
   is [`references/replies.md`](references/replies.md).
 - **Hard cap 4.** Default cut prefers **2**. Do not pad with Low/`U=0` chores.
-- **Occupancy:** overlap cut is WCP exclusive paths ([`../docs/wcp.md`](../docs/wcp.md)). Nested `/solve` starts the run. Identify does not write app source.
-- **Secrets:** never put tokens, env values, connection strings, or Doppler
-  secrets in Linear or chat.
-- **Linear MCP:** `search_tool` then `use_tool`. Schemas first. Literal
-  newlines in markdown bodies. **Before every `save_comment`:** `list_comments`
-  on that issue ([`../docs/linear-comments.md`](../docs/linear-comments.md)).
-  Inventory = eligibility **Linear inventory fetch** (`team` + `project` +
-  `state`, slim fields). Never dump the whole project including Done.
+- **Occupancy:** overlap cut is WCP exclusive paths ([`../docs/wcp.md`](../docs/wcp.md)). Nested `/solve` starts the WCP run. Identify does not write app source.
+- **Secrets:** never put tokens, env values, or connection strings in issue files or chat.
+- **Do not call Linear.** Inventory is [`../solve/references/eligibility.md`](../solve/references/eligibility.md). Claim is the player skill ticket lease.
 
 ## Trigger phrases
 
@@ -72,7 +67,7 @@ via nested `/solve` after approve (unless `--pick-only`).
 | `N` (1–4) | `MAX_N = N` |
 | `TEAM-123` | `PIN_ID` — first slot if eligible; fill remaining by rank |
 | `--pick-only` / `pick-only` | On approve: print ids; **no** claim; **no** `/solve` |
-| `fast` / `--fast` | `FAST_ON_APPROVE`. After approve, parallel `/solve` **only** if `FAST_OK` |
+| `fast` / `--fast` | No-op. Approved batches already run nested `/solve` in parallel when `FAST_OK` |
 | other text | `AREA_FILTER` on title, labels, description, code-map paths |
 
 ### Parse order
@@ -129,22 +124,15 @@ each thin ticket as not upgraded.
 
 ---
 
-## Phase 1 — Resolve Linear team and project
+## Phase 1 — Queue
 
-Same automatic order as `/issue` Phase 1. **Read** `$ISSUE_SKILL_MD` Phase 1
-and follow it. Do not ask first. Ask **once** with top candidates only if
-unresolved.
-
-Reuse the resolution for every reject/re-propose loop in this session.
+The board is `.WCP/issues/` in this checkout. Do not resolve a team or project. Reuse that path for every reject/re-propose loop.
 
 ---
 
 ## Phase 2 — Inventory and eligibility
 
-1. Read `ELIGIBILITY_MD`. Fetch the board with **Linear inventory fetch**
-   (`list_issue_statuses`, then `list_issues` per kept status name with
-   `team` + `project` + `state`, slim fields, page each state). Do **not**
-   list the project unfiltered. Do **not** pull `description` on this pass.
+1. Read `ELIGIBILITY_MD`. List `.WCP/issues/` files. Do not call Linear.
 2. Apply 2B, 2D, 2E on that union. Identify inventory is **read-only** (no
    epic rollup writes). `get_issue` / `list_comments` only for 2D/2E needs
    and for tickets that enter rank / `PROPOSED`.
@@ -217,7 +205,7 @@ Show **one** batch. Then **stop**. Do not claim. Do not start `/solve`.
 - Ineligible / obsolete-skip: TEAM-… — blocked / claimed / other assignee / epic / abandoned stack
   (only mention high-priority misses; do not dump the whole board)
 
-Approve to [claim+`/solve 1` each | print ids only if pick-only], in order.
+Approve to [claim+nested `/solve` on the pin | print ids only if pick-only], in order.
 Reject for the next-best set (these IDs excluded).
 Subset / drop / swap / theme also work.
 ```
@@ -252,7 +240,10 @@ Print the ids + URLs + order. **Stop.** No claim. No `/solve`.
 
 Read `MULTIPLAYER_MD`. **Do not** claim the whole queue up front.
 
-For each `ID` in `QUEUE`, **immediately before** its nested `/solve`:
+**Skip this section** when 7C takes the parallel pin path — the nested `/solve`
+orchestrator CAS-claims as it launches workers.
+
+For each `ID` in `QUEUE` on the **sequential** path, **immediately before** its nested `/solve`:
 
 1. Confirm still unclaimed (or already claimed by this `RUN_ID`).
    **`list_comments` first.** Skip a new claim comment if this `RUN_ID` already
@@ -265,7 +256,7 @@ claimed-by: identify · session <session> · worktree <cwd> · run <RUN_ID>
 ```
 
 Then one short paragraph: identify-approved queue (sibling ids + order);
-this leaf is next; nested `/solve 1` will implement.
+this leaf is next; nested `/solve` will implement.
 
 4. Re-fetch. If a **different** run’s `claimed-by:` is newer: drop that leaf
    from `QUEUE`, tell the user, continue with the rest.
@@ -275,11 +266,38 @@ Do **not** claim parent epics. Do **not** mark Done.
 If the **current** claim loses CAS: skip that id, do not claim ahead. If
 every remaining id loses CAS: stop and report. Do not start `/solve`.
 
-### 7C. Nested `/solve` — subagent, one ID at a time
+### 7C. Nested `/solve` — one orchestrator for the pin
 
-Identify owns the queue. `/solve` only pins the first `TEAM-123` token.
+Identify owns the queue. Pass **`SELECTION_PIN = QUEUE`** so `/solve` honors
+the full approved set (it does not parse a list of ids from the user text).
 
-**Sequential (default, and whenever `FAST_OK` is false):**
+**Parallel (default when `len(QUEUE) ≥ 2` and `FAST_OK`):** one
+`general-purpose` subagent, `isolation: none`, `model: grok-4.6`. Do **not**
+JIT-claim the whole queue first — the nested solve orchestrator CAS-claims as
+it launches workers.
+
+```text
+Read $SOLVE_SKILL_MD + shared-dev.md
+SHARED_DEV = true
+FAST_MODE = false
+SOLVE_COUNT_MODE = len(QUEUE)
+SELECTION_PIN = QUEUE (ordered)
+RUN_ID = this identify RUN_ID
+GUIDANCE_REQUIRED = true
+Do not refill outside SELECTION_PIN
+Treat identify claimed-by with this RUN_ID as this run
+Same git contract as /solve (shared local dev, WCP occupancy, no worktrees, no push unless the user asked)
+```
+
+Identify must not write application source. On nested-solve hard-fail: release
+any QUEUE id this run claimed that was not started; leave in-flight leaves as
+solve left them.
+
+If overlap / platform conflict (`FAST_OK` is false): warn once, then sequential
+below. `fast` / `--fast` on `/identify` is a no-op (parallel is already the
+default when `FAST_OK`).
+
+**Sequential (`FAST_OK` is false, or a 1-id queue):**
 
 ```text
 for ID in QUEUE:
@@ -292,11 +310,12 @@ for ID in QUEUE:
     - preferred issue = ID
     - SELECTION_PIN = [ID]
     - FAST_MODE = false
+    - SHARED_DEV = false
     - RUN_ID = this identify RUN_ID
     - claimed-by: identify with this RUN_ID is this run, not foreign
     - Do not pick any other leaf
     - Dirty tree: do not discard unrelated files
-    - Same git contract as /solve (local dev, no push unless the user asked)
+    - Same git contract as /solve (local dev, WCP occupancy, no push unless the user asked)
   Identify must not write application source while the worker runs
   if that solve fails (implement / verify / merge):
     stop the queue
@@ -307,26 +326,6 @@ for ID in QUEUE:
   else:
     continue to the next ID
 ```
-
-If `FAST_ON_APPROVE` but not `FAST_OK`: warn once (overlap or platform
-conflict), then sequential.
-
-**Fast (`FAST_OK`):** one `general-purpose` subagent, `isolation: none`, `model: grok-4.6`:
-
-```text
-Read $SOLVE_SKILL_MD + fast-mode.md
-FAST_MODE = true
-SOLVE_COUNT_MODE = len(QUEUE)
-SELECTION_PIN = QUEUE (ordered)
-RUN_ID = this identify RUN_ID
-GUIDANCE_REQUIRED = true
-Do not refill outside SELECTION_PIN
-Treat identify claimed-by with this RUN_ID as this run
-```
-
-Identify still must not write application source. On fast worker hard-fail:
-release any QUEUE id this run claimed that was not started; leave in-flight
-leaves as solve left them.
 
 ### 7D. Release
 
@@ -347,7 +346,7 @@ Reuse solve’s single-issue or multi-issue summary shape, plus:
 ```markdown
 **Identify:** approved [id → id → …]
 **Claimed run:** <RUN_ID>
-**Mode:** sequential `/solve 1` | fast pin | pick-only
+**Mode:** parallel pin | sequential `/solve 1` (overlap) | pick-only
 **Solved:** …
 **Stopped early:** <ID + reason>
 **Still claimed (not solved):** …
@@ -367,7 +366,7 @@ Omit empty rows.
 | Present batch | No |
 | Reject | No |
 | Approve pick-only | No |
-| Approve + solve | **Yes** — JIT assign, In Progress, `claimed-by:` on the **next** id only |
+| Approve + solve | Sequential: **Yes** — JIT assign, In Progress, `claimed-by:` on the **next** id only. Parallel pin: nested `/solve` owns claims |
 | Nested `/solve` | Solve owns start-plan/closeout on that leaf |
 | Queue stop (unstarted claims) | **Yes** — `released:` + Backlog/Todo |
 | Parent epic | No claim; solve may comment if it expands |
@@ -392,7 +391,7 @@ Omit empty rows.
         ↓
      /tidy         (optional weekly)
         ↓
-   /identify     →  approve  →  /solve 1 per ID (or fast pin)
+   /identify     →  approve  →  nested `/solve` on the pin (parallel when overlap-free)
         ↓ reject
    next-best set
         ↓
@@ -410,6 +409,7 @@ Omit empty rows.
 - Padding the batch with Low/docs tickets to reach 4
 - Recommending an epic/parent shell
 - Claiming the whole batch before the first `/solve`
+- Nested `/solve 1` per id on an overlap-free queue of 2+ (use one parallel pin)
 - Leaving unsolved queue ids In Progress after a stop
 - Claiming or commenting on issues that were only scanned
 - Showing the approve prompt before upgrading thin members

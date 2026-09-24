@@ -3,10 +3,16 @@
 Canonical body:
 [`../../issue/references/issue-body-template.md`](../../issue/references/issue-body-template.md)
 
+Quality bar:
+[`../../issue/references/execution-ready-bar.md`](../../issue/references/execution-ready-bar.md)
+
 Taste / vague ideas:
 [`../../project-review/references/taste-to-concrete.md`](../../project-review/references/taste-to-concrete.md)
 
-User report = the walk observation. Append after the canonical `/issue` sections.
+User report = the walk observation. Omit `/issues` Batch metadata.
+
+Append after the canonical sections (before or after Review metadata — do not
+duplicate fields; if you also copy Review metadata, keep Lens/Surface aligned).
 
 ```markdown
 ## Walk metadata

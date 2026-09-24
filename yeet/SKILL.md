@@ -1,14 +1,16 @@
 ---
 name: yeet
 description: >
-  Quick-ship session work with no CI babysit: fetch origin/main into local
+  Quick-ship session work with no review babysit: fetch origin/main into local
   main, merge origin/main into local dev, commit leftover session files if
   needed, push origin/dev, open PR main ← dev, rebase-merge immediately
-  with --admin (do not re-push dev after merge). Apply additive production
-  migrations when the ship includes them; stop and ask on destructive schema.
-  Comment Linear and mark Done when ticket ids are known. Use when the user
-  runs /yeet or says "yeet it". Do not use for /prb, "push dev and PR to
-  main", "ship it", babysit, or careful CI-watched merges — those stay /prb.
+  with --admin (do not re-push dev after merge). Watch GitHub/Vercel **build**
+  of the ship SHA until Ready or Error (do not merge / do not claim complete
+  on Error). Apply additive production migrations when the ship includes them;
+  stop and ask on destructive schema. The WCP issue file is already the close
+  record. Do not call Linear. Use when the user runs /yeet or says "yeet it". Do not use
+  for /prb, "push dev and PR to main", "ship it", babysit, or careful
+  CI-watched merges — those stay /prb.
 argument-hint: "[--via-dev-pr] [--skip-migrations] [--no-commit]"
 ---
 
@@ -22,16 +24,18 @@ Ship **this session’s finished work now**. `/prb` is the careful path (deep lo
 4. Open or reuse PR **base `main` ← head `dev`**
 5. Apply additive production migrate when the ship includes migrations
 6. **Runtime proof** for in-scope ships ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)) — skip the `/prb` panel, **not** the proof
-7. Merge immediately (`gh pr merge --rebase --admin`)
-8. Sync local `main`. Do **not** re-push `dev` after merge.
-9. Linear comment + **Done** when ticket ids are known
+7. **Watch the GitHub/Vercel build of the `dev` SHA.** Error → do not merge.
+8. Merge immediately (`gh pr merge --rebase --admin`)
+9. Sync local `main`. Do **not** re-push `dev` after merge.
+10. **Watch the production build of the merge SHA.** Error → do not mark Linear Done; fix or report.
+11. Do not call Linear. Done tickets already live in `.WCP/issues/done/`. Production build Ready is the ship gate, not a tracker write.
 
 ## Operating contract
 
 - Integration branch is lowercase **`dev`**. Trunk is **`main`**. If this repo has no `dev` (local or `origin/dev`), **stop** — do not invent a branch.
 - **Never** `git push origin dev` until `git fetch origin`, local `main` matches `origin/main` (ff-only), and `origin/main` is an ancestor of local `dev`.
-- **WCP:** this skill is the human export ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; wait if live leases remain. **`unset WCP_AGENT` immediately before `git push origin dev`**. Do not commit `.WCP/`.
-- **No review gate. No CI wait. No babysit.** Merge as soon as the PR exists, **in-scope runtime proof** succeeded ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)), and migrate (if any) succeeded. `/yeet` does not run the `/prb` panel. It still must drive user-visible / auth / billing / API / schema / shared-helper ships.
+- **WCP:** this skill is the human export ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; wait if live leases remain. **`unset WCP_AGENT` immediately before `git push origin dev`**. Commit `.WCP/issues/`. Do not commit `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+- **No review gate. No `/prb` babysit** of bot comments. **Do wait for the ship build.** After the `dev` push, poll GitHub Actions `build` (or this repo’s compile job) and the Vercel preview for that SHA until success or failure (cap ~10 minutes). After merge, poll the Vercel **production** deploy (or GitHub `build` on `main`) the same way. Error → **do not merge** (preview/CI) or **do not claim complete / do not mark Linear Done** (production). `/yeet` does not run the `/prb` panel. It still must drive user-visible / auth / billing / API / schema / shared-helper ships ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
 - Merge with `gh pr merge --rebase --admin` so `main` lands on dev's already-pushed commits. If rebase is refused, `gh pr merge --merge --admin`. If `--admin` is denied, report the error and **stop**.
 - **One dev preview + one main production per ship.** dev's preview comes from the Phase 2 dev push (or from merging `--via-dev-pr` into dev). main's production comes from the dev→main merge. Never push dev again after that merge — a dev push of the merge commit starts a second dev preview for the same ship.
 - Default path is **direct on `dev`**. Do **not** open a feature-branch PR into `dev` unless `dev` is branch-protected or the user passed `--via-dev-pr`.
@@ -48,6 +52,7 @@ Ship **this session’s finished work now**. `/prb` is the careful path (deep lo
 | `--via-dev-pr` | Commit on a short `david/…` branch, PR into `dev`, merge that, then PR `dev` → `main` |
 | `--skip-migrations` | Do not run production migrate; loud warning that schema may lag |
 | `--no-commit` | Do not auto-commit; stop if the working tree has session changes that need a commit |
+| `--skip-build-watch` | Do not wait for GitHub/Vercel build; loud warning. Default is to watch. |
 
 Ignore unknown tokens after logging them.
 
@@ -69,6 +74,8 @@ Unrelated dirty paths (leave alone): `.cursor/hooks/**`, `.deepsec/`, local env 
 
 ## Phase 0.5 — Auto-commit (unless `--no-commit`)
 
+`wcp look --json` first ([`../docs/wcp.md`](../docs/wcp.md)). If a live source-file lease remains, wait or stop. Do not commit another writer's burst and do not stash it. Stage `.WCP/issues/` with the work. Do not stage `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+
 If the working tree has no session source changes, skip.
 
 If the dirty set looks **mixed or huge** (unrelated packages, generated junk mixed with edits, or you cannot tell what belongs to this session), **stop and ask**.
@@ -76,7 +83,7 @@ If the dirty set looks **mixed or huge** (unrelated packages, generated junk mix
 Otherwise:
 
 1. Stage only the session source files (and their tests). Never stage the ignore list above.
-2. Invent a short subject from the diff + a ticket id when known (`INV-123: …`). Do not ask for a subject unless the dirty set is ambiguous.
+2. Invent a short subject from the diff + a ticket id when known (`0123: …`). Do not ask for a subject unless the dirty set is ambiguous.
 3. Commit on local `dev` (or on the `--via-dev-pr` branch).
 4. Re-scan Linear ids from the new commit.
 
@@ -104,6 +111,7 @@ If ff-only on `main` fails, **stop**. If the `dev` merge conflicts, resolve full
 
 ```bash
 git checkout dev
+unset WCP_AGENT WCP_NAME_TOKEN
 git push -u origin dev
 ```
 
@@ -116,7 +124,7 @@ gh pr create --base main --head dev \
 ## Summary
 - <what this ship includes>
 
-Opened by `/yeet`. Merging immediately; no CI wait.
+Opened by `/yeet`. Merging after the ship build is green; no review babysit.
 EOF
 )"
 ```
@@ -136,6 +144,20 @@ After the PR exists (or before merge if the PR is reused), if `origin/main...dev
 1. Drive the real path. Visual parity if a ticket/session named a reference. Blast-radius run if shared/schema/auth.
 2. Fail → **do not merge**. Report what was unproven. Do not treat typecheck as a pass.
 3. Out of scope (docs-only, comments-only): skip; note `Runtime: n/a` in the report.
+
+## Phase 2.6 — Watch the `dev` SHA build (default)
+
+Do **not** merge until this passes. Skip only for docs-only / comments-only ships.
+
+Poll until **success or failure** (not until a 15-minute review window). Cap **10 minutes**. Do not watch Copilot/CodeRabbit/review comments. Do not wait for the GitHub **Test**/**Lint** steps — those are `/prb`. This phase is **compile/deploy**.
+
+1. `HEAD_SHA` = `origin/dev` after the Phase 2 push.
+2. **Vercel (required when the repo deploys there):** `vercel ls` / `vercel inspect <preview-url> --wait` for the Preview of `$HEAD_SHA`. **Error** is a fail. **Ready** is the pass.
+3. If GitHub Actions has a compile step (`bun run build` / `next build`) that failed on `$HEAD_SHA`, treat that as the same fail even if you have not seen Vercel yet — pull the TypeScript/log error.
+4. On **failure**: do **not** merge. Pull the failed build log, fix, commit on `dev`, push, re-watch. Do not mark Linear Done.
+5. On **timeout** with no conclusion: do **not** merge. Report the last status.
+
+`--skip-build-watch` (only if the user passed it): skip this phase; loud warning.
 
 ## Phase 3 — Migrate (when in ship)
 
@@ -166,18 +188,18 @@ Rebase-merge so `main` fast-forwards onto dev's already-pushed commits when it c
 
 Do not `reset --hard` if it would destroy unique local commits. If `--admin` fails, report the exact `gh` error and stop.
 
-## Phase 5 — Linear (when ids exist)
+## Phase 4.5 — Watch the production build (default)
 
-Authority for comment shape: `/prb` [`references/linear-ship-comments.md`](../prb/references/linear-ship-comments.md). Keep it short. Read-before-write: [`../docs/linear-comments.md`](../docs/linear-comments.md).
+Same rules as Phase 2.6, for **`$MERGE_SHA` on `main`**.
 
-For each id in `SHIP_LINEAR_IDS` that this ship implemented:
+1. Poll `vercel inspect` of the **Production** deployment for `$MERGE_SHA` until Ready or Error (cap ~10 minutes). GitHub compile-step failure on `main` is the same fail.
+2. **Error** → do **not** mark Linear Done. Fetch the log, fix on `dev`, ship again. Report **Build:** failed.
+3. **Ready** → continue to Phase 5.
+4. Timeout with no conclusion → do not Done; report last status.
 
-1. **`list_comments` first.** Skip if `/prb — shipped to production` or `/yeet` shipped already exists for this PR or merge SHA.
-2. Else comment: `/yeet` shipped — PR number + URL, merge SHA, migrate note (config **name** only).
-3. Mark **Done**.
-4. Skip ids still In Progress with a **foreign** live `claimed-by:` comment.
+## Phase 5 — Queue
 
-If Linear is down, dump the comment body in the user report. Do not fail the ship.
+Do not call Linear. If a shipped issue file is still `open` or `in-progress` and its work commit is in this ship, set `commit` and `status: done` and move it to `done/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Skip a file another agent holds under a live lease.
 
 ## Report
 
@@ -189,14 +211,17 @@ If Linear is down, dump the comment body in the user report. Do not fail the shi
 **PR:** #N — <url> (main ← dev)
 **Runtime proof:** driven `<path>` → `<observed>` | n/a | blocked
 **Merge:** merged @ <sha> | blocked (<reason>)
+**Build:** preview Ready @ <sha> · production Ready @ <sha> | failed (`<url>`) | timeout | skipped
 **Migrations:** none | applied production (`<config>`) | blocked | skipped
-**Linear:** Done on TEAM-123 | none | skipped foreign In Progress
+**Linear:** Done on TEAM-123 | none | skipped foreign In Progress | skipped (build failed)
 **Local:** main synced to origin/main; dev not re-pushed after merge
 ```
 
 ## Anti-patterns
 
-- Waiting for CI or starting a `/prb` babysit
+- Starting a `/prb` babysit of review-bot comments
+- Merging while Vercel preview/production (or `next build`) for the ship SHA is **Error** or still running
+- Marking Linear **Done** before the production build is Ready
 - Merging an in-scope ship because `/yeet` skips the review panel (proof is still required)
 - Opening a feature-branch PR into `dev` when not asked and `dev` is not protected
 - Pushing `dev` that does not contain `origin/main`

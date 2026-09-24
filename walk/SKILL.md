@@ -2,7 +2,7 @@
 name: walk
 description: >
   Walk every front-facing UI surface in the live app as a user, debug broken
-  interactions, and file every bug, idea, and improvement as solve-ready Linear
+  interactions, and file every bug, idea, and improvement as a solve-ready `.WCP/issues/` file
   issues. Use when the user runs /walk, says "walk the UI", "click through the
   app", "walk every screen", "front-facing UI audit", "debug the whole UI into
   Linear", or "file UI issues from a live walkthrough". Prefer this over
@@ -11,7 +11,9 @@ description: >
 argument-hint: "[--url URL] [--draft|--file] [--signed-out|--signed-in] [--no-epic] [--desktop-only|--mobile-only] [surface…]"
 ---
 
-# /walk — Live Front-Facing UI Walk → Linear Queue
+# /walk — Live front-facing UI walk → `.WCP/issues/`
+
+Do not call Linear. File leaves per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
 
 Act as a user **and** a debugger. Visit **every** front-facing screen, exercise
 it, and file **every** actionable bug, idea, and improvement as an atomic
@@ -57,7 +59,7 @@ If they already know the tickets → `/issue` or `/issues`.
 9. **Secrets.** Never put tokens, env values, connection strings, or Doppler
    secrets in Linear or candidate files.
 10. **Linear MCP.** `search_tool` then `use_tool`. Schemas first. Literal
-    newlines in markdown. Before every comment: `list_comments` on that issue
+    newlines in markdown. **Before every `save_comment`:** `list_comments`
     ([`../docs/linear-comments.md`](../docs/linear-comments.md)).
 
 ## Invocation
@@ -71,7 +73,7 @@ If they already know the tickets → `/issue` or `/issues`.
 /walk --no-epic
 /walk --desktop-only
 /walk --mobile-only
-/walk onboarding settings
+/walk studio directory
 /walk --url https://app.example.com onboarding
 ```
 
@@ -87,6 +89,7 @@ If they already know the tickets → `/issue` or `/issues`.
 | `--signed-in` | Prefer authenticated app chrome (still walk public entry) |
 | `--no-epic` | Flat leaves; no parent epic |
 | `--desktop-only` / `--mobile-only` | Skip the other viewport sample |
+| `full` / `all` | No surface bias (same as empty args) |
 | free text / paths | Surface bias — still inventory everything; walk named areas first, then the rest |
 
 ### Parsing order
@@ -95,7 +98,7 @@ If they already know the tickets → `/issue` or `/issues`.
 2. `--draft` / `--file`.
 3. `--signed-out` / `--signed-in` (last of the two wins; default = both if login is possible).
 4. `--no-epic`, `--desktop-only`, `--mobile-only`.
-5. Remainder = surface bias.
+5. Remainder = surface bias unless the remainder is only `full` and/or `all` (treat as no bias, same as empty args).
 
 Initialize:
 
@@ -136,7 +139,7 @@ Resolve companions (first hit):
 
 Set:
 
-- `ISSUE_SKILL_DIR` — Phase 1 team/project, body template
+- `ISSUE_SKILL_DIR` — Phase 1 team/project, body template, create gate, direction-conflict
 - `REVIEW_SKILL_DIR` — `references/board-sync.md`, `linear-filing.md`, `taste-to-concrete.md`, `issue-candidates.md`, `dependency-ordering.md`
 
 If **issue** is missing, still walk and draft; do not pretend Linear was filed
@@ -158,13 +161,14 @@ Linear during the walk.
    `/api/*`, webhooks, server-only, install-chrome unless the user sees it.
 4. Resolve Linear **team** and **project** using `/issue` Phase 1. Do not ask
    first. Ask once with candidates only if unresolved.
-5. Infer `LIVE_URL`: `--url`, README/deploy docs, then a local preview already
-   serving. If the app is down, start it with **this repo’s documented** start
-   command (`package.json` scripts, `AGENTS.md`, `startup.sh` if present).
+5. Infer `LIVE_URL`: `--url`, README/deploy docs, then local preview
+   (`http://127.0.0.1:8080` in Grok sandbox / `npm run dev` in this repo).
 6. Detect browser tools: chrome-devtools MCP, agent-browser, browser-use,
-   Playwright (or a repo smoke script if present). **If none can drive pages,
-   stop** and say `/walk` cannot run (suggest `/project-review` as code-only).
-7. Confirm the app is reachable. Wait until it responds. Leave it running.
+   Playwright / `scripts/browser-smoke.mjs`. **If none can drive pages, stop**
+   and say `/walk` cannot run (suggest `/project-review` as code-only).
+7. Confirm the app is reachable (`curl` health or document). If down, start it
+   with the repo’s documented start path (`startup.sh` / `scripts/with-doppler.sh npm run dev`)
+   and wait until it responds. Leave it running.
 8. Capture verification commands from `AGENTS.md` / package scripts for ticket bodies.
 9. Create scratch: `$TMPDIR/walk-$RUN_ID/` with `coverage.md`, `issue-candidates/`.
 10. Read `PROTOCOL_MD` and `KINDS_MD` before Phase 2.
@@ -231,17 +235,19 @@ Body = `/issue` template
 ([`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md))
 plus Walk metadata ([`references/walk-metadata.md`](references/walk-metadata.md)).
 
-Create gate (fail closed):
+Create gate (fail closed — same as `/issue` Phase 5A):
 
 - [ ] Code map paths exist now
-- [ ] Implementation notes name a concrete approach
+- [ ] Step-by-step plan ≥2 steps
+- [ ] File-by-file ≥1 real edit/create
 - [ ] AC checklist-testable
 - [ ] Verification uses this repo’s scripts
-- [ ] Drift check has ≥3 anchors
+- [ ] Drift check ≥3 anchors
 - [ ] Assumptions filled when the finding was an idea or thin
+- [ ] `## Occupancy (WCP)` primary write path filled (or explicit N/A)
 - [ ] Walk evidence: route + what you clicked/typed/saw
 - [ ] No secrets
-- [ ] Duplicate/conflict classified against the board snapshot; skip or note needs-you
+- [ ] Direction-conflict classified; retire plan or skip
 
 Failed gate → `blocked-thin` in handoff, keep draft on disk, do not file that leaf.
 
@@ -280,8 +286,7 @@ Priority map (same as project-review):
 | Ideas and minor improvements | `4` Low |
 
 Create sequence: epic (unless `--no-epic`) → leaves in order → `relatedTo` /
-`blockedBy`. Skip snapshot duplicates. If a finding fully contradicts an
-unstarted board ticket, note it in the handoff (do not file both).
+`blockedBy` → retire `retire_after_file` unstarted ids (direction-conflict.md).
 
 **Never:** assign, In Progress, Done, start comments, mass-cancel.
 
@@ -316,6 +321,7 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 | One board snapshot | Yes |
 | Per-finding Linear search | **No** |
 | Assign / In Progress / Done | **No** |
+| Targeted retire of unstarted contradictions | **Yes** (after create) |
 | Walk workers calling Linear | **No** |
 
 ---

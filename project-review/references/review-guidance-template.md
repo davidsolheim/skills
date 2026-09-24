@@ -53,7 +53,8 @@ Every candidate that may become a Linear leaf must eventually support:
 
 Authoritative templates (orchestrator expands thin worker drafts):
 
-- Issue body: skill `references/issue-template.md`
+- Issue body: `/issue` `references/issue-body-template.md` + review `references/issue-template.md` extras
+- Direction conflicts: `/issue` `references/direction-conflict.md` (offline classify; retire at publish)
 - Taste conversion: skill `references/taste-to-concrete.md`
 - Signal filter: skill `references/review-checklist.md` (bottom)
 

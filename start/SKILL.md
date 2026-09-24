@@ -30,12 +30,12 @@ local `dev`.
 
 - **Template:** [github.com/davidsolheim/next-starter-template](https://github.com/davidsolheim/next-starter-template). Do not invent a different stack. Do not mutate the template repo.
 - **Onboard:** greenfield always runs DEST `AGENTS.md` first-run after scaffold. Existing runs the same protocol only for **repair** gaps (marker still present, missing/wrong VISION/AGENTS/README/identity). Questionnaire SoT is DEST `AGENTS.md` — do not fork the question list into this skill.
-- **Linear default on:** create a Linear project for **this product** unless the existing repo already binds one (then reuse). Do **not** dump V1 onto an existing umbrella/platform board that belongs to another product.
+- **Queue default on:** write V1 leaves into `.WCP/issues/open/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not create a Linear project.
 - **Build default on:** nested `/solve all` of the V1 epic in DEST. Do not implement V1 yourself; do not skip build unless `--no-build` / `--docs-only` / `--draft` / Linear failed.
 - **V1 = VISION.md “V1” section**, not the whole future product. Starter auth/CMS/admin/contact already exist — do not re-ticket them unless they must change for this product.
 - **Git (greenfield):** fresh history (no template commits). `main` + lowercase `dev`. **Existing:** keep history; create `dev` if missing. No push/PR/deploy unless the user asks.
 - **Secrets:** Doppler names only. Never reuse the starter Doppler project or another product’s `DATABASE_URL`. Never commit `.env` values.
-- **Linear MCP:** `search_tool` then `use_tool`. If more than one Linear server is connected, use the one whose `list_teams` includes the resolved team. Literal newlines. **Before every `save_comment`:** `list_comments` ([`../docs/linear-comments.md`](../docs/linear-comments.md)).
+- **Queue:** write issues under `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear.
 - **Models:** every `spawn_subagent` sets `model: grok-4.6` ([`../docs/grok-models.md`](../docs/grok-models.md)).
 - **Onboard questions:** required by DEST `AGENTS.md` first-run when that marker is present or docs fail validate. Prefill from the brief, flags, and existing README/VISION. Ask only gaps. Never product-onboard the public template repo.
 
@@ -47,10 +47,10 @@ local `dev`.
 
 ```text
 /start
-/start a private directory for neighborhood swaps
-/start Acme App — neighbor-to-neighbor item listings
-/start --slug acme-app --team "Acme" brochure site for …
-/start --dir ~/src/foo-app …
+/start a private claims network for shops
+/start Acme App — merchant-to-merchant claim files
+/start --slug acme-app brochure site for …
+/start --dir $HOME/src/foo-com …
 /start --docs-only …
 /start --no-linear …
 /start --no-build …
@@ -63,12 +63,12 @@ local `dev`.
 | free text | Product brief (name, audience, V1) |
 | `--slug SLUG` | Repo / Doppler / package name (`acme-app`) |
 | `--dir PATH` | Destination directory (default `$HOME/src/<slug>`) |
-| `--team TEAM` | Linear team (else heuristic from dest docs / `list_teams`) |
+| `--team TEAM` | Linear team (else heuristic) |
 | `--docs-only` | Greenfield: scaffold + onboard. Existing: validate + repair docs. Stop (no Linear, no build) |
 | `--no-linear` | Skip Linear; still build from `VISION.md` V1 if not `--no-build` |
 | `--no-build` | Stop after docs (+ Linear unless disabled) |
 | `--draft` | Full plan + drafted Linear bodies in chat; do not create Linear; do not build |
-| `fast` / `--fast` | Nested `/solve all fast` for V1 |
+| `fast` / `--fast` | No-op. Nested `/solve all` is already parallel |
 
 ### Parse order
 
@@ -123,17 +123,7 @@ Existing + public template tree → stop (template maintenance, not product `/st
 - **Refuse both modes** if DEST is the public `next-starter-template` working tree.
 - Greenfield only: if the chosen path exists and is non-empty, **switch to `MODE=existing`** on that path (validate) instead of asking for a new folder — unless the user clearly wanted a **new** sibling project (then ask for another path).
 
-**Linear team** — [`references/linear-v1.md`](references/linear-v1.md) *Team*.
-
-User `--team` wins. Else:
-
-| Signal | Team | MCP |
-|--------|------|-----|
-| Named team in `--team` / brief | that team | Linear server whose `list_teams` includes it |
-| DEST `AGENTS.md` / `.linear-project` already names a team | that team | matching server |
-| Unspecified | first high-confidence `list_teams` match on dest/product name | matching server |
-
-`list_teams` to confirm. Ask once if two teams still fit. Do **not** default the Linear **project** to an existing umbrella/platform board.
+The work queue is `.WCP/issues/` in DEST ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or a Linear project.
 
 ---
 
@@ -147,7 +137,7 @@ Follow [`references/scaffold.md`](references/scaffold.md) end-to-end.
 
 After: dest exists, fresh git `main`, identity files retargeted (`package.json`, `doppler.yaml`), `bun.lock` kept, `.git` is **not** the template’s, template remote gone.
 
-Optional: `gh repo create` **private** under `$GH_USER/<slug>` (`GH_USER=$(gh api user --jq .login)`) only if `gh` is authenticated **and** the user asked to create a remote, or `--dir`/`BRIEF` named a GitHub repo to create. Default: local only.
+Optional: `gh repo create` **private** under `$GH_USER/<slug>` (`GH_USER=$(gh api user --jq .login)`) only if `gh` is authenticated **and** the user asked to create a remote. Default: local only.
 
 ### Existing
 
@@ -235,16 +225,17 @@ Prompt must include:
 - Workspace is **DEST** (the new repo)
 - Linear team + **this new project** only
 - `SOLVE_COUNT_MODE = all`
-- `FAST_MODE` = `FAST_BUILD`
+- `SHARED_DEV` = true (`/solve all` is shared-dev parallel; `FAST_BUILD` / `fast` is a no-op)
+- `FAST_MODE` = false (do **not** use worktrees)
 - `SELECTION_PIN` = V1 leaf ids in filing order (do not refill from other projects)
 - `RUN_ID` = this start run
 - `claimed-by: start` with this `RUN_ID` is this run
-- Git contract: local `dev`, no push unless the user asked
+- Git contract: local `dev`, WCP occupancy ([`../docs/wcp.md`](../docs/wcp.md)), no push unless the user asked
 - Runtime proof: [`../docs/prove-it-works.md`](../docs/prove-it-works.md)
 
 `/start` must not write application source while the nested solve runs.
 
-If `--no-linear` but build requested: implement V1 from `VISION.md` via `/implement` in DEST (same model/cwd rules), still on `dev`. Prefer Linear when it works.
+If `--no-linear` but build requested: implement V1 from `VISION.md` on local `dev` in DEST. Follow [`../docs/wcp.md`](../docs/wcp.md) and skill `water-cooler-protocol` for every edit (name yourself, lease pre-existing files, release before tests). Do not use bundled `/implement`. Prefer Linear plus nested `/solve` when Linear works.
 
 After drain: V1 leaves In Review on local `dev`. Do not mark Done. Do not `/prb`.
 
@@ -268,7 +259,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 - Leaving `<!-- first-run: starter-onboard -->` in DEST after Phase 3
 - Forking a second onboard questionnaire instead of DEST `AGENTS.md`
 - Skipping `VISION.md`
-- Filing V1 onto an existing umbrella/platform board or some other product’s project
+- Filing V1 into some other product’s checkout
 - Re-ticketing starter auth/CMS/admin as if they were missing
 - One mega “build the product” ticket
 - Implementing V1 in the `/start` orchestrator instead of nested `/solve`
@@ -285,7 +276,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 - About to `rm -rf` or rsync over a non-empty destination
 - About to `/start` product-onboard the public template repo
 - About to `doppler setup` against `next-starter-template`
-- About to file on an existing umbrella/platform board “because that’s where eng goes”
+- About to file on Platform “because that’s where eng goes”
 - About to skip Linear and also skip a vision V1 list
 - About to declare done after docs-only when the user did not pass `--docs-only`
 
@@ -306,6 +297,6 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 /start (empty dest)     → scaffold → AGENTS.md / VISION.md / README.md
 /start (existing dest)  → bones + docs validate → repair gaps
        → Linear V1 epic (reuse project if bound)
-       → nested /solve all [fast] in DEST
+       → nested /solve all in DEST
        → later /prb when the user wants main
 ```

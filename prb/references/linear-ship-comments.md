@@ -1,8 +1,6 @@
-# Linear ship comments (`/prb`)
+# Ship record (`/prb`)
 
-After work ships through `/prb`, **every Linear issue that was part of the ship**
-gets a short comment with PR + deployment evidence so anyone can see what went
-live and how to find it.
+Do not call Linear and do not post ship comments to an external tracker. `.WCP/issues/done/` files whose `commit` is in the ship are the record ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Commit those files with the work. The templates below are retired.
 
 Comment shape lives here. **Done after merge** is `SKILL.md` Phase 4.5.
 Read-before-write: [`../../docs/linear-comments.md`](../../docs/linear-comments.md).
@@ -33,7 +31,7 @@ Build `SHIP_LINEAR_IDS` (unique, sorted) from:
    git log origin/main..dev --pretty=%B
    # also after merge: git log <base>..<merge_sha> --pretty=%B
    ```
-   Match issue keys: `\b([A-Z][A-Z0-9]+-\d+)\b` (e.g. `TW-123`, `INV-45`, `BNF-9`).
+   Match issue keys: `\b([A-Z][A-Z0-9]+-\d+)\b` (e.g. `APP-123`). Issue files use ids like `0123`.
 2. **Branch names** for session issue branches merged into this ship (if still
    visible in merge commits).
 3. **PR body / title** if they already mention issue ids.
@@ -57,7 +55,7 @@ unless Linear tooling fails.
 ## Linear MCP
 
 1. `search_tool` for Linear comment tools on the correct server
-   (`linear`, or the workspace-specific Linear MCP server) matching the repo’s team.
+   (`linear`, `linear`, `linear`, …) matching the repo’s team.
 2. **Before every `save_comment`:** `list_comments` on that issue (recent first).
    Skip posting when a comment already covers this **moment + PR**:
    - Template A: heading `/prb — in ship` and this `PR_NUMBER`

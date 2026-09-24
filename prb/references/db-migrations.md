@@ -67,7 +67,7 @@ Read **in order** until you can fill the discovery table. Prefer the first clear
 | `DOPPLER_PREVIEW` | Optional: `preview` / `stg` if docs say migrate preview too |
 | `ENV_WRAPPER` | How secrets are injected: `doppler run --project X --config Y -- …`, script already wraps Doppler, or plain env |
 | `HISTORY_STORE` | e.g. Drizzle `__drizzle_migrations` / schema pin notes from README |
-| `FORBIDDEN` | Commands docs disable (e.g. kectil `db:push` / `db:push:force`) |
+| `FORBIDDEN` | Commands docs disable (e.g. `db:push` / `db:push:force`) |
 | `SEED_POLICY` | Content/seed scripts are **never** part of `/prb` migrate unless the user explicitly requests a named seed against a confirmed env |
 
 ### Common stack patterns (examples only — override with repo docs)

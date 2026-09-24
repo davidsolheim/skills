@@ -18,7 +18,7 @@ git status
 git branch -vv
 ```
 
-If unrelated dirty files exist, leave them alone. Do not stash/drop unless necessary and safe; prefer committing only your paths later.
+If unrelated dirty files exist, leave them alone. Do not stash them. The orchestrator commits only its own paths, and only when `wcp look` shows no live source-file lease.
 
 ### 2. Refresh main
 
@@ -65,20 +65,24 @@ Example: `feat/tw-341-profile-avatar`
 git checkout -b feat/tw-341-profile-avatar dev
 ```
 
-### 5. Commit on issue branch
+### 5. Commit (orchestrator only)
 
-After the implement→review loop and verification:
+The implementer does not commit and does not stash. After verification, the orchestrator:
+
+1. `wcp look`. If any source-file lease is live, wait. Do not commit and do not stash.
+2. On the issue branch, stage only this issue's paths.
+3. Commit. The subject includes the issue id.
 
 ```bash
 git add <only-relevant-paths>
 git commit -m "$(cat <<'EOF'
-TW-341: short imperative summary
+0123: short imperative summary
 
 EOF
 )"
 ```
 
-Include the issue id in the subject line.
+The issue file's `commit` field is written after this hash exists, then committed in a second commit while `wcp look` is still empty.
 
 ### 6. Merge into local dev
 
@@ -113,13 +117,30 @@ Confirm `git log --oneline -5` shows the merge/work on `dev`.
 - Issue branch merged (or ff’d) into **`dev`**
 - No requirement that `origin` knows about `dev` yet
 
-## Fast mode (`/solve … fast`) — parallel addendum
+## Shared-dev (default parallel) — no issue branches
 
-When `FAST_MODE` is true, follow [`fast-mode.md`](fast-mode.md). Git differences:
+When `SHARED_DEV` is true (default for `/solve N` / `/solve all` / `/solve today`
+unless `seq` or `worktree`), follow [`shared-dev.md`](shared-dev.md). Git differences:
+
+1. Orchestrator refreshes `main` → `dev` once (or per wave) and **stays on `dev`**.
+2. Workers run in the **same** working tree (`isolation: none`). No worktrees.
+   No `solve/<RUN_ID>/<ISSUE>` branches.
+3. Workers **do not commit and do not stash**. They lease paths with WCP ([`../../docs/wcp.md`](../../docs/wcp.md)).
+   They must not checkout, reset, stash, or restore sibling files.
+4. After **all** live workers finish, orchestrator combined-verifies, then
+   commits on `dev` only when `wcp look` shows no live source-file lease
+   (per-issue if paths partition; else one commit listing ids). The issue-file
+   update is the next commit, still with an empty board. Do not stage
+   `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+5. Still **no push** unless the user explicitly asked.
+
+## Worktree addendum (opt-in `worktree` only)
+
+When `FAST_MODE` is true (`worktree` / `--worktree` only), follow [`fast-mode.md`](fast-mode.md). Git differences:
 
 1. **Orchestrator** refreshes `main` → `dev` once (or per wave) in the **main workspace**.
 2. Each worker runs in an isolated **git worktree** (`spawn_subagent` `isolation: worktree`, **`model: grok-4.6`**) on a short-lived issue branch based at the **wave base** (`dev` tip when the wave started).
-3. Workers **commit only on the issue branch**. They never checkout/merge `dev` in a way that races the orchestrator.
+3. Workers **do not commit and do not stash**. They leave the worktree dirty. The orchestrator commits on the issue branch after the worker has exited. It does not commit the main workspace while that workspace's `wcp look` shows a live source-file lease, and it does not stash the main workspace to make the merge.
 4. Orchestrator integrates with the Subagent Worktree Protocol:
    - `git fetch <worktree_path> HEAD --no-tags`
    - record `commit_sha`; `git cat-file -t`

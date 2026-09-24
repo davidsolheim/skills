@@ -1,7 +1,10 @@
-# Linear Filing — Publish Pass & Policy
+# Publish pass
 
-Default: **file** solve-ready leaves so `/solve` has a real queue.  
-`--draft` or Linear failure → local markdown package only.
+**Do not call Linear.** Write each ready leaf into `.WCP/issues/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason`. There is no epic file. `--draft` keeps the local package and writes nothing.
+
+Any step below that says `save_issue`, team, project, or `blockedBy` means that file write instead.
+
+Default: **file** solve-ready leaves so `/solve` has a real queue.
 
 **Deep:** this is Phase D7 — publish **only** from cleaned local files.  
 **Fast:** same idea when using `issue-candidates/final/`; otherwise create from equivalent full drafts after cleanup.
@@ -135,7 +138,16 @@ For each `final/*.md` (or ordered final list from index) in Phase 6 / D6 order:
 2. Set `relatedTo` for `related_board` ids from offline match.
 3. If API requires update calls post-create, batch them cleanly.
 
-### D. Epic rollup note (optional)
+### D. Retire contradicted unstarted issues
+
+After the new leaf exists, for each `retire_after_file` id on that candidate:
+follow [`../../issue/references/direction-conflict.md`](../../issue/references/direction-conflict.md)
+**Retire**. Confirm unstarted (and no live foreign claim) with `get_issue` /
+`list_comments` on those ids only; skip a second superseded-by comment if one
+already exists. Skip if this leaf’s create failed.
+`--draft`: no status writes.
+
+### E. Epic rollup note (optional)
 
 If easy, update epic description with a bullet list of child identifiers. Not required for `/solve`.
 
@@ -193,9 +205,10 @@ Mode: fast
 ## What this skill must never do on Linear
 
 - Assign to self or others
-- Set In Progress / Done / Canceled on new leaves
+- Set In Progress / Done / Canceled on **new** leaves
 - Post “starting work” comments
-- Mass-edit or cancel pre-existing issues
+- Mass-edit or mass-cancel pre-existing issues
+- Skip targeted retire of unstarted full contradictions (`retire_after_file`)
 - Close the epic as Done (children incomplete)
 - Create from uncleaned `_inbox` dumps
 - Per-candidate board search during publish

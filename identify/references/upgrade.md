@@ -34,6 +34,7 @@ Treat as **ready** (no Linear write) when the body already has all of:
 - Verification commands that exist in this repo (`AGENTS.md` / package scripts)
 - Drift-check anchors (≥3)
 - An ordered plan or file-by-file change list
+- Occupancy (WCP) primary write path, or explicit N/A for docs-only
 
 Missing `## Intensity` alone does **not** make a ticket thin. When you **do** rewrite a thin ticket, stamp `## Intensity` per [`../../docs/intensity.md`](../../docs/intensity.md).
 

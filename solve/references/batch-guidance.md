@@ -2,9 +2,10 @@
 
 Canonical procedure for building the **batch guidance package** used by:
 
-- Sequential `/solve N` when `N ≥ 2`
-- Sequential `/solve all`
-- Any `/solve … fast` run (replaces/extends Phase F2 “architecture only” thinking)
+- `/solve N` when `N ≥ 2` (parallel by default; also `seq`)
+- `/solve all` and scoped drains (parallel by default; also `seq`)
+- `/solve today` and other `SHARED_DEV` runs (in-scope leaf set only)
+- Any parallel `/solve` run (replaces/extends Phase F2 “architecture only” thinking)
 
 Parent skill: [`../SKILL.md`](../SKILL.md)  
 Template: [`batch-guidance-template.md`](batch-guidance-template.md)  
@@ -32,7 +33,8 @@ Lowest-issue-number order is wrong when:
 | `/solve N` (`N ≥ 2`) | **Yes**, before first claim |
 | `/solve all` | **Yes**, before first claim |
 | `/solve` with `SCOPE` (implicit `all`) | **Yes**, on the in-scope leaf set only |
-| Any `fast` | **Yes** (F1 inventory + this analysis before workers) |
+| `/solve today` / any `SHARED_DEV` (default parallel) | **Yes**, on the in-scope leaf set only. File overlap is **WCP occupancy** (next wave), not Linear `blockedBy` |
+| Any parallel run (`N ≥ 2` / `all` / scoped, unless `seq`) | **Yes** (F1 inventory + this analysis before workers) |
 | `/identify` | **Thin** subset only — tag, skip full-obsolete, promote migrations when a conflict exists. No scratch files. No Linear writes. See identify `references/guidance.md`. |
 
 If S0 is not required, sequential mode may keep pure lowest-number selection.
@@ -196,13 +198,14 @@ Order: TEAM-123 → TEAM-200 → TEAM-80 (rescope)
 Skip: TEAM-67 (full supersede / abandoned platform)
 ```
 
-4. Proceed to claim/implement only non-skipped leaves in `order_rank` order (sequential) or wave order derived from the same ranks (fast).
+4. Proceed to claim/implement only non-skipped leaves in wave order derived from the same ranks (parallel default) or `order_rank` order (`seq`).
 
 ---
 
 ## Refill (mid-batch)
 
-After each successful Done (sequential) or merge wave (fast):
+After each successful merge to local `dev` (sequential leaf or parallel wave)
+or shared-dev combined commit:
 
 1. Re-list Linear for newly eligible leaves.
 2. If new leaves add platform conflicts or supersession edges, **patch** guidance + re-rank **remaining** only.
@@ -250,4 +253,4 @@ Required block whenever S0 ran:
 - Reopening Done tickets instead of overriding via the newer ticket
 - Canceling open tickets on low-confidence inference
 - Letting implementers “honor the original AC” against guidance
-- Skipping S0 on `/solve all` because fast mode “already has architecture.md”
+- Skipping S0 on `/solve all` because parallel mode “already has architecture.md”

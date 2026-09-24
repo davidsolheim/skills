@@ -26,13 +26,16 @@ A leaf is ready when:
 
 1. An implementer can mark it **Done** without waiting on undefined sibling work  
 2. Acceptance criteria are checklist-testable on their own  
-3. Code map points at a coherent primary package/app  
+3. Code map points at a coherent primary package  
 4. Title names **one** outcome  
+5. Body is **self-contained** for a cheap model (plan + file map + contracts; not “see L1”)  
+6. Scope fits one focused session (not a multi-day rewrite)
 
-Fail the test → split or rewrite.
+Fail the test → split or rewrite. Depth bar:
+[`../../issue/references/execution-ready-bar.md`](../../issue/references/execution-ready-bar.md).
 
-**Bad:** “Fix billing UI and migrate research jobs and clean docs”  
-**Good:** three leaves — billing UI, research job cutover, docs language.
+**Bad:** “Fix agents cost UI and migrate research to Perplexity and clean docs”  
+**Good:** three leaves — cost UI, Perplexity cutover, docs language.
 
 ---
 
@@ -67,7 +70,7 @@ Fail the test → split or rewrite.
 
 Use only when **B’s AC cannot be met until A is done**:
 
-- A adds a `tag_ids` column + API  
+- A adds `product_category_ids` column + API  
 - B builds multi-select UI that **requires** that field  
 
 Prefer soft ordering (file A first) when B could still ship a degraded path.
@@ -84,12 +87,12 @@ Create a parent when **all** of:
 
 Examples that **deserve** an epic:
 
-- “Billing cutover residual” with 4 related billing leaves  
-- “Tags cutover” foundation + UI + backfill  
+- “Student success residual” with 4 related student CRM leaves  
+- “Product categories cutover” foundation + UI + backfill  
 
 Examples that **do not**:
 
-- “Random leftover bugs” across `apps/web` and `packages/api`  
+- “Random leftover bugs” across app and services  
 - Two docs chores + one billing bug  
 
 `--no-epic` forces flat. `--epic "Title"` forces one parent for all creates.
@@ -98,7 +101,7 @@ Examples that **do not**:
 
 ## 5. Occupancy (WCP)
 
-`/solve` may run several leaves on one local `dev`. Exclusive file leases:
+`/solve` runs many leaves on one local `dev`. Exclusive file leases:
 [`../../docs/wcp.md`](../../docs/wcp.md).
 
 - Give each leaf **one primary write path** (and symbol). Put it in
@@ -115,14 +118,13 @@ Examples that **do not**:
 Never put two packages’ runtime work in one leaf unless the ticket is an
 explicit integration with AC on both sides.
 
-| Package (example) | Typical leaf prefix |
-|-------------------|---------------------|
-| `apps/web/` | web / dashboard / marketing routes |
-| `packages/api/` | API / handlers |
-| `packages/db/` | schema / migrations |
+| Package | Typical leaf prefix |
+|---------|---------------------|
+| `app/` | app / dashboard / CRM routes |
+| `services/` | Services |
+| `agents/` | Agents / Eve / company-research |
 
-Use the repo’s real paths and `AGENTS.md` language for titles and ownership.
-Do not invent product brand names that are not in the dump or docs.
+Respect package `AGENTS.md` language (e.g. do not brand app as “CRM”).
 
 ---
 
@@ -130,9 +132,9 @@ Do not invent product brand names that are not in the dump or docs.
 
 | Board match | Action |
 |-------------|--------|
-| Same AC / same surface open | **Skip create**; plan row = duplicate of `TEAM-n` (or real `PREFIX-n`) |
+| Same AC / same surface open | **Skip create**; plan row = duplicate of `TEAM-n` |
 | Overlapping but extra scope | Create; `relatedTo`; note delta in Summary |
-| This dump abandons old approach | Create; **Supersedes** full/partial on older ids |
+| This dump abandons old approach | Create; **retire** unstarted contradicted ids ([direction-conflict.md](../../issue/references/direction-conflict.md)); `## Supersedes` + board action |
 
 ---
 
@@ -154,12 +156,11 @@ and human scan order match the graph.
 Before file:
 
 ```text
-EPIC Billing cutover residual (optional)
-  L1 foundation  P2  Add invoice line-item schema
-  L2 feature     P2  Settings billing summary UI     related L1
-  L3 feature     P1  Webhook retry for payments      blockedBy: (none if parallel)
-  L4 chore       P3  Docs cleanup                    independent
+EPIC Student success residual (optional)
+  L1 foundation  P2  Verify data model residual
+  L2 feature     P2  Coach My View residual     related L1
+  L3 feature     P1  Engagement automation      blockedBy: (none if parallel)
+  L4 chore       P3  Docs cleanup               independent
 ```
 
-After create, replace `L#` with real Linear identifiers (`PREFIX-N`, e.g. `TEAM-…`)
-in relations and epic rollup.
+After create, replace `L#` with the issue id in `reason` and in the leaf body. There is no epic file.

@@ -23,7 +23,7 @@ Read **in order**:
 |-------|----------------|
 | `SHIP_BUILD_REQUIRED` | `yes` if AGENTS documents a required `/prb` ship build for this repo; else `no` |
 | `SHIP_BUILD_CMD` | Exact command (e.g. `bash scripts/build-mac-app.sh`) |
-| `SHIP_BUILD_OUTPUT` | Path of artifact (e.g. `dist/LeetBridgeMac.app`) — local only unless docs say commit it |
+| `SHIP_BUILD_OUTPUT` | Path of artifact (e.g. `dist/the desktop appMac.app`) — local only unless docs say commit it |
 | `SHIP_BUILD_TRIGGER` | Paths that force rebuild (default: `Sources/**`, `Apps/**`, `Package.swift`, `*.xcodeproj/**`, the build script) |
 | `SHIP_BUILD_SKIP` | User passed `--skip-ship-build` → skip with loud warning |
 
@@ -36,11 +36,11 @@ If `SHIP_BUILD_REQUIRED=no`, skip this reference (report `Ship build: n/a`).
 | Step | When | Action |
 |------|------|--------|
 | Inventory | Phase 0 | Fill discovery table from AGENTS |
-| Pre-push | After Phase 1.5 **clean** (or `--skip-review`), **before** Phase 1D `git push origin dev` | Run `SHIP_BUILD_CMD` when required |
+| Pre-push | After Phase 1.6 **passed** (or `n/a` / `--skip-local-compile`), **before** Phase 1D `git push origin dev` | Run `SHIP_BUILD_CMD` when required |
 | Babysit fix | After re-review clean, **before** re-pushing `dev` | Re-run if ship set still matches trigger paths |
 | Failure | Non-zero exit | **Do not push**; report build log tail |
 
-**Default for required projects (e.g. LeetBridge):** always rebuild when shipping commits on `dev`, even for small diffs, unless `--skip-ship-build`.
+**Default for required projects (e.g. the desktop app):** always rebuild when shipping commits on `dev`, even for small diffs, unless `--skip-ship-build`.
 
 Do **not** commit `dist/` unless the user explicitly asks and `.gitignore` is adjusted.
 

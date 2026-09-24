@@ -1,11 +1,10 @@
 ---
 name: tidy
 description: >
-  Hygiene pass on the current repo’s Linear project: upgrade thin issues to the
-  /issue bar, retitle and fix relations, roll up finished epics, mark
-  high-confidence duplicates/obsolete tickets, and set status when work is
-  already shipped (In Review if on origin/dev, Done only if on main). Skip any
-  issue tidied in the last 7 days unless /tidy --force or /tidy TEAM-123.
+  Hygiene pass on this repo's `.WCP/issues/` queue: upgrade thin issues to the
+  /issue bar, retitle, cancel high-confidence duplicates, block real
+  dependencies, and set `done` when a work commit already exists. Skip any
+  issue tidied in the last 7 days unless /tidy --force or /tidy 0123.
   Finish the board first, then one needs-you list. Skip live foreign claims.
   Track last pass via a Linear tidy-pass stamp plus a local ledger. Use when
   the user runs /tidy, /tidy --force, /tidy TEAM-123, says "tidy Linear",
@@ -14,9 +13,9 @@ description: >
 argument-hint: "[--force] [TEAM-123]"
 ---
 
-# /tidy — Linear board hygiene for the current project
+# /tidy — Queue hygiene for `.WCP/issues/`
 
-Inspect **this repo’s Linear project**. For every **due** issue: thicken thin
+Inspect **`.WCP/issues/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. For every **due** issue: thicken thin
 tickets, fix obvious titles/relations, close or duplicate high-confidence
 dead wood, roll up finished epics, and move status when the work is **already
 shipped**. Then **stop** with one needs-you list.
@@ -32,9 +31,7 @@ push, or open PRs.
   [`references/ledger.md`](references/ledger.md).
 - **Quality bar** = `/issue` (same as Identify upgrades). Do not invent a
   second template.
-- **Status** matches `/solve` + `/prb`: **In Review** if shipped to
-  `origin/dev` and not on `main`; **Done** only if merged to `origin/main`
-  (or the team’s trunk). Never Done from **local-only** work.
+- **Status** matches the queue: `done` when a work commit exists and acceptance is met. `canceled` for a high-confidence duplicate or obsolete ticket, with `reason`. `blocked` only for a real dependency. Do not invent In Review.
 - **High-confidence writes apply immediately**, including Cancel/Duplicate.
   Low-confidence closes are listed, not applied. Rules:
   [`references/actions.md`](references/actions.md).
@@ -44,8 +41,7 @@ push, or open PRs.
   questions; ask once at the end.
 - **No implement, no assign-for-solve, no `claimed-by:`.**
 - **Secrets:** env **names** only.
-- **Linear MCP:** `search_tool` then `use_tool`. Schemas first. Literal
-  newlines in markdown bodies.
+- **Do not call Linear.** Edit the issue files. Inventory is `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/` unless the user names that id. Skip a live lease held by someone else.
 
 ## Trigger phrases
 
@@ -90,9 +86,13 @@ Companions (first hit):
 | **solve** | `$TIDY_SKILL_DIR/../solve/SKILL.md` → `$HOME/.grok/skills/solve/SKILL.md` |
 | **identify upgrade** (optional) | `$TIDY_SKILL_DIR/../identify/references/upgrade.md` |
 
+Set `ISSUE_SKILL_MD`, `SOLVE_SKILL_MD`, `SOLVE_SKILL_DIR`. Inventory fetch
+lives in `$SOLVE_SKILL_DIR/references/eligibility.md`.
+
 If **issue** is missing, still do status/dup/rollup; skip body upgrades and
 mark those as not upgraded. If **solve** is missing, still skip anything with
-a live `claimed-by:` comment younger than 60 minutes.
+a live `claimed-by:` comment younger than 60 minutes; fall back to
+`$HOME/.grok/skills/solve/references/eligibility.md` for the inventory fetch.
 
 ---
 
@@ -109,37 +109,29 @@ a live `claimed-by:` comment younger than 60 minutes.
 
 ---
 
-## Phase 1 — Resolve Linear team and project
+## Phase 1 — Queue
 
-Same automatic order as `/issue` Phase 1. Read `$ISSUE_SKILL_MD` and follow
-it. Ask **once** only if unresolved.
+The board is `.WCP/issues/` in this checkout. Do not resolve a team or project.
 
 ---
 
 ## Phase 2 — Inventory
 
-1. `list_issues` for the team/project. Page until complete.
-2. Include open/actionable states **and** In Review / Blocked / In Progress.
-   Terminal Done/Canceled/Duplicate are **not** tidy targets (except as
-   evidence that an epic’s children are terminal).
-3. Load comments on candidates that might have `tidy-pass:` or `claimed-by:`.
-   Prefer listing comments only when the local ledger has no fresh stamp
-   **or** you need claim detection (In Progress).
-4. Load the local ledger ([`references/ledger.md`](references/ledger.md)).
-   **Linear `tidy-pass:` comment wins** when both exist.
+If `PINNED_ID` is set: open that issue file only. If it is `done` or `canceled`, report that and **stop**.
+
+Otherwise list `open/`, `in-progress/`, and `blocked/`. Skip a live lease held by someone else. Load the local ledger ([`references/ledger.md`](references/ledger.md)) for the 7-day cooldown. Do not call Linear.
 
 ### Due vs skip
 
 | Condition | Action |
 |-----------|--------|
-| `PINNED_ID` set and this is not that issue | Ignore (out of scope) |
+| `PINNED_ID` set and this is not that issue | Ignore (out of scope; never listed) |
 | Live foreign `claimed-by:` (< 60 min, different run) or In Progress assigned to someone else | **Skip claimed** — no writes, no stamp |
 | Last `tidy-pass` < 7 days and not `FORCE` and not pinned | **Skip cooldown** |
 | Else | **Due** |
 
-If `PINNED_ID` is set, the due set is that one issue (unless claimed-skip).
-
-If nothing is due: report counts (cooldown / claimed / terminal) and **stop**.
+If nothing is due: report counts (cooldown / claimed) and **stop**. Do not
+count Done/Canceled by listing the whole project.
 
 ---
 
@@ -177,6 +169,8 @@ needs-you). Do **not** stamp claimed-skips or cooldown-skips.
 After the due set is processed, write:
 
 1. A `tidy-pass:` comment on each processed issue (see ledger.md).
+   `list_comments` first; skip a second stamp if this `RUN_ID` already posted
+   `tidy-pass:` today.
 2. The local ledger file (create parent dirs). Merge with previous entries.
 
 ---
@@ -235,8 +229,9 @@ close). Do **not** re-scan the whole board unless they run `/tidy` again.
 | Skill | Difference |
 |-------|------------|
 | `/tidy` | Board hygiene + stamps. No implement |
+| `/stat` | Read-only briefing of the open board; no writes |
 | `/issue` | Quality bar + team/project resolution |
-| `/identify` | Picks 2–4 to **solve**; upgrades only that batch; waits to approve implement |
+| `/identify` | Picks a small batch to **solve**; upgrades only that batch; JIT-claims on approve |
 | `/solve` | Implements; claim protocol Tidy must not fight |
 | `/prb` | Done after merge to `main` — Tidy may set Done only with the same evidence |
 
@@ -265,3 +260,6 @@ close). Do **not** re-scan the whole board unless they run `/tidy` again.
 - Stamping cooldown on an issue you skipped
 - Inventing a second quality template instead of reading `/issue`
 - Claiming or assigning as if this were `/solve`
+- `list_issues` for team/project with no `state` (dumps Done/Canceled; truncates)
+- Posting a Linear comment without `list_comments` first (duplicate tidy-pass / evidence)
+- Tidying or stamping Done / Canceled / Duplicate issues as if they were due

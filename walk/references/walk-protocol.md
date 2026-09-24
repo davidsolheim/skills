@@ -55,10 +55,10 @@ Use the first tool that can **navigate, click, type, and read console**:
 1. chrome-devtools MCP
 2. agent-browser (`snapshot -i`, click/fill, `console`, `errors`)
 3. browser-use
-4. Playwright (a repo smoke script is load-only if it only screenshots —
-   extend with a real script or MCP; a single screenshot is not enough)
+4. Playwright (workspace `scripts/browser-smoke.mjs` is load-only — extend with
+   a real script or MCP; a single screenshot is not enough)
 
-Reconnect/reload once on a first-load timeout or stale-deps 504. Then continue.
+Reconnect/reload once on first-load 504 / stale optimize-dep. Then continue.
 
 Viewport defaults: **1280×800** (desktop) and **375×812** (mobile). Primary
 journeys get both unless `--desktop-only` / `--mobile-only`.

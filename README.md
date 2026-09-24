@@ -8,9 +8,9 @@ Public, portable **[Grok](https://x.ai/)** agent skills used by [David Solheim](
 | **Site** | [davidsolheim.com](https://davidsolheim.com) |
 | **X** | [@davidtsolheim](https://x.com/davidtsolheim) |
 | **Repo** | [github.com/davidsolheim/skills](https://github.com/davidsolheim/skills) |
-| **Audience** | Anyone running agent-driven engineering with Linear + git |
+| **Audience** | Anyone running agent-driven engineering with git and a local issue queue |
 
-These packages are **sanitized for open use**: no client brands as required defaults, no home-directory install paths, no private monorepo package names. Linear team/project resolution is always driven by *your* repo (`AGENTS.md`, `.linear-project`, etc.).
+These packages are **sanitized for open use**: no client brands as required defaults, no home-directory install paths, no private monorepo package names. Work is tracked in `.WCP/issues/` in the checkout ([`docs/wcp-queue.md`](./docs/wcp-queue.md)). The skills do not call Linear.
 
 ---
 
@@ -18,9 +18,9 @@ These packages are **sanitized for open use**: no client brands as required defa
 
 Most agent “prompts” either stay private or leak the author’s machine and clients. This repo publishes a **repeatable delivery loop** as installable skills:
 
-1. **Start** a product from [next-starter-template](https://github.com/davidsolheim/next-starter-template) (`/start`): scaffold or validate, onboard docs, Linear V1, nested `/solve` on local `dev`.
+1. **Start** a product from [next-starter-template](https://github.com/davidsolheim/next-starter-template) (`/start`): scaffold or validate, onboard docs, file V1 leaves in `.WCP/issues/`, nested `/solve` on local `dev`.
 2. **Discover** what’s missing, broken, or inconsistent (`/project-review`), **walk** every front-facing screen (`/walk`), or **file** tickets from a human description (`/issue` / `/issues`).
-3. **Tidy** the Linear board (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open board urgent-first with `/stat` (read-only; not a solve batch).
+3. **Tidy** the `.WCP/issues/` queue (`/tidy`): thicken thin tickets, close shipped work, stamp a weekly cooldown. **Look** at the open queue urgent-first with `/stat` (read-only; not a solve batch).
 4. **Identify** a small high-value batch of open tickets, upgrade thin ones, and wait for approve (`/identify`).
 5. **Solve** the approved tickets onto a long-lived local `dev` branch with cheap construction (one implementer; `/prb` is the deep review).
 6. **Ship** with `/prb` (review panel, scratch-file fixer, CI babysit, migrate, merge) or `/yeet` (immediate merge, no babysit; still runtime-proof in-scope ships).
@@ -34,11 +34,11 @@ The skills assume a professional full-stack product shop—not a single demo app
 ```text
   idea / new product / “audit this product”
         │
-        ├─► /start           ──► scaffold or validate starter → onboard → Linear V1
+        ├─► /start           ──► scaffold or validate starter → onboard → V1 files in .WCP/issues/
         │                          → nested /solve all on local `dev`
         ├─► /project-review  ──► agent invents findings → many solve-ready tickets
         ├─► /walk            ──► live UI click-through → every bug/idea/improvement
-        ├─► /issue           ──► one Linear ticket (deep code map + AC)
+        ├─► /issue           ──► one .WCP/issues/ file (deep code map + AC)
         └─► /issues          ──► many tickets from a human dump
         │
         ▼
@@ -64,15 +64,15 @@ The skills assume a professional full-stack product shop—not a single demo app
 
 | Skill | Role | Default git effect |
 |-------|------|--------------------|
-| [`start/`](./start/) | Greenfield scaffold **or** existing-repo bones/docs validate+repair → Linear V1 → nested `/solve` | Local `main` + `dev` (no push unless asked) |
-| [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic Linear queue | None (no commit / PR) |
+| [`start/`](./start/) | Greenfield scaffold **or** existing-repo bones/docs validate+repair → V1 files in `.WCP/issues/` → nested `/solve` | Local `main` + `dev` (no push unless asked) |
+| [`project-review/`](./project-review/) | Agentic audit: invent findings, file atomic `.WCP/issues/` files | None (no commit / PR) |
 | [`walk/`](./walk/) | Live front-facing UI walk: debug every screen, file every finding | None (no commit / PR) |
-| [`issue/`](./issue/) | Rapid intake: one description → one Linear issue | None (no commit / PR) |
+| [`issue/`](./issue/) | Rapid intake: one description → one `.WCP/issues/` file | None (no commit / PR) |
 | [`issues/`](./issues/) | Bulk intake: dump → many atomic tickets | None |
-| [`tidy/`](./tidy/) | Board hygiene: upgrade, relations, rollup, high-confidence close, shipped status | None (Linear only) |
-| [`stat/`](./stat/) | Read-only briefing of the open Linear board, urgent → least | None |
+| [`tidy/`](./tidy/) | Queue hygiene: upgrade, relations, high-confidence cancel, shipped status | None (issue files only) |
+| [`stat/`](./stat/) | Read-only briefing of the open `.WCP/issues/` queue, urgent → least | None |
 | [`identify/`](./identify/) | Human-approved batch: rank open leaves, upgrade thin tickets, claim on approve, start `/solve` | None until approve, then same as `/solve` |
-| [`solve/`](./solve/) | Pick next unblocked leaf(s), cheap construction, land on **local `dev`** | Local only |
+| [`solve/`](./solve/) | Pick next unblocked leaf(s), cheap construction, orchestrator commits on **local `dev`** when no source-file lease is live | Local only |
 | [`prb/`](./prb/) | Intensity-selected grok-4.6 review gate + scratch fixer, then ship `dev` to **origin** and merge to **main** when green | Local fixes + push + PR + merge |
 | [`yeet/`](./yeet/) | Quick ship: push `dev`, PR into `main`, merge immediately (no panel / no CI wait). In-scope runtime proof still required | Push + PR + merge |
 
@@ -117,12 +117,12 @@ These skills are intentionally portable, but they were shaped around the stacks 
 | Hosting | **Vercel** (preview + production) |
 | Secrets | **Doppler** (or Vercel env / `.env.local` for local only)—skills never commit secrets |
 | CI | GitHub Actions + `gh` CLI for PRs, checks, and merge |
-| Project tracking | **Linear** (MCP tools: list/create/update issues, comments, projects) |
+| Project tracking | **`.WCP/issues/`** in the checkout ([`docs/wcp-queue.md`](./docs/wcp-queue.md)) |
 | Agent runtime | **Grok Build**. Subagents are **Grok-only** (`grok-4.6` default, `grok-4.5` for explore fan-out) — see [`docs/grok-models.md`](./docs/grok-models.md) |
 
 ### Agent & delivery tooling
 
-- **Linear MCP** for ticket lifecycle (`/start` product project + V1 epic, `/issue`, `/issues`, `/project-review`, `/walk` UI findings, `/tidy` hygiene + stamps, `/stat` read-only briefing, `/identify` upgrades + claims, `/solve` closeout comments).
+- **`.WCP/issues/`** for ticket lifecycle (`/start` V1 leaves, `/issue`, `/issues`, `/project-review`, `/walk`, `/tidy`, `/stat`, `/identify`, `/solve` closeout). Do not call Linear.
 - **Git** with a durable local `dev` integration branch; short-lived issue branches per ticket.
 - **Cheap construction** under `/solve` (one `solve-implementer`; optional bug-only inner review on heavy/critical). Standalone `/implement` is separate.
 - **Browser / preview URL** optional for `/project-review`; **required** for `/walk` (agent-browser, Chrome DevTools, etc.).
@@ -426,7 +426,7 @@ My Product Launch
 ## Design principles
 
 1. **Portable** — work from any skills install path; references are skill-relative (`references/…` or `$SOLVE_SKILL_DIR`).
-2. **Repo-driven** — Linear boards, migrate commands, and stack choices come from the **consumer** repo.
+2. **Repo-driven** — the issue queue, migrate commands, and stack choices come from the **consumer** repo.
 3. **No PII / no private clients** — public packages must not require inventRight, personal home paths, or internal product codenames.
 4. **Local `dev` first** — `/solve` stops at local integration; humans (or `/prb` / `/yeet`) control origin and production.
 5. **Discovery over invention** — especially migrations and hoster CLIs: read the project; do not invent `db:push` to prod.
@@ -486,7 +486,8 @@ My Product Launch
     ├── grok-models.md
     ├── linear-comments.md
     ├── rfc-multiplayer-linear.md
-    └── wcp.md               # how /solve /issues /prb use WCP
+    ├── wcp.md               # how /solve /issues /prb use occupancy
+    └── wcp-queue.md         # how skills read and write .WCP/issues/
 ```
 
 ---

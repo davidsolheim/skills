@@ -1,44 +1,53 @@
-# WCP in these skills
+# WCP for these skills
 
 Occupancy for many coding agents on one local `dev` checkout.
-Spec: [watercoolerprotocol.com](https://watercoolerprotocol.com).
+Spec: [watercoolerprotocol.com](https://watercoolerprotocol.com) /
+[PROTOCOL.md](https://github.com/davidsolheim/water-cooler-protocol/blob/dev/PROTOCOL.md).
 Player verbs: skill `water-cooler-protocol`.
 
-This file is how `/solve`, `/issues`, `/issue`, `/identify`, `/start`, `/prb`,
-and `/yeet` use that protocol. Do not fork the verbs here.
+This file is how every skill that edits a checkout uses that protocol:
+`/solve`, `/issues`, `/issue`, `/identify`, `/start`, `/prb`, `/yeet`,
+`/project-review`, `/walk`, `/tidy`, `/human-copy`, `/vercel-flags`,
+TypeSafe, composition refactors, `/implement`, and `/execute-plan`.
+Do not fork the verbs here.
 
 ## What occupancy is
 
-A lease is an edit burst on **one path**. One agent per path. One live path per
-agent. Release the instant bytes are on disk — before tests, thinking, or
-waiting. Drift is other workers. Never rewind the tree.
+A lease is an edit burst on **one pre-existing path**. One agent per path.
+One live path per agent. Write the test first; do not claim the test file.
+Write a new file directly; do not claim it. Claim only a file that was already
+in the tree when the run started, and only after a test names that path.
+Release the instant bytes are on disk — before tests, thinking, or waiting.
+Drift is other workers. Never rewind the tree.
 
-Linear `blockedBy` is product dependency. WCP is file occupancy. Sharing a file
-does not mint `blockedBy`.
+A ticket that must not be claimed yet moves to `.WCP/issues/blocked/` with `reason` set. Sharing a source file does not block a ticket. File overlap waits for the next wave.
 
 ## Who loads it
 
 | Actor | Duty |
 |-------|------|
-| `/solve` orchestrator | Start the run (`wcp init` / `wcp start --arch`). Assign ids. Prefer disjoint primary paths when several writers share one tree. Combined verify + commit. Never implement app source. Never push. |
-| `/solve` implementer | Player skill. `export WCP_AGENT`. look → acquire → write-ok → re-read disk → edit → release. Tests first. |
+| `/solve` orchestrator | Start the run (`wcp init` / `wcp start --arch`). Do not assign ids. Prefer a disjoint-path wave. Combined verify, then commit on `dev` only when `wcp look` shows no live source-file lease. Never implement app source. Never push. Never stash a live burst. |
+| `/solve` implementer | Player skill. `wcp name <id>`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. Write the test (no claim), write new files (no claim), then look → acquire --test → write-ok → re-read disk → edit → release for files that already existed. Do not commit. Do not stash. |
 | `/prb` fixer | Same player verbs on local `dev`. |
-| `/issue` `/issues` `/project-review` `/walk` `/tidy` `/identify` upgrade | Fill **Occupancy (WCP)** on each leaf. Prefer disjoint primary write paths. No app writes. |
-| `/prb` `/yeet` push | Human export to `origin/dev`. Unset `WCP_AGENT` before `git push`. |
+| `/issue` `/issues` `/project-review` `/walk` `/tidy` `/identify` `/stat` | The tracker is `.WCP/issues/` ([`wcp-queue.md`](wcp-queue.md)). Fill **Occupancy (WCP)** on each leaf. Do not call Linear. |
+| `/prb` `/yeet` push | Human export to `origin/dev`. `wcp look` before commit and before push. Unset `WCP_AGENT` and `WCP_NAME_TOKEN` before `git push`. |
+| Any other builder on this checkout (`/human-copy`, `/vercel-flags`, `/start`, TypeSafe, composition refactors, `/implement`, `/check-work` fixes) | Same player turn as an implementer. Release before tests or the next thought. Do not commit and do not stash. The session that owns the checkout commits when `wcp look` shows no live source-file lease. |
+| `/execute-plan` | Implementers stay in their own worktrees. Do not put those worktrees on the shared checkout's board. Orchestrator edits on the shared tree use the player turn. |
 
-Worktree `/solve` (`fast` / `--fast` in this pack) is a different isolation.
-WCP is one live checkout. Do not run one WCP board across worktrees.
+Worktree `/solve` (`worktree` / `--worktree`) is a different isolation. WCP is
+one live checkout. Do not run one WCP board across worktrees.
 
 ## Binary
 
 ```bash
 WCP_BIN="$(command -v wcp || true)"
+if [ -z "$WCP_BIN" ] && [ -x "$HOME/src/water-cooler-protocol/dist/wcp" ]; then
+  WCP_BIN="$HOME/src/water-cooler-protocol/dist/wcp"
+fi
 ```
 
-If missing: put `dist/wcp` from
-[water-cooler-protocol](https://github.com/davidsolheim/water-cooler-protocol)
-on `PATH`, or honor-system (no rewind, no agent push, no overwrite of a path
-another worker holds). Report once. Do not abort `/solve`.
+If `WCP_BIN` is missing: honor-system still applies (no rewind, no agent push,
+no overwrite of a path another worker holds). Report once. Do not abort `/solve`.
 
 ## Orchestrator: start a run
 
@@ -55,56 +64,76 @@ After checkout is on local `dev`, before the first implementer write:
 run id, or the single-issue title. The orchestrator may `init` / `start`.
 Workers never `set-arch` or `stop`.
 
+Then read `.WCP/issues/open/` and `.WCP/issues/in-progress/`. Reclaim expired
+tickets (player skill, Issues). Do not copy the backlog onto `RUN.md`. If the
+queue directories are missing and this run needs a queue, create `open/`,
+`in-progress/`, `done/`, `canceled/`, and `blocked/`, and one issue from `arch` only.
+Search `.WCP/issues/canceled/` and `.WCP/issues/blocked/` before filing the same work again. Cancel and block in
+the issue file with `reason` set (player skill, Cancel and Block). Do not claim a blocked ticket.
+
+Assign WCP work from `.WCP/issues/open/` only. One ticket per agent unless the user
+says otherwise. Do not claim a directory. A ticket lease is not a source-file
+lease. Do not call Linear, GitHub Issues, or Notion. Skill filing, solving,
+status, tidy, and ship all use this queue ([`wcp-queue.md`](wcp-queue.md)).
+
 Do not `wcp stop` at the end of `/solve` (other writers may still be on the
 tree). `/prb` / `/yeet` may stop a run only when this checkout is the ship
 and `look` shows no live leases.
 
 ## Agent ids
 
-`WCP_AGENT` matches `^[a-z0-9][a-z0-9._:-]{0,63}$`.
+The worker names itself. `WCP_AGENT` matches `^[a-z0-9][a-z0-9._:-]{0,63}$`.
 
-| Role | Id |
-|------|----|
-| Implementer for `TEAM-331` | `team-331` |
-| Collision on that id | `team-331-b` |
-| `/prb` fixer | `prb-fix` |
-| Sequential `/solve 1` | same issue id |
+```bash
+wcp name issue-123 --json
+export WCP_AGENT=<agent>
+export WCP_NAME_TOKEN=<token>
+```
 
-Prompt: `you are <id>`. Worker exports it and does not invent a second id.
+Prefer the issue id lowercased. On `name_taken`, use `issue-123-b`. A `/prb` fixer prefers `prb-fix`. Do not rename after the token is exported.
 
 ## Implementer turn
 
 Load skill `water-cooler-protocol`. Then:
 
 ```
+wcp name <id> --json
+# export WCP_AGENT and WCP_NAME_TOKEN
 wcp look --json
-# tests first — acquire the test path, write, release
-wcp acquire --path <file> --doing "<burst>" --scope "<symbol>" --json
-wcp write-ok --path <file> --json
+# queue: read .WCP/issues/open and in-progress; claim in the file (skill Issues). Do not acquire it.
+# tests first — write the test, do not acquire it
+# // WCP <id>: <existing-path> <what it proves> (<arch>)
+# new file: write it, no acquire
+wcp acquire --path <existing-file> --test <test-file> --doing "<burst>" --scope "<symbol>" --json
+wcp write-ok --path <existing-file> --json
 # re-read that file from disk, edit, flush
 wcp release --json
 # run YOUR tests only
 ```
 
-First line of a new test: `// WCP <id>: <what it proves> (<arch>)`
-(`# WCP` / `-- WCP` in other languages). Prefer a per-slice test file.
+Test line: `// WCP <id>: <path> <what it proves> (<arch>)`
+(`# WCP` / `-- WCP` in other languages). The path is the existing file you will claim. Prefer a per-slice test file.
 
 Conflict and `write-ok` errors: skill `water-cooler-protocol` +
 `references/playbook.md`. Overtake only to finish idle work. Never
 `git reset --hard`, `git checkout --`, or restore a sibling’s file.
 
-## Parallel writers on one tree
+## Parallel `/solve` (shared-dev)
 
-When several `/solve` workers share one `dev` working tree (`isolation: none`):
+Workers share one `dev` tree (`isolation: none`). Occupancy is WCP.
 
 1. Inventory primary write paths from each leaf’s Occupancy / code map.
-2. Launch a **disjoint-path** ready set.
+2. Launch a **disjoint-path** ready set up to `CONCURRENCY` (host cap 32;
+   WCP operating point is about 8–20 writers on disjoint files).
 3. A leaf whose primary path collides with a live wave-mate waits for the
    next wave. That is occupancy, not Linear `blockedBy`.
 4. If the whole remaining set is one hotspot, launch **one** writer.
-5. Workers still look/acquire/write-ok/release.
-6. After the wave, orchestrator verifies (full green is this gate, not a held
-   lease). Then commit on `dev`. Still no push.
+5. Workers still look/acquire/write-ok/release on pre-existing files. Tests and new files are written with no claim. A surprise collision follows
+   the player conflict order (retarget / overtake idle / pick another path).
+6. After the wave, orchestrator combined-verifies (full green is this gate,
+   not a held lease). Workers have released every source-file lease.
+   `wcp look` must show none live. Then the orchestrator commits on `dev`.
+   Do not stash to clear the index. Still no push.
 
 ## Intake (tickets)
 
@@ -121,6 +150,8 @@ Agents do not push `origin/dev`. These skills **are** the export.
 
 1. `wcp look --json` — if live leases remain, wait or report; do not push
    through a burst.
-2. Fixer writes use player verbs (`WCP_AGENT=prb-fix`).
-3. Before `git push origin dev`: `unset WCP_AGENT` (hooks refuse push while
-   it is set). Do not commit `.WCP/`.
+2. Fixer writes use player verbs. It names itself, preferring `prb-fix`.
+3. `wcp look --json` before an auto-commit as well. If a source-file lease
+   is live, wait. Do not commit that burst and do not stash it.
+4. Before every `git push` (`origin dev` or any other remote): `unset WCP_AGENT WCP_NAME_TOKEN`
+   (hooks refuse push while `WCP_AGENT` is set). Commit `.WCP/issues/`. Do not commit `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.

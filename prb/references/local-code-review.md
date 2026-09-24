@@ -10,9 +10,9 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 
 | Rule | Detail |
 |------|--------|
-| **When** | After Phase 1 (1A–1C). **Before** Phase 1D push and Phase 2 PR. |
+| **When** | After Phase 1 (1A–1C). **Before** Phase 1.6 compile/tests, Phase 1D push, and Phase 2 PR. |
 | **Pass** | Zero **actionable** findings on `origin/main...dev` **and** runtime proof for in-scope ships ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)). |
-| **Fail / block** | Actionable findings remain after `--max-fix-cycles` (default 2), or the fixer / thoroughness agent cannot complete. **Do not push. Do not open a PR.** |
+| **Fail / block** | Actionable findings remain after `--max-fix-cycles` (band default in [`../../docs/intensity.md`](../../docs/intensity.md)), or the fixer / thoroughness / security / challenge agent cannot complete. **Do not push. Do not open a PR.** |
 | **Skip** | Only with explicit `--skip-review`. Loud warning in the final report. Never invent skip. |
 | **Fixes land on** | **Local `dev` only.** No `git push` inside the closed loop. |
 | **Trunk still required** | This gate does **not** replace merge-of-`origin/main`. If `origin/main` moves mid-loop, re-fetch and re-merge into local `dev` before re-review or push. |
@@ -23,10 +23,10 @@ Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This fil
 
 | Flag | Effect |
 |------|--------|
-| `--skip-review` | Skip entire gate + closed loop. Dangerous. Explicit only. |
-| `--exhaustive-review` | After a clean first panel, run **one** more panel pass hunting for issues not already listed (default **on only for critical ships**). |
+| `--skip-review` | Skip entire gate + closed loop. Dangerous. Explicit only. Does **not** skip Phase 1.6 compile/tests. |
+| `--exhaustive-review` | After a clean first panel, run **one** more panel pass hunting for issues not already listed (default **on** for every non-light ship). |
 | `--no-exhaustive` | Exactly one panel pass per cycle (still blocks on any actionable findings found). |
-| `--max-fix-cycles N` | Cap full **review → fix → re-review** cycles. Default **2**. |
+| `--max-fix-cycles N` | Cap full **review → fix → re-review** cycles. Default from [`../../docs/intensity.md`](../../docs/intensity.md) (light 2, standard/heavy 3, critical 4). |
 
 Parse from the `/prb` invocation. Record:
 
@@ -34,8 +34,8 @@ Parse from the `/prb` invocation. Record:
 |-------|---------|
 | `SKIP_REVIEW` | false |
 | `SHIP_INTENSITY` | from [`../../docs/intensity.md`](../../docs/intensity.md) (`max` of stamps; bump critical on auth/billing/schema/migrations in the diff) |
-| `EXHAUSTIVE_REVIEW` | true only when `SHIP_INTENSITY` is **critical**, unless `--exhaustive-review` / `--no-exhaustive` |
-| `MAX_FIX_CYCLES` | 2 |
+| `EXHAUSTIVE_REVIEW` | true when `SHIP_INTENSITY` is not **light**, unless `--exhaustive-review` / `--no-exhaustive` |
+| `MAX_FIX_CYCLES` | from intensity band (override `--max-fix-cycles N`) |
 | `REVIEW_CYCLES_USED` | 0 |
 | `FINDINGS_FIXED_COUNT` | 0 |
 | `GATE_COMMENT_ISSUE` | first `SHIP_LINEAR_ID` or empty |
@@ -98,9 +98,9 @@ If no `## Code Review Rules` sections exist, still review for correctness/securi
 
 **Authority:** [`review-rubric.md`](review-rubric.md). Do not invent a second policy here.
 
-**Actionable** (blocks push, goes to the fixer): `[P0]` / `[P1]`, plus `[P2]` that is high-signal correctness, security, or regression.
+**Actionable** (blocks push, goes to the fixer): every `[P0]` / `[P1]` / `[P2]`. Always-actionable classes in the rubric are never nits.
 
-**Not actionable:** `[P3]` / nits, style, optional cleanup, speculative breakage, pre-existing issues on `origin/main`.
+**Not actionable:** `[P3]` / nits, style, optional cleanup, speculative breakage, pre-existing issues on `origin/main`, ticket-pinned intentional behavior.
 
 **Gate pass = zero actionable findings.** Nits alone never block push.
 
@@ -134,9 +134,9 @@ Inline these absolute paths into prompts. Never put secrets, tokens, connection 
 
 ### 6B. Load the rubric and AGENTS rules
 
-1. Read [`review-rubric.md`](review-rubric.md) in full. Prepend that text to **every** specialist prompt.
+1. Read [`review-rubric.md`](review-rubric.md) in full. Prepend that text to **every** specialist prompt — cycle 1, re-review, exhaustive pass 2, and babysit. **Never** substitute a stub (“hunt for NEW”, “review `git show` only”).
 2. Load AGENTS Code Review Rules as in §4. Paste the excerpts into every prompt (rules agent still owns citation; others need them as override context).
-3. Read [`reviewer-prompts.md`](reviewer-prompts.md) and append **one** specialist overlay per spawn.
+3. Read [`reviewer-prompts.md`](reviewer-prompts.md) and append **one** specialist overlay per spawn plus the shared tail. Review target is always `origin/main...dev`.
 
 ### 6C. Spawn the panel (one turn, parallel)
 
@@ -151,11 +151,11 @@ Launch the intensity-selected roles in the same assistant response with `spawn_s
 | Tag | Overlay | Fatal if spawn/run fails? |
 |-----|---------|---------------------------|
 | `[thoroughness]` | Thoroughness | **Yes** — stop the gate; do not push |
-| `[security]` | Security | No — warn, continue with remaining |
+| `[security]` | Security | **Yes** — stop the gate; do not push |
 | `[rules]` | Rules | No — warn, continue with remaining |
-| `[challenge]` | Challenge | No — warn, continue with remaining |
+| `[challenge]` | Challenge | **Yes** — stop the gate; do not push |
 
-Do not spawn roles the band does not call for. Do not skip security on a critical ship.
+Do not spawn roles the band does not call for. Do not skip security or challenge on a non-light ship.
 
 Shared spawn args:
 
@@ -164,11 +164,11 @@ Shared spawn args:
 - `background`: `true`
 - `description`: `[<tag>] prb local gate c${C} r${R}`
 - Do **not** pass `capability_mode`
-- Do **not** pass a fake `effort:` field. Medium reasoning comes from the `prb-reviewer` role.
+- Do **not** pass a fake `effort:` field. High reasoning comes from the `prb-reviewer` role.
 
-Then wait with `get_command_or_subagent_output` until the spawned roles complete (or the non-fatal specialists if one of those failed).
+Then wait with `get_command_or_subagent_output` until the spawned roles complete (or remaining roles if a non-fatal rules agent failed).
 
-Each agent writes **only** rubric JSON to its output file. If a file is missing or not valid JSON, treat that agent as failed (fatal for thoroughness → `REVIEW_EXIT=blocked-tooling`, do not push; skip for specialists).
+Each agent writes **only** rubric JSON to its output file. If a file is missing or not valid JSON, treat that agent as failed (fatal for thoroughness, security, and challenge → `REVIEW_EXIT=blocked-tooling`, do not push; skip only for rules).
 
 ### 6D. Merge
 
@@ -176,9 +176,9 @@ Read the JSON files. Build one finding list:
 
 1. Tag each finding with its source (`thoroughness` / `security` / `rules` / `challenge`).
 2. Deduplicate by file + overlapping line range + same defect/remedy. Union source tags when merging. Keep the higher priority. When in doubt that they are the same defect, keep both.
-3. Drop anything that fails the rubric tests (pre-existing, speculative, intentional, nit-only, author would not fix).
+3. Drop only what the rubric says is not a finding (pre-existing, speculative, ticket-pinned intentional, nit-only). **Do not** demote a P0–P2 in an always-actionable class to a nit because it needs an admin, a batch, a guessed URL, or “is not the default path.”
 4. Re-check every survivor against applicable `AGENTS.md` rules. Add a citation when the finding is rule-supported; do not drop ordinary bugs that are not rule violations.
-5. Classify actionable vs nit using §5.
+5. Classify actionable vs nit using §5 (P0–P2 actionable; P3 only in Non-blocking notes).
 
 Write the merged gate artifact:
 
@@ -219,10 +219,10 @@ Write the merged gate artifact:
 ```text
 pass = 1
 findings = merge(panel_pass(1))
-# EXHAUSTIVE_REVIEW default: true only when SHIP_INTENSITY is critical
+# EXHAUSTIVE_REVIEW default: true when SHIP_INTENSITY is not light
 if EXHAUSTIVE_REVIEW and filter_actionable(findings) is empty:
   pass = 2
-  more = merge(panel_pass(2, known=findings))  # prompts include known findings; hunt for NEW issues
+  more = merge(panel_pass(2, known=findings))  # same full rubric + overlay; known list is “do not re-report unless still unfixed”
   findings = dedupe(findings + more)
 ```
 
@@ -241,7 +241,7 @@ if SKIP_REVIEW:
   REVIEW_EXIT = skipped
   run runtime proof ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)) on in-scope ship set
   if proof fails: DENY_PUSH
-  else: post_gate_comment(); return allow_push
+  else: post_gate_comment(); return allow_push  # orchestrator still runs Phase 1.6 before git push
 
 cycle = 0
 findings_fixed = 0
@@ -258,7 +258,7 @@ loop:
     REVIEW_CYCLES_USED = cycle
     FINDINGS_FIXED_COUNT = findings_fixed
     post_gate_comment()
-    return allow_push
+    return allow_push  # orchestrator still runs Phase 1.6 before git push
 
   if cycle >= MAX_FIX_CYCLES:
     REVIEW_EXIT = blocked-at-cap
@@ -271,8 +271,9 @@ loop:
   spawn prb-fixer (model grok-4.6) with merged c${C}.md as the contract
   fixer writes sibling prb-review-${RUN_ID}-c${C}-fixes.md
   orchestrator:
-    - confirm product diff is on local dev
-    - commit product files only (HEREDOC; never stage $scratch_dir)
+    - confirm product diff is on local dev and the fixer has released its leases
+    - `wcp look`; if a source-file lease is live, wait
+    - commit product files only (HEREDOC; never stage $scratch_dir; do not stash)
     - rm that cycle’s scratch JSON/md (including fixes.md after copying
       a 5–10 line “what changed” into orchestrator memory for the gate comment)
     findings_fixed += count of actionable items the fixes.md claims
@@ -292,14 +293,16 @@ Read the gate artifact in full:
 <abs path to prb-review-${RUN_ID}-c${C}.md>
 
 Fix every item under **Actionable findings**. Root cause, not a plaster.
+A fix that leaves a sibling hole (ACL still widened on another path, validate-source instead of validate-rendered) is not done.
 Add or update tests when the defect needs them. Do not nit-hunt.
-Do not call Linear. Do not push. Do not stage scratch files.
+Do not call Linear. Do not commit. Do not stash. Do not push. Do not stage scratch files.
+Release every source-file lease before you stop. The orchestrator commits when `wcp look` is empty.
 
 Work on local **dev** only.
 
-Occupancy: you are `prb-fix`. `export WCP_AGENT=prb-fix`. Read skill
+Occupancy: name yourself. Prefer `prb-fix`. `wcp name prb-fix --json`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. Read skill
 `water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md).
-look → acquire → write-ok → re-read disk → edit → release. Never rewind.
+Write tests and new files with no claim. For a pre-existing file: look → acquire --test → write-ok → re-read disk → edit → release. Never rewind.
 Never push (orchestrator unsets `WCP_AGENT` before `git push`).
 
 When done, append to <abs path to …-c${C}-fixes.md>:
@@ -308,14 +311,14 @@ When done, append to <abs path to …-c${C}-fixes.md>:
 - Anything you could not fix (and why)
 ```
 
-If two findings touch the same files, one fixer still does both. Spawn a second fixer only when `primary_paths` are disjoint **and** the first fixer has committed.
+If two findings touch the same files, one fixer still does both. Spawn a second fixer only when `primary_paths` are disjoint **and** the orchestrator has committed the first fixer's paths.
 
 ### Sequencing
 
 | Step | Parallelism |
 |------|-------------|
 | Review | Intensity-selected `grok-4.6` `prb-reviewer` agents in parallel, then orchestrator merge |
-| Fix | **One** `prb-fixer` (medium via the role) |
+| Fix | **One** `prb-fixer` (high via the role) |
 | Re-review | Full panel again, only after the cycle’s fixer finished or failed |
 
 ### Re-review discipline
@@ -339,10 +342,11 @@ Authority: [`linear-ship-comments.md`](linear-ship-comments.md) template C.
 When Phase 3 babysit applies a fix that changes local `dev` and needs re-push:
 
 1. `git fetch origin`; ensure local `main` matches `origin/main`; **merge `origin/main` into local `dev`**.
-2. **Re-run Phase 1.5** on the updated `origin/main...dev` (unless `--skip-review` was set for the whole `/prb` run). Prefer **delta**: re-run only specialists whose area changed (a copy fix does not relaunch security + rules + challenge). Recompute `SHIP_INTENSITY` if the ship set grew.
-3. Only then `git push origin dev` and restart the quiet timer.
+2. **Re-run Phase 1.5** on the updated `origin/main...dev` (unless `--skip-review` was set for the whole `/prb` run). Same full rubric + overlay as the first panel. Copy-only / comment-only: thoroughness only. Any other delta: full intensity panel (include security + challenge). Never `git show <fix-sha>` as the sole review target. Recompute `SHIP_INTENSITY` if the ship set grew.
+3. **Re-run Phase 1.6** local compile + ship-set tests ([`local-compile.md`](local-compile.md)) unless `--skip-local-compile`. Failure **blocks** re-push.
+4. Only then `git push origin dev` and restart the quiet timer.
 
-Do not treat the first clean review as a permanent waiver for later fix commits.
+Do not treat the first clean review as a permanent waiver for later fix commits. A plaster that leaves a sibling hole is a new actionable finding.
 
 ---
 
@@ -350,10 +354,10 @@ Do not treat the first clean review as a permanent waiver for later fix commits.
 
 | `REVIEW_EXIT` | Push allowed? | Report line shape |
 |---------------|---------------|-------------------|
-| `clean` | **Yes** (if main-ancestor checks also pass) | `Review: local clean after N cycles` and/or `local fixed M findings from scratch` |
-| `skipped` | **Yes** (with loud warning) | `Review: skipped (--skip-review)` |
+| `clean` | **Yes** for this gate (if main-ancestor checks also pass). Orchestrator still runs Phase 1.6 before push. | `Review: local clean after N cycles` and/or `local fixed M findings from scratch` |
+| `skipped` | **Yes** for this gate (with loud warning). Orchestrator still runs Phase 1.6 before push. | `Review: skipped (--skip-review)` |
 | `blocked-at-cap` | **No** | `Review: blocked at cycle cap (remaining …)` |
-| `blocked-tooling` | **No** | `Review: blocked (fixer failure)` or `blocked (thoroughness agent failed)` |
+| `blocked-tooling` | **No** | `Review: blocked (fixer failure)` or `blocked (thoroughness|security|challenge agent failed)` |
 
 Always include:
 
@@ -381,12 +385,15 @@ Findings fixed: M
 - Spawning a 4-agent panel on a light ship, or skipping security on a critical ship
 - Passing a fake `effort:` field on `spawn_subagent`
 - Using any model other than `grok-4.6` for these reviewers (including inherit-parent / Claude / GPT / Composer)
-- Treating the panel as a nit hunt — or treating P0/P1 as optional
+- Treating the panel as a nit hunt — or treating P0/P1/P2 as optional
+- Demoting an always-actionable-class finding to a nit (“operator footgun”, “not the default path”)
 - Running three sequential single-reviewer passes instead of the intensity-selected panel
-- Running exhaustive review on a non-critical ship without `--exhaustive-review`
+- Skipping exhaustive on a non-light ship without `--no-exhaustive`
+- Compressing exhaustive or babysit prompts (stub “hunt for NEW” / `git show` only)
 - Posting GitHub PENDING reviews from this gate
 - Allowing push because the panel is clean while in-scope runtime proof was skipped or unproven
-- Treating `--skip-review` as a waiver of [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)
+- Treating `--skip-review` as a waiver of [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md) or of Phase 1.6 compile/tests
+- Pushing while security or challenge JSON is missing or invalid
 
 ---
 
@@ -400,4 +407,5 @@ Findings fixed: M
 | `/review` | Optional local/PR review tooling; **not** this gate; do not post GitHub PENDING reviews from Phase 1.5 |
 | [`review-rubric.md`](review-rubric.md) | Finding policy (what to flag, priority, JSON schema) |
 | [`reviewer-prompts.md`](reviewer-prompts.md) | Specialist overlays prepended after the rubric |
-| `/prb` Phase 3 babysit | Separate CI/bot loop **after** clean local review + push + PR |
+| [`local-compile.md`](local-compile.md) | Phase 1.6 after this gate; not a substitute for the panel |
+| `/prb` Phase 3 babysit | Separate CI/bot loop **after** clean local review + Phase 1.6 + push + PR |

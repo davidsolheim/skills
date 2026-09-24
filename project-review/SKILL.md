@@ -3,7 +3,7 @@ name: project-review
 description: >
   Fully agentic project review: walk the current repo and (when available) live
   app, invent findings without a human laundry list, and file atomic
-  solve-ready Linear issues under an optional epic so /solve can implement them
+  solve-ready `.WCP/issues/` files so /solve can implement them
   end-to-end. Covers completeness, functional bugs, UI consistency, taste/feel,
   edge cases, responsiveness, accessibility, content, and cross-feature
   consistency. Supports fast (high-signal P0/P1 single-agent) and deep
@@ -61,18 +61,25 @@ Mode is fixed for the whole run. Report it in the handoff.
 
 1. **Agent owns the finding list.** Invent issues from intended state + product/code evidence.
 2. **Atomic leaves only.** Many small independently solvable issues. Epics package; `/solve` never implements parent shells.
-3. **Solve-ready bar.** Every filed leaf uses [`references/issue-template.md`](references/issue-template.md) — same structural quality as `/issue` (code map, drift check, verification, AC, out of scope).
+3. **Solve-ready bar.** Every filed leaf uses the `/issue` body
+   ([`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md))
+   plus Review metadata in [`references/issue-template.md`](references/issue-template.md).
 4. **Taste must be executable.** Convert feel/hierarchy problems via [`references/taste-to-concrete.md`](references/taste-to-concrete.md). No “make it premium” as sole AC.
 5. **Local-first candidates.** Discovery writes **files** under a scratch package; cleanup and dedupe happen **on disk**. Linear is a publish step, not the working set ([`references/issue-candidates.md`](references/issue-candidates.md)).
-6. **Board-aware offline.** One Linear open-issue snapshot for offline `board_match`; do **not** re-list Linear per candidate ([`references/board-sync.md`](references/board-sync.md)).
+6. **Board-aware offline.** One Linear **actionable** snapshot for offline
+   `board_match` **and** direction-conflict classify; do **not** re-list Linear
+   per candidate ([`references/board-sync.md`](references/board-sync.md),
+   [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)).
+   Retire unstarted contradicted ids at publish only. Agent-invented findings
+   do not beat an explicit user ticket of the opposite intent.
 7. **Code-pin required** for every filed leaf. No zero-anchor polish tickets.
 8. **Queue-shaped for solve.** Foundation-first filing order + `blockedBy` when hard deps exist ([`references/dependency-ordering.md`](references/dependency-ordering.md)).
-9. **Default file to Linear.** `--draft` is opt-out. When Linear works, create issues (do not ask every time). Deep files **only** from `issue-candidates/final/`.
+9. **Default file to `.WCP/issues/`.** `--draft` is opt-out. Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md). Do not call Linear. Deep files **only** from `issue-candidates/final/`.
 10. **Scratch lifecycle.** **Filed in Linear (verified) → delete** the run’s `project-review-<RUN_ID>` temp dir. **Not filed** (`--draft`, Linear fail, partial publish) → **keep** the temp dir and put its absolute path in the handoff. Never delete while intended `final/` bodies are only on disk.
 11. **Do not claim work.** Backlog/Todo/Triage only; **unassigned**; no start/completion comments; no In Progress. That is `/solve`’s job.
 12. **No implementation.** No app code edits, no `/solve`, no push/PR under this skill.
 13. **Secrets.** Never put tokens, env values, connection strings, or Doppler secrets in Linear or candidate files.
-14. **Linear MCP.** `search_tool` then `use_tool`. Read schemas first. Literal newlines in markdown descriptions (not `\n` escape sequences). Workers **never** call Linear.
+14. **Do not call Linear.** Workers never call it. Publish writes issue files.
 
 ## Invocation
 
@@ -132,7 +139,7 @@ Initialize:
 
 `/project-review`, `project-review fast`, `project-review deep`, `review this project`, `quality pass`, `taste pass`, `bug hunt`, `find issues for solve`, `audit the app`, `audit the dashboard`, `queue tickets for solve`, `turn this product into Linear issues`
 
-A **live click-through of every front-facing screen** (bugs + ideas + improvements into Linear) is **`/walk`**, not this skill. Keep this skill for whole-project / code-inclusive review.
+A **live click-through of every front-facing screen** (bugs + ideas + improvements into Linear) is **`/walk`**, not this skill. Keep this skill for whole-project / code-inclusive review. “UI audit” with no live-walk language still belongs here.
 
 ---
 
@@ -197,7 +204,7 @@ Phase D1b   ONE Linear board snapshot → board-snapshot.json
 Phase D2    Coverage plan report (non-blocking)
 Phase D3    Worker loop → issue-candidates/ files
 Phase D4    Coverage gate (all units terminal)
-Phase D5    Local cleanup (dedupe, board_match offline, pin, final/)
+Phase D5    Local cleanup (dedupe, board_match + conflict classify offline, pin, final/)
 Phase D6    Dependency graph on final/ only
 Phase D7    Linear publish from final/*.md  OR  --draft stop
 Phase D8    Handoff (filed ids; scratch deleted if fully filed, else keep path)
@@ -267,8 +274,8 @@ Write each finding to scratch `issue-candidates/` when practical (see [`referenc
 
 Before finalizing drafts:
 
-1. Prefer **one** page/list of open issues → treat as snapshot for the run.
-2. Classify each candidate offline against that snapshot: **duplicate** · **related** · **conflict** · **new**.
+1. Prefer **one** actionable snapshot (status types backlog/unstarted/started) → treat as snapshot for the run.
+2. Classify each candidate offline against that snapshot: **duplicate** · **related** · **conflict** · **new**. Conflicts follow direction-conflict.md (retire canonical-vs-abandoned at publish, or drop the finding).
 3. Do not re-query Linear for every candidate.
 4. Full procedure: [`references/board-sync.md`](references/board-sync.md).
 
@@ -285,7 +292,9 @@ For every finding that will become a filed (or draft) issue:
 
 ### Phase 5 — Draft solve-ready issues
 
-Produce full drafts using [`references/issue-template.md`](references/issue-template.md). Prefer writing `issue-candidates/final/*.md`.
+Produce full drafts using the `/issue` body plus
+[`references/issue-template.md`](references/issue-template.md) Review metadata.
+Prefer writing `issue-candidates/final/*.md`.
 
 **Quality gates (all required):**
 
@@ -293,13 +302,16 @@ Produce full drafts using [`references/issue-template.md`](references/issue-temp
 - [ ] Current behavior + expected behavior
 - [ ] Checklist acceptance criteria (verifiable)
 - [ ] Verification section (commands + manual steps)
+- [ ] Runtime proof filled when in-scope (drive path; visual reference or n/a)
 - [ ] Code map + drift check
+- [ ] `## Occupancy (WCP)` primary write path filled (or explicit N/A)
 - [ ] Out of scope / do not change
 - [ ] Taste fully concretized when applicable
 - [ ] Title follows conventions
 - [ ] Priority P0 / P1 / P2 assigned
 - [ ] No secrets
 - [ ] Platform / stack filled when stack-sensitive (else `none`)
+- [ ] Direction-conflict classified against the snapshot; retire plan or drop-contradicted when needed
 
 Reject drafts that fail gates. Prefer fewer strong tickets over many weak ones.
 
@@ -315,7 +327,7 @@ Full procedure: [`references/dependency-ordering.md`](references/dependency-orde
 5. **Filing order:** foundations → features → polish/content/a11y.
 6. Plan `blockedBy` for hard deps; do **not** use Blocked *state* for normal chains.
 
-### Phase 7 — File to Linear (default)
+### Phase 7 — Write `.WCP/issues/` files (default)
 
 Full procedure: [`references/linear-filing.md`](references/linear-filing.md).
 
@@ -353,8 +365,9 @@ Linear map: `0=None, 1=Urgent, 2=High, 3=Medium, 4=Low`.
    - state = Backlog / Todo / Triage (team default for new work)
    - **unassigned**
 5. Set `relatedTo` / `blockedBy` after ids exist if needed.
-6. On create failure: retry once after fixing team/project; if still failing, keep draft bodies on disk / in handoff (**do not delete scratch**).
-7. **After verified full publish:** delete the run scratch dir (`rm -rf` only `project-review-<RUN_ID>`). Capture Linear ids/URLs for handoff **before** delete. If draft, partial, or not filed → **keep** scratch and report path.
+6. **Retire** `retire_after_file` unstarted board ids (direction-conflict.md). Do not cancel live foreign claims or In Review.
+7. On create failure: retry once after fixing team/project; if still failing, keep draft bodies on disk / in handoff (**do not delete scratch**).
+8. **After verified full publish:** delete the run scratch dir (`rm -rf` only `project-review-<RUN_ID>`). Capture Linear ids/URLs for handoff **before** delete. If draft, partial, or not filed → **keep** scratch and report path.
 
 **Never:** assign to self, set In Progress, post start comments, or mark Done.
 
@@ -366,8 +379,9 @@ Use [`references/handoff-template.md`](references/handoff-template.md). Always i
 - Counts filed vs discovered-not-filed by P0/P1/P2
 - Unblocked leaves ready for `/solve` (ordered)
 - Dependency chains
-- Suggested next command (`/solve`, `/solve 5`, `/solve all`, `/solve all fast`)
+- Suggested next command (`/identify`, `/solve`, `/solve 5`, `/solve all`)
 - Duplicates skipped (existing ids)
+- Retired contradicted unstarted ids; Conflict — needs you; drop-contradicted findings
 - Coverage limits (no live URL, fast deprioritized surfaces)
 - **Scratch:** `deleted after successful Linear file` **or** absolute path if kept (draft / partial / not filed)
 - **Deep (when kept):** coverage unit stats + package paths
@@ -385,7 +399,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 2. Always describe current state so the implementer does not reverse-engineer the problem.
 3. Prefer “match existing pattern on [surface]” over inventing new design values.
 4. One primary change per issue; split compounds.
-5. Verification steps must be runnable or clearly manual (from `AGENTS.md` when possible). In-scope UI/auth/billing/API/schema/shared-helper leaves must fill **Runtime proof** ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
+5. Verification steps must be runnable or clearly manual (from `AGENTS.md` when possible). In-scope UI/auth/billing/API/schema/shared-helper leaves must fill **Runtime proof** in the issue body ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)) — still `/issue` / `/solve`, no extra slash.
 6. Explicit “do not change” lists prevent scope expansion.
 7. Code map + drift check required for filed leaves.
 8. Write for another agent: paths, symbols, AC beat vague product prose.
@@ -406,6 +420,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 | Start/claim/completion comments | **No** |
 | Comment on skipped duplicates | Optional one-line only if it prevents re-filing thrash; prefer handoff only |
 | Mass-cancel open issues | **No** |
+| Targeted retire of unstarted full contradictions | **Yes** (after create; direction-conflict.md) |
 | Workers calling Linear | **No** |
 
 ---
@@ -417,6 +432,9 @@ These exist so tickets survive the `/solve` implement→review loop:
 - Leaving taste as subjective feelings without concrete AC
 - Filing without code map / drift check
 - Creating duplicates of open Linear issues (use board snapshot offline)
+- Filing Y while leaving unstarted X implementable when they contradict
+- Canceling a user ticket because the review invented the opposite
+- Treating `## Supersedes` / chat as the retire step
 - **Re-listing Linear for every candidate** during discovery or cleanup
 - **Filing Linear from raw worker `_inbox` dumps** without local cleanup
 - **Stopping deep early** with pending inventory units (“enough findings”)
@@ -461,7 +479,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 | `/issue` | **Human-prompted** single issue; **shared ticket quality bar** and Linear resolution order |
 | `/solve` | **Downstream consumer.** Picks unblocked leaves, implement→review, merges to local `dev`. Deep’s guidance package is for **review**, not solve batch guidance — but leaves must be solve-ready. |
 | `/implement` | Not invoked by this skill |
-| GSD / ship skills | Not used; no push/PR/deploy here |
+| `/prb` `/yeet` | Later ship; not this skill |
 
 ### Pipeline
 
@@ -469,6 +487,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 /project-review fast     →  high-signal leaves (Backlog)
 /project-review deep     →  full inventory → workers → local final/ → Linear epic + leaves
          ↓
+/identify  (human-approved 2–4)  →  /solve 1 per id
 /solve | /solve N | /solve all [fast]  →  local dev
 ```
 
@@ -484,12 +503,15 @@ These exist so tickets survive the `/solve` implement→review loop:
 | [`references/issue-candidates.md`](references/issue-candidates.md) | Local candidate tree, cleanup, publish rules |
 | [`references/inventory.schema.json`](references/inventory.schema.json) | Inventory + coverage schema |
 | [`references/worker-prompt.md`](references/worker-prompt.md) | Deep worker prompt template |
-| [`references/issue-template.md`](references/issue-template.md) | Mandatory body for every leaf |
+| [`../issue/references/execution-ready-bar.md`](../issue/references/execution-ready-bar.md) | Shared quality bar |
+| [`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md) | Canonical leaf body |
+| [`references/issue-template.md`](references/issue-template.md) | Review metadata + titles + epic shell |
+| [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md) | Contradiction search + retire |
 | [`references/review-checklist.md`](references/review-checklist.md) | Lens checklist (fast vs deep tags) |
 | [`references/taste-to-concrete.md`](references/taste-to-concrete.md) | Feel → executable AC |
 | [`references/discovery-playbook.md`](references/discovery-playbook.md) | Fast discovery steps; deep defers to deep-mode |
 | [`references/intended-state.md`](references/intended-state.md) | Infer “done and good” without a human list |
-| [`references/board-sync.md`](references/board-sync.md) | Snapshot + offline dedupe / relate |
+| [`references/board-sync.md`](references/board-sync.md) | Snapshot + offline dedupe / relate / conflict classify |
 | [`references/dependency-ordering.md`](references/dependency-ordering.md) | Foundation order, blockedBy, epic packaging |
 | [`references/linear-filing.md`](references/linear-filing.md) | Publish from final/; Linear policy |
 | [`references/handoff-template.md`](references/handoff-template.md) | User-facing end summary |

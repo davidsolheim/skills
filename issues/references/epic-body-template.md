@@ -1,7 +1,9 @@
 # Epic body template (`/issues` parent)
 
 Epics are **packaging only**. Never put the only acceptance criteria on the
-epic. `/solve` expands to eligible children and must not implement the shell.
+epic. `/solve` and cheap-model handoffs expand to eligible children and must
+not implement the shell. All execution depth lives on **child** tickets
+([`../../issue/references/execution-ready-bar.md`](../../issue/references/execution-ready-bar.md)).
 
 ```markdown
 ## Initiative

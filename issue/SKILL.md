@@ -2,31 +2,43 @@
 name: issue
 description: >
   Investigate a user-described product/code issue in the current repo, gather
-  file-level context, and create a detailed Linear issue ready for
-  implementation. Auto-resolve Linear team and project from repo context
-  (AGENTS.md, CLAUDE.md, agent memory / workspace docs, .linear config, or
-  similar project docs)—do not ask the user unless unresolved. Use when the
-  user runs /issue, says "create a Linear issue", "file this bug", "log this
-  issue", or describes a bug/feature and wants a thorough Linear ticket.
-  Optimized for rapid-fire: one description in → deep investigation → one
-  complete Linear issue out. Issues should be detailed enough that a later
-  agent only needs light verification that files haven't drifted before
-  implementing.
+  deep file-level context, and write one execution-ready issue under
+  `.WCP/issues/open/` so a cheaper coding model can implement from that file
+  alone with only light drift verification. Do not call Linear. Use when the
+  user runs /issue, says "file this bug", "log this issue", or describes a
+  bug/feature and wants a thorough ticket. Optimized for: Grok researches
+  and writes the contract; a cheaper model executes later. Prefer /issues for
+  multi-item dumps.
 ---
 
-# /issue — Investigate and File a Linear Issue
+# /issue — Investigate and file one execution-ready WCP issue
 
-Rapid-fire intake skill. The user gives **one** short description. You deeply investigate the current repo, then create **one** implementation-ready Linear issue. Do not implement code. Do not open a PR.
+Rapid-fire intake skill. The user gives **one** short description. You deeply
+investigate the current repo, then write **one** file in `.WCP/issues/open/`
+([`../docs/wcp-queue.md`](../docs/wcp-queue.md)) that is a complete
+**implementation contract** for a cheaper model. Do not call Linear. Do not implement code. Do not
+open a PR.
+
+**North star:** a junior engineer or cheap agent who has never seen this repo can
+finish the ticket from that file + a short drift check — without rediscovering
+architecture or inventing a new design.
+
+Full quality bar: [references/execution-ready-bar.md](references/execution-ready-bar.md).  
+Body structure: [references/issue-body-template.md](references/issue-body-template.md).  
+Direction conflicts: [references/direction-conflict.md](references/direction-conflict.md).  
+Intensity stamp: [`../docs/intensity.md`](../docs/intensity.md) — `/solve` and `/prb` auto-dial from `## Intensity`.
 
 ## Operating contract
 
-- **One description → one Linear issue** per invocation unless the user explicitly batches multiple.
-- **Speed of interaction, depth of investigation**: keep the user conversation short; put thoroughness in the Linear ticket.
-- **Do not ask clarifying questions** unless blocked on Linear team/project resolution or a safety-critical ambiguity that would create a wrong ticket. Prefer stating assumptions in the issue body.
+- **One description → one `.WCP/issues/` file** per invocation unless the user explicitly batches multiple.
+- **Speed of interaction, depth of ticket**: keep the user conversation short; put thoroughness in the issue file.
+- **Cheap-model ready**: every filed issue must include code map, contracts, step-by-step plan, file-by-file changes, AC, verification, drift check, Occupancy (WCP), and pre-decided assumptions. Thin tickets fail the create gate.
+- **Do not ask clarifying questions** unless a safety-critical ambiguity would create a wrong ticket. Prefer stating assumptions in the issue body. There is no team or project to resolve.
 - **No git commit, push, or PR.**
 - **No code changes** unless the user explicitly asks for a fix in the same turn (then this skill does not apply).
-- **Secrets**: never put tokens, env values, connection strings, or Doppler secrets in Linear.
-- **Linear MCP**: discover tools with `search_tool` then call via `use_tool`. Prefer `linear__save_issue` to create. Read tool schemas before calling. Use literal newlines in markdown descriptions (not `\n` escape sequences).
+- **Secrets**: never put tokens, env values, connection strings, or Doppler secrets in the issue file (env **names** only).
+- **One current direction**: this invocation wins over older open tickets that contradict it. Cancel those with `reason` after the new file exists. Do not cancel a live `in-progress` lease.
+- **Do not call Linear.** Write the file per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
 
 ## Trigger phrases
 
@@ -44,98 +56,57 @@ Follow phases in order. Parallelize reads when possible.
 2. Infer type: **bug**, **feature**, **chore**, **regression**, **tech debt**, or **docs**.
 3. Infer rough priority from language (e.g. "broken checkout" → High; "nice to have" → Low). Default **Medium (3)** if unclear.
    - Priority map for Linear: `0=None, 1=Urgent, 2=High, 3=Medium, 4=Low`
+4. If the description clearly contains **multiple independent outcomes**, say so and prefer `/issues` — or split only if the user insists on one ticket (then warn that cheap-model execution will suffer).
 
-### Phase 1 — Resolve Linear team and project (automatic)
+### Phase 1 — Queue
 
-**Do not ask the user first.** Resolve from the current workspace using this priority order. Stop at the first high-confidence match; still confirm project exists via Linear list tools before create.
+The queue is `.WCP/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing.
 
-#### 1A. Repo / agent docs (highest priority)
+### Phase 2 — Duplicate / overlap / direction-conflict check
 
-Search and read, in order:
+**REQUIRED:** follow [references/direction-conflict.md](references/direction-conflict.md) before the deep writeup. Search **non-implemented** issues (Backlog / Todo / unstarted / started — never an unfiltered Done dump), not title-duplicates only.
 
-1. Repo root and nested `AGENTS.md`, `Agents.md`, `CLAUDE.md`, `GEMINI.md`
-2. `README.md` sections mentioning Linear, team, project, issue prefixes
-3. Explicit config files if present:
-   - `.linear-project` (single line: project name or slug) — used by related skills
-   - `.linear.json`, `.linear.yaml`, `linear.toml`, or similar
-4. `docs/` operations or ownership docs that name Linear team/project
-5. Package / app metadata (`package.json` name, monorepo workspace names)
+This invocation is the current direction. If older unstarted tickets still specify the opposite approach (do X vs do Y, keep vs remove, stack A vs B, modal vs page), **retire** them after create. `## Supersedes` + `relatedTo` without a status change is **not** enough — `/solve 1` on the old ticket will still implement it.
 
-Extract: team name/key, project name/slug, issue prefix (e.g. `TEAM`, `ENG` → `PREFIX-N` like `TEAM-123`, `PROJ-42`), default labels, board conventions.
-
-#### 1B. Agent memory and session context
-
-- Agent memory / workspace docs (`MEMORY.md`, project notes, session memory) when available
-- Recent Linear issue IDs in git log / branch names (`TEAM-123`, `feat/TEAM-…`, `PREFIX-N`)
-- Open PRs or commit messages referencing Linear identifiers
-
-#### 1C. Linear API disambiguation
-
-Using Linear MCP:
-
-1. `linear__list_teams` — match name/key against repo name, product name, or extracted team string
-2. `linear__list_projects` with `team` and/or `query` from repo product name
-3. Prefer **active / non-archived** projects whose name closely matches the product or monorepo
-4. If multiple projects match, prefer:
-   - exact product name match
-   - project with recent activity related to this repo
-   - project already used by recent issues in this team with the same key prefix
-   - for Teton Web eng: **Teton Web Platform** over content-only / stale marketing umbrellas
-
-#### 1D. When still unresolved
-
-Ask **one** short question listing the top candidates (team + project). Do not invent a team.
-
-Cache resolution mentally for the rest of the session: if the user fires multiple `/issue` descriptions, reuse the same team/project unless they override.
-
-
-### 1E. Teton Web eng SoT (Platform)
-
-For **Teton Web Ventures** / `teton-web` / Teton Web team **engineering** work (code, build, infra, QA, perf/a11y remediations, Ops):
-
-1. Prefer Linear project **`Teton Web Platform`** as the engineering source of truth.
-2. **Do not** file new eng issues on **content-only** projects (e.g. `tetonweb.com` when its summary/description says content-only). If the only matching project is content-only, file eng on Platform instead and note the content project in the body if relevant.
-3. **Content / copy / brand / asset** tickets (no eng implementation) may still use a content project when that is the explicit home.
-4. When multiple TW projects match, prefer **Platform** for anything an implementer would `/solve`.
-
-### Phase 2 — Duplicate / overlap / supersession check (quick)
-
-Before deep writeup:
-
-1. `linear__list_issues` with `team`/`project` and a `query` from distinctive error text, route, feature name, or **platform/stack** (Neon, ClickHouse, Convex, etc.)
-2. If a clear duplicate exists: **do not create a new issue**. Reply with the existing identifier + URL and note overlap. Offer to add a comment with the new report details if useful.
-3. If related but not duplicate: proceed and set `relatedTo` (or note the relation in the body) when creating.
-4. If this ticket **changes architectural direction** or **migrates off a stack**:
-   - Search open issues that still target the abandoned stack
-   - List them under `## Supersedes` (full or partial + override scope)
-   - Prefer `relatedTo` those ids; note that `/solve all` will order migration before obsolete features
-5. If this ticket is a **feature on a stack that may already be abandoned** in docs/newer tickets: call that out under Risks and link the migration ticket if found.
+1. Duplicate → **do not create**. Reply with the existing identifier + URL.
+2. Related, compatible → create and set `relatedTo`.
+3. Full contradiction, unstarted, high confidence → create this ticket, then Canceled or Duplicate + comment on the old ids.
+4. In Progress (foreign claim) or In Review → do **not** cancel; list **Conflict — needs you**.
+5. Ambiguous *new* directions (this message does not pick) → ask once; do not file.
 
 ### Phase 3 — Thorough codebase investigation
 
-Goal: an implementer should need only **light drift verification** (paths still exist, symbols still named similarly) before coding.
+Goal: the implementer needs only **light drift verification** before coding.
+You (Grok) do the expensive research now.
 
-Investigate enough to pin:
+Investigate enough to pin everything in the [execution-ready bar](references/execution-ready-bar.md):
 
 | Area | What to capture |
 |------|-----------------|
 | Surface | Routes, screens, API endpoints, CLI commands, jobs |
 | Code | Primary files, components, handlers, schemas, migrations |
-| Data | Tables/collections, fields, relevant package (`packages/db`, etc.) |
+| Symbols | Function/component/type names, ~line ranges |
+| Contracts | Props, types, request/response shapes, schema fields |
+| Data | Tables/collections, fields, owning package |
 | Config | Feature flags, env var **names** only, provider toggles |
-| Patterns | Existing similar features to mirror |
+| Patterns | Existing similar features to **mirror** (path + symbol) |
 | Tests | Existing test files / commands that should cover the change |
 | Docs | Runbooks or acceptance docs already describing desired behavior |
+| Verify cmds | Exact scripts from `AGENTS.md` / package.json for touched package |
 
 **How to investigate (parallelize):**
 
 1. Grep distinctive strings from the user description (error messages, UI copy, route paths, function names).
-2. Read the highest-signal files fully enough to understand current behavior.
+2. **Read** the highest-signal files fully enough to understand current behavior (not grep-only).
 3. Trace call chain one level up and down from the suspected root (UI → action/API → service → DB).
-4. Note nearby patterns the fix should follow (sibling components, similar endpoints).
-5. Check recent git history on those files only if it clarifies regressions (`git log -n 5 -- path`).
-6. For UI bugs: note viewport/layout assumptions if obvious from code (mobile vs desktop).
-7. For monorepos: state which app/package owns the change (`apps/web`, `apps/native`, `packages/db`, …).
+4. Note nearby patterns the fix should follow (sibling components, similar endpoints) — capture path + symbol for the mirror.
+5. Extract **contracts**: types/interfaces, Zod schemas, GraphQL/REST shapes, column names.
+6. Capture **short excerpts** (5–40 lines) of non-obvious branches the plan hinges on.
+7. Draft an **ordered implementation plan** and **file-by-file change list** while reading (do not leave “how” to the implementer).
+8. Resolve package verification commands from `AGENTS.md` / package scripts.
+9. Check recent git history on those files only if it clarifies regressions (`git log -n 5 -- path`).
+10. For UI bugs: note viewport/layout assumptions if obvious from code (mobile vs desktop).
+11. For monorepos: state which app/package owns the change (`apps/web`, `apps/native`, `packages/db`, …).
 
 **Do not** run destructive commands, mutate the DB, or start long unrelated builds. Read-only investigation only. Light typecheck/build is optional and usually skipped for intake speed.
 
@@ -157,44 +128,66 @@ Set from Phase 0. User-stated urgency wins.
 
 #### Description (markdown)
 
-Use the structure in [references/issue-body-template.md](references/issue-body-template.md). Every filed issue should include:
+Use the full structure in [references/issue-body-template.md](references/issue-body-template.md). Every filed issue **must** include:
 
-1. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
-2. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure).
-2. **Summary** — 2–4 sentences restating the problem/request in product + technical terms
-3. **User report** — quoted or paraphrased original description
-4. **Current behavior** — what the code/UI does today (with evidence)
-5. **Expected behavior** — concrete, testable outcome
-6. **Suspected root cause / scope** — hypothesis with file evidence (not a speculative essay)
-7. **Code map** — table or list of relevant paths with role (entry point, UI, API, schema, util). Include symbol names and approximate line ranges when known (`apps/web/app/order/page.tsx` ~L40–90)
-8. **Implementation notes** — recommended approach, patterns to reuse, pitfalls, out-of-scope items
-9. **Acceptance criteria** — checklist of verifiable outcomes
-10. **Verification** — exact commands / manual checks the implementer should run (from `AGENTS.md` / README when available)
-11. **Drift check** — short list of anchors an agent should re-verify before coding (key files, exports, routes). If these still match, proceed without re-researching the whole area
-12. **Risks / blockers** — credentials, migrations, provider limits, related tickets
-13. **Platform / stack** — canonical systems this work targets; any stacks it must not use
-14. **Supersedes** — when this ticket replaces earlier open or Done work (full vs partial + override scope); omit if none
-15. **Assumptions** — anything inferred because the user was brief
+1. **Implementer contract** — scope lock; follow the plan; drift-then-implement
+2. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
+3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Do not key off ticket length or Linear priority alone.
+4. **Summary** — 2–4 sentences, product + technical
+5. **User report** — quoted or paraphrased original description
+5. **Current behavior** — what the code/UI does today (with path/symbol evidence)
+6. **Expected behavior** — concrete, testable outcomes
+7. **Suspected root cause / scope** — hypothesis with file evidence
+8. **Code map** — paths + roles + symbols + ~lines; primary package
+9. **Relevant contracts** — types, APIs, data, env names, auth/tenancy
+10. **Code anchors + pattern to mirror** — short excerpts when non-obvious; always a mirror when one exists
+11. **Step-by-step implementation plan** — ordered, mandatory approach unless drift blocks
+12. **File-by-file changes** — edit/create/test rows with specific deltas
+13. **Do not touch / out of scope** — hard boundaries for cheap models
+14. **Acceptance criteria** — outsider-pass/fail checklist
+15. **Test plan** — automated cases and/or airtight manual steps
+16. **Verification** — exact repo commands + manual pointer
+17. **Drift check** — 3–7 anchors + investigation snapshot date
+18. **Risks / blockers**
+19. **Platform / stack** — canonical vs abandoned systems
+20. **Related / Supersedes**
+21. **Assumptions / pre-decided** — so the implementer does not guess
 
-Write for another agent: specific paths, symbol names, and acceptance criteria beat vague product prose. Migration tickets should explicitly name abandoned platforms so `/solve all` batch guidance can order work correctly.
+Write for another agent that is **less capable than you**. Specific paths, symbols, ordered steps, and AC beat vague product prose. Prefer complete tickets (~80–250 lines body) over short ones missing the how.
 
-### Phase 5 — Create the Linear issue
+### Phase 5 — Create gate, then write the file
 
-1. Confirm team (required) and project (when resolved).
-2. Call `linear__save_issue` **without** `id` (create mode):
+#### 5A. Create gate (fail closed)
 
-```text
-title: <title>
-team: <team name or id>
-project: <project name, id, or slug>   # when known
-description: <full markdown body>
-priority: <0-4>
-labels: ["Bug", ...]                   # only if confident
-relatedTo: ["TEAM-123"]                # optional, related not duplicate
-```
+**Do not call create** if any of these fail:
 
-3. On success, capture identifier (e.g. `TEAM-123`, `PROJ-42`) and URL.
-4. If create fails due to project/team mismatch, fix resolution and retry once. If still failing, report the error and the drafted body so nothing is lost.
+- [ ] Code map lists real paths that exist in the workspace right now
+- [ ] Step-by-step plan has ≥2 concrete steps
+- [ ] File-by-file table has ≥1 real edit/create path
+- [ ] Acceptance criteria are checklist-testable (not “improve UX”)
+- [ ] Verification lists real commands from this repo
+- [ ] Drift-check has ≥3 anchors
+- [ ] Assumptions filled when the user description was thin
+- [ ] No secrets in the body
+- [ ] Title is specific
+- [ ] `## Intensity` stamp present with a valid `Band:` (`light` `standard` `heavy` `critical`)
+- [ ] `## Occupancy (WCP)` primary write path filled (or explicit N/A: no application writes)
+- [ ] Direction-conflict search ran (actionable states + surface queries)
+- [ ] Unstarted full contradictions have a retire plan (Canceled/Duplicate after create), or the ticket is not filed
+
+If the gate fails: investigate more, or paste the draft in chat and say what is still missing. Do not file a shell ticket.
+
+#### 5B. Write the file
+
+1. Next id per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
+2. Write `.WCP/issues/open/<id>-<slug>.md` with frontmatter `status: open`, empty `assignee`, `lease_expires`, `commit`, and `reason`, plus `priority`, `scope`, `acceptance`, `files: []`, and `created`.
+3. The body is the execution-ready contract from Phase 4.
+4. Do not assign. Do not set `in-progress`. Do not commit product code. Leave the file in the worktree.
+5. If the write fails, report the error and paste the body.
+
+#### 5C. Retire contradicted unstarted issues
+
+Only after create succeeds. Follow [direction-conflict.md](references/direction-conflict.md) **Retire**. Do not retire if create failed. Do not cancel live foreign claims or In Review.
 
 ### Phase 6 — Reply to the user (keep it short)
 
@@ -206,6 +199,9 @@ Rapid-fire reply format:
 **Priority:** <level>
 **Intensity:** <light|standard|heavy|critical> (effort <1|2|3|5>)
 **Focus:** <one-line scope, primary paths>
+**Exec-ready:** plan + file map + AC + verify + drift ✓
+**Retired:** [TEAM-40](url) — contradicted this direction (Canceled)   # omit if none
+**Conflict — needs you:** [TEAM-55](url) — In Progress / foreign claim   # omit if none
 ```
 
 If duplicate found instead:
@@ -213,6 +209,14 @@ If duplicate found instead:
 ```markdown
 **Existing:** [TEAM-123](url) — appears to cover this
 **Overlap:** <one sentence>
+```
+
+If create gate failed:
+
+```markdown
+**Not filed** — ticket not execution-ready yet
+**Missing:** <e.g. code map / verification commands>
+**Draft:** <paste full body or offer to continue research>
 ```
 
 Then stop and wait for the next description. Do not start implementing.
@@ -224,24 +228,31 @@ Then stop and wait for the next description. Do not start implementing.
 When the user sends multiple issues back-to-back:
 
 1. Reuse resolved team/project unless they change repos or say otherwise.
-2. Still run investigation + duplicate check per item (do not copy-paste shallow tickets).
+2. Still run full investigation + duplicate/direction-conflict check + create gate per item (do not copy-paste shallow tickets).
 3. Do not batch multiple unrelated problems into one Linear issue unless the user asks.
 4. Keep each user-facing confirmation to a few lines so the loop stays fast.
+5. If volume is high and items are multi-bullet, suggest `/issues` for shared research.
 
 ---
 
 ## Quality checklist (before create)
 
-- [ ] Team resolved from repo docs / agent memory / Linear; project set when identifiable
-- [ ] Duplicate check done
+- [ ] Team resolved from repo/memory/Linear; project set when identifiable
+- [ ] Duplicate + direction-conflict check done (actionable issues, not Done dump)
+- [ ] Unstarted contradicted issues retired after create (or needs-you if claimed / In Review)
+- [ ] Create gate (Phase 5A) passed
 - [ ] Intensity stamp valid (`## Intensity` / `Band:`)
-- [ ] Occupancy (WCP) primary write path filled (or N/A: no application writes)
+- [ ] Occupancy (WCP) primary write path filled (or N/A)
 - [ ] Code map lists real paths that exist in the workspace right now
+- [ ] Contracts / mirror pattern captured when applicable
+- [ ] Step-by-step plan + file-by-file changes present
+- [ ] Do-not-touch / out of scope stated
 - [ ] Acceptance criteria are checklist-testable
+- [ ] Test plan (auto and/or manual) present
 - [ ] Verification steps match this repo's real scripts (`AGENTS.md` / package scripts)
-- [ ] Drift-check anchors included
+- [ ] Drift-check anchors included (≥3)
 - [ ] No secrets in the body
-- [ ] Assumptions explicitly listed when the user description was thin
+- [ ] Assumptions / pre-decided explicitly listed when the user description was thin
 - [ ] Platform/stack noted when the change is stack-sensitive
 - [ ] Supersedes filled when this ticket replaces earlier direction or features
 
@@ -249,21 +260,42 @@ When the user sends multiple issues back-to-back:
 
 ## Anti-patterns
 
-- Filing "investigate X" with no code map
+- Filing "investigate X" with no code map or plan
+- Filing product prose without file-by-file changes (cheap models will invent scope)
 - Asking the user for team/project when `AGENTS.md` or `.linear-project` already says
 - Creating a second issue for an obvious duplicate
-- Filing a migration without listing open tickets on the abandoned stack under Supersedes/Related
-- Dumping raw command transcripts into Linear
+- Filing Y while leaving unstarted X implementable when X and Y contradict
+- Treating `## Supersedes` / `relatedTo` / a chat mention as the retire step
+- Skipping the conflict search because this is “not a stack migration”
+- Asking “does Y replace X?” when the user just stated Y
+- Canceling In Progress (foreign claim) or In Review without asking
+- Dumping raw command transcripts or whole files into Linear
 - Implementing the fix under this skill
-- Blocking on perfect root cause when a solid scope + file map is enough to start
+- Blocking on perfect root cause when a solid scope + file map + plan is enough to start
+- Mega-tickets that should have been `/issues` splits
+- “See related ticket for context” as a substitute for a self-contained body
+- Filing without `## Intensity` / `Band:`
+- Filing without `## Occupancy (WCP)` (or explicit N/A)
+- Classifying intensity from ticket length or Linear priority alone
 
 ---
 
-## Linear MCP failure
+## Relation to other skills
 
-If Linear auth/tools fail:
+| Skill | Difference |
+|-------|------------|
+| `/issue` | One ticket on an **existing** repo |
+| `/issues` | Many tickets; no implement |
+| `/start` | New repo from next-starter-template; new Linear **project** + V1 epic; then build |
+| `/solve` | Implements filed leaves |
 
-1. Say that Linear is unavailable and what failed
+---
+
+## File write failure
+
+If the issue file cannot be written:
+
+1. Say what failed
 2. Still complete investigation
-3. Output the full drafted issue (title + body + suggested team/project/priority/labels) in the chat so the user can paste it
-4. Do not pretend the issue was created
+3. Output the full drafted issue in the chat
+4. Do not pretend the file was written

@@ -26,8 +26,10 @@ Example:
 tidy-pass: 2026-08-18 · run 7f3a2c · actions: upgraded,retitled,related
 ```
 
-One stamp per pass. Do not add a second stamp the same run. Optional one-line
-evidence under the first line (sha, PR url) when status changed.
+One stamp per pass. `list_comments` immediately before posting. Do not add a
+second stamp the same run (skip if this `RUN_ID` already has `tidy-pass:`
+today). Optional one-line evidence under the first line (sha, PR url) when
+status changed.
 
 ### Parse
 

@@ -28,9 +28,7 @@ Prefer a clean GitHub clone over a dirty local tree:
 SRC_REMOTE=https://github.com/davidsolheim/next-starter-template.git
 ```
 
-If a local clone of that repo exists (common: `$HOME/src/next-starter-template`)
-**and** `git status` there is clean, it may be used as a file source. If it is
-dirty or missing, clone from `SRC_REMOTE` into a temp dir.
+If `$HOME/src/next-starter-template` exists **and** `git status` there is clean, it may be used as a file source. If it is dirty or missing, clone from `SRC_REMOTE` into a temp dir.
 
 ## Copy (no template history)
 
@@ -103,11 +101,10 @@ Integration branch is lowercase **`dev`** only.
 Create `$GH_USER/<slug>` **private** only when:
 
 - user asked for a GitHub repo, or
-- BRIEF/`--dir` already names `github.com/<owner>/<slug>`
+- BRIEF/`--dir` already names `github.com/$GH_USER/<slug>`
 
 ```bash
 GH_USER=$(gh api user --jq .login)
-# if BRIEF named github.com/<owner>/<slug>, use that owner instead
 gh repo create "$GH_USER/<slug>" --private --source=. --remote=origin --push
 ```
 

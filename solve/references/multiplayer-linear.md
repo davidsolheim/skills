@@ -1,60 +1,49 @@
-# Multiplayer Linear (`/solve` + `/prb`)
+# Ticket claim (`/solve` + `/identify`)
 
-Canonical procedure for claiming and closing Linear issues when several Grok CLIs / Dev Bots share David token. RFC: [`../../docs/rfc-multiplayer-linear.md`](../../docs/rfc-multiplayer-linear.md).
+The queue is `.WCP/issues/`. Contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Verbs: skill `water-cooler-protocol`, section Issues.
+
+Do not call Linear. Do not post `claimed-by` comments.
 
 ## Unclaimed vs claimed
 
-**Unclaimed:** Backlog/Todo/Triage (or equivalent), not In Progress, no live `claimed-by:` comment newer than 60 minutes.
+**Unclaimed:** file is in `open/`, or `in-progress/` with `lease_expires` in the past.
 
-**Claimed by us:** In Progress (or In Review after we shipped `dev`) whose latest `claimed-by:` / `stolen-by:` matches this session `run` id. The `<bot-or-cli>` token does **not** matter for “ours” vs foreign — only `run`.
+**Claimed by us:** `in-progress/`, `assignee` is this agent, `lease_expires` is in the future.
 
-**Claimed by other:** In Progress with a foreign live claim comment (different `run`) — skip. Do not implement.
+**Claimed by other:** `in-progress/`, `assignee` is someone else, `lease_expires` is in the future. Skip. Do not implement.
 
-Valid `<bot-or-cli>` tokens include `solve`, `identify`, and the CLI/bot name. `/identify` claims with:
+## Claim
 
-```
-claimed-by: identify · session <id> · worktree <cwd> · run <RUN_ID>
-```
+Before any product edit on that ticket:
 
-Nested `/solve` from Identify **must reuse that `RUN_ID`**. Treat the identify line as this run; do not abort as foreign.
+1. The leaf is eligible ([`eligibility.md`](eligibility.md)) and unclaimed.
+2. Claim with the player skill: set `assignee`, `status: in-progress`, `lease_expires` to now + 10 minutes UTC, move to `in-progress/`.
+3. Re-read. If `assignee` is not you, abort. Do not code. Pick another leaf.
+4. Renew before `lease_expires` while you are still writing the issue file or about to write source. Drop the source-file lease before tests. The ticket lease is separate.
 
-## Claim (CAS) — before any git work
+`/solve all`: if every remaining leaf is held by someone else under a live lease, do not drain those. Work unclaimed leaves only.
 
-1. Eligible leaf (existing 2B–2E) **and unclaimed**.
-2. Assign to me if unassigned. Set **In Progress**.
-3. `list_comments` first. Skip a new claim comment if this `run` already has a
-   live `claimed-by:`. Else comment, first line exactly:
+## Close
 
-```
-claimed-by: <bot-or-cli> · session <id> · worktree <cwd> · run <RUN_ID|sequential>
-```
+Workers do not commit and do not stash. The orchestrator commits the work only when `wcp look` shows no live source-file lease. After that hash exists on local `dev`:
 
-Include a one-paragraph plan below that line as today.
+1. Append touched paths to `files`.
+2. Write that commit hash into `commit`.
+3. Set `status: done`. Clear `assignee` and `lease_expires`. Move the file to `done/`.
+4. Commit the issue file. `wcp look` is still empty. Do not stash.
 
-4. Re-fetch the issue. If a **different** run `claimed-by:` is newer: abort, do not code, pick another leaf.
-5. Fast workers of **one** orchestrator share `run`. They may claim distinct leaves under that run.
+There is no In Review status. `done` is the completion record.
 
-## Closeout (`/solve` Phase 8)
+On failure: leave `in-progress` if you still hold it, or `blocked` with `reason` when a human has to answer. Do not set `done` without a hash.
 
-After verified merge **and** push to `origin/dev`:
+## `/identify`
 
-1. Completion comment with `origin/dev` SHA (existing evidence list).
-2. Set **In Review** if the team has that status; else stay **In Progress** with `shipped origin/dev @ sha` in the comment.
-3. **Never mark Done** here.
-4. Epic rollup to Done only when all children are terminal.
+Claim only the leaf you are about to hand to `/solve`, using the same ticket lease. On abort, reclaim your own unstarted claim back to `open/` (clear `assignee` and `lease_expires`).
 
-On failure: leave In Progress or Blocked; comment; do not Done.
+## `/prb` and `/yeet`
 
-## `/solve all` guard
+Do not update an external tracker. The issue file already holds `commit` when `/solve` closed it. Include `.WCP/issues/` in the ship commit.
 
-Before draining: list In Progress on the project. If foreign live claims exist, do **not** start `/solve all` / `/solve all fast`. Use `/solve N` / explicit ids on unclaimed leaves only. One drain orchestrator per project.
+## `/issues` and `/issue`
 
-## `/prb`
-
-- Phase 2: PR comment only. Optional In Review. **Not Done.**
-- After merge to `main` (explicit user approval): **Done** + production ship comment.
-- Ignore / do not close foreign In Progress ids.
-
-## `/issues`
-
-File unassigned Backlog/Todo. Never assign as part of filing.
+File into `open/` unassigned. Never set `in-progress` while filing.

@@ -82,7 +82,7 @@ Preferred. Enables parallel writes, easy drop/duplicate, and clear final publish
 ```yaml
 ---
 id: CAND-014
-status: draft | keep | drop | duplicate | ready_to_file | filed
+status: draft | keep | drop | duplicate | drop-contradicted | ready_to_file | filed
 priority: P0 | P1 | P2
 lens: Completeness | Functional | Edge | UI | Hierarchy | Taste | Responsiveness | A11y | Performance | Content | Cross-feature
 surface: /dashboard
@@ -91,6 +91,8 @@ primary_paths: [apps/web/app/dashboard/page.tsx]
 duplicate_of: null
 board_match: null
 related_board: []
+contradicts_board: []
+retire_after_file: false
 class: foundation | feature | polish | content | a11y
 blocked_by_candidates: []
 linear_id: null
@@ -102,7 +104,7 @@ slice_id: web-dashboard
 | Field | Owner |
 |-------|--------|
 | id, thin body | Worker |
-| status transitions, duplicate_of, board_match | Orchestrator (D5) |
+| status transitions, duplicate_of, board_match, contradicts_board | Orchestrator (D5) |
 | full template sections | Orchestrator / pin workers |
 | linear_id / linear_url | Orchestrator (D7) |
 
@@ -185,6 +187,8 @@ Against `board-snapshot.json` **only** — do **not** re-call `list_issues`.
 |------------|--------|
 | High same surface + same problem | `status: duplicate`, `board_match: TEAM-123` — **not** in final/ |
 | Same area, different problem | `related_board: [TEAM-123]`; keep for file; later `relatedTo` |
+| Finding is canonical; unstarted board ticket is the abandoned direction | keep; `contradicts_board` + `retire_after_file: true`; retire at D7 |
+| Explicit user ticket is canonical; finding is the opposite | `status: drop-contradicted` — **not** in final/; do not retire the user ticket |
 | Vague open umbrella vs atomic leaf | Prefer keep atomic if umbrella unimplementable; else skip if umbrella owns it; note in handoff |
 
 ### 4. Signal filter
@@ -204,7 +208,9 @@ If still unpinnable: drop or demote with explicit Assumptions — never ship zer
 
 ### 6. Render final/
 
-For each `ready_to_file`, write full [`issue-template.md`](issue-template.md) body to:
+For each `ready_to_file`, write the canonical `/issue` body
+([`../../issue/references/issue-body-template.md`](../../issue/references/issue-body-template.md))
+plus Review metadata from [`issue-template.md`](issue-template.md) to:
 
 ```text
 issue-candidates/final/CAND-014-empty-state.md
@@ -227,7 +233,8 @@ Set `blocked_by_candidates` on index entries (candidate ids). Used in D6/D7 afte
 1. Walk `final/*.md` only (filter by filing flags: P0/P1 only if `--p0-p1-only`).
 2. Create Linear issues; set `linear_id`, `linear_url`, `status: filed` in index.
 3. Apply relations from `related_board` and `blocked_by_candidates` (map candidate → linear_id).
-4. **Scratch lifecycle** (see below).
+4. Retire `retire_after_file` ids (direction-conflict.md). Workers never do this.
+5. **Scratch lifecycle** (see below).
 
 On failure: remaining `final/` files stay on disk for re-file without re-running discovery — **do not delete** scratch.
 
@@ -281,6 +288,8 @@ without full by-route fan-out. Still: **clean locally → then file**. Prefer on
 - One giant `candidates.md` that workers fight over
 - Deleting raw inbox before index records paths (keep until run completes)
 - Publishing without board_match pass when snapshot exists
+- Filing a conflict leaf without `retire_after_file` when the finding is canonical
+- Retiring a user ticket because the review invented the opposite
 - Equating “unit reviewed” with “must emit a candidate”
 - **Deleting `$SCRATCH_DIR` while any intended `final/` is unfiled**
 - **Leaving `$SCRATCH_DIR` after a fully verified Linear publish** (delete the run dir)

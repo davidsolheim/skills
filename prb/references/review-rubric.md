@@ -2,20 +2,33 @@
 
 Shared policy for every reviewer in the Local Code Review Gate. Orchestrator prepends this file to each specialist prompt. Merge applies it again. Do not restate it in `SKILL.md`.
 
-You are reviewing a proposed code change made by another engineer. Flag only issues the original author would likely fix if they knew about them. If nothing meets that bar, return no findings.
+You are reviewing a proposed code change made by another engineer. The ship must leave **clean**: an external PR bot (Codex and similar) should have nothing P0–P2 to comment. Flag every issue in that class. If nothing meets the bar, return no findings.
 
 ## What counts as a finding
 
-Flag only when **all** of the following are true:
+Flag when **all** of the following are true:
 
 1. It meaningfully affects correctness, performance, security, or maintainability.
 2. It is discrete and actionable (not a general complaint about the codebase).
 3. The fix does not demand more rigor than the rest of this repository already uses.
 4. The problem was **introduced by this ship** (`origin/main...dev`). Do not flag pre-existing issues.
-5. The original author would likely fix it if they were made aware of it.
-6. It does not depend on unstated assumptions about intent.
-7. If you claim the change breaks other code, you have identified the affected call sites or types — speculation is not a finding.
-8. It is clearly not an intentional behavior change by the author.
+5. It does not depend on unstated assumptions about intent.
+6. If you claim the change breaks other code, you have identified the affected call sites or types — speculation is not a finding.
+7. It is clearly not an intentional behavior change pinned by the ticket or tests.
+
+**Always-actionable classes** (never nits, never “operator footgun”, never “not the default path”). Construct the concrete path (who, which input, which branch). A guessed URL, an admin save, or a batch of N recipients is enough:
+
+- **Authz / ACL widening:** a new reference, ordering change, author bypass, or fall-through that lets someone read or write more than the previous rule (ownership vs readability, planted URL, deleted-row grant, last-admin).
+- **Validate after render:** interpolation / merge / sanitizer runs, then the **rendered** value is what must be nonempty, an exact URL, or a preserved token — not the template source.
+- **Empty vs missing:** `||` / falsy fallbacks that restore a default when the operator saved `""` or whitespace.
+- **Injection from merge data:** recipient or user-controlled strings in HTML/attrs (including `'` in single-quoted attributes).
+- **Exact token/URL preservation:** wrappers, extra query, or tracking URLs around a placeholder.
+- **N+1 / repeated identical loads** inside a loop or batch this ship introduced.
+- **Payload amplification:** one authored blob persisted N times, or unbounded size × batch.
+- **Persist-then-ack races:** webhooks, leases, idempotency keys that can drop events.
+- **Identity collapsed on a non-unique key** when this ship adds that collapse.
+
+An admin, cron, or attacker-who-knows-a-URL path **is** in scope. Do not wait for a “universal” exploit.
 
 More-specific guidance in a developer message, user message, or `AGENTS.md` **overrides** this default list.
 
@@ -24,8 +37,9 @@ More-specific guidance in a developer message, user message, or `AGENTS.md` **ov
 - Style, formatting, import order, optional renames
 - “Could be slightly cleaner” with no correctness or security risk
 - Drive-by refactors outside the ship set
-- Theoretical breakage without a proven affected site
+- Theoretical breakage without an identified call site or constructed path
 - Issues that pre-exist on `origin/main`
+- Behavior the ticket and tests explicitly pin (record as intentional; do not send to the fixer)
 
 ## Comment shape
 
@@ -42,12 +56,12 @@ Tag every title with a priority. Include the numeric `priority` field.
 
 | Tag | Numeric | Meaning | Gate |
 |-----|---------|---------|------|
-| `[P0]` | 0 | Blocking: production, security, data integrity, or major usage. Universal — not dependent on exotic inputs. | **Actionable** |
-| `[P1]` | 1 | Urgent. Should be fixed before this ship. | **Actionable** |
-| `[P2]` | 2 | Real issue, narrower blast radius. | **Actionable** only if high-signal correctness, security, or regression; otherwise log only |
+| `[P0]` | 0 | Blocking: production, security, data integrity, or major usage. | **Actionable** |
+| `[P1]` | 1 | Urgent. Fix before this ship. | **Actionable** |
+| `[P2]` | 2 | Real issue, including always-actionable classes above even on admin / batch / guessed-URL paths. | **Actionable** |
 | `[P3]` | 3 | Nice to have / nit. | **Never** blocks; do not send to the fixer |
 
-Map to existing `/prb` severity labels when writing the gate artifact: P0 → `critical`, P1 → `serious`, P2 → `medium`, P3 → `nit`.
+Map to existing `/prb` severity labels when writing the gate artifact: P0 → `critical`, P1 → `serious`, P2 → `medium`, P3 → `nit`. Orchestrator merge **must not** demote a P0–P2 in an always-actionable class to a nit.
 
 ## Repository rules
 
@@ -61,7 +75,8 @@ A finding is **rule-supported** only when the guidance adds a repository-specifi
 - Prefer `rg` for search.
 - When tests exist for the touched area, run the relevant subset and treat failures introduced by this ship as findings.
 - Do not stop at the first qualifying finding. Continue until every qualifying finding is listed.
-- If there is no finding the author would definitely want to fix, return none.
+- Walk always-actionable classes against this diff even if the happy path looks correct.
+- If there is no finding in that class, return none.
 
 ## Output schema — must match exactly
 

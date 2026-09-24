@@ -2,57 +2,72 @@
 name: issues
 description: >
   Research a multi-item product/code dump in the current repo and file many
-  implementation-ready Linear issues in one pass. Decompose into atomic
-  solve-ready leaves that may be independent, related, blockedBy-linked, or
-  packaged under an optional epic. Reuses /issue quality bar (code map,
-  acceptance criteria, drift check) with shared investigation + batch
-  duplicate scan. Use when the user runs /issues, says "file these issues",
-  "break this into Linear tickets", "ticket this list", "create multiple
-  Linear issues", or pastes a multi-bullet brain dump / residual backlog.
-  Does not implement code. Prefer /issue for a single one-shot ticket.
-  Prefer /project-review when the agent must invent findings without a user
-  laundry list.
+  execution-ready `.WCP/issues/` files in one pass so cheaper models can
+  implement each leaf from the ticket alone. Decompose into atomic solve-ready
+  leaves that may be independent or blocked on another file. Reuses /issue
+  execution-ready quality bar (code map, contracts, step plan, file-by-file,
+  AC, drift check) with shared investigation + batch duplicate scan. Use when
+  the user runs /issues, says "file these issues", "ticket this list", or pastes a multi-bullet brain dump /
+  residual backlog. Does not implement code. Prefer /issue for a single one-shot
+  ticket. Prefer /project-review when the agent must invent findings without a
+  user laundry list.
 argument-hint: "[--draft] [--plan-only] [--no-epic] [--epic \"Title\"] [--max N]"
 ---
 
-# /issues — Research & File Many Linear Issues
+# /issues — Research and file many execution-ready WCP issues
 
 Bulk intake skill. The user gives a **multi-item** description (list, residual
 backlog, brain dump, several related/unrelated problems). You investigate the
 repo **once**, decompose into **atomic solve-ready leaves**, decide which
-tickets are connected (or not), then create **multiple** Linear issues ready
-for `/solve`. Do not implement code. Do not open a PR.
+tickets are connected (or not), then write **multiple** files under
+`.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)) — each a
+complete **implementation contract** for a cheaper coding model. Do not call Linear. Do not implement
+code. Do not open a PR.
+
+**North star (per leaf):** a junior engineer or cheap agent who has never seen
+this repo can finish **that one ticket** from its file + a short drift
+check — without siblings, and without rediscovering architecture.
 
 | Skill | When |
 |-------|------|
 | `/issue` | One short description → one ticket |
 | **`/issues`** | Many items / one dump → many tickets (this skill) |
-| `/project-review` | Agent invents findings without a user laundry list |
+| `/start` | Greenfield from next-starter-template: docs + new Linear project + V1 build |
+| `/project-review` | Agent invents findings without a user laundry list (whole project) |
 | `/walk` | Agent invents findings from a **live UI walk** (front-facing screens only) |
-| `/solve` | Implements already-filed tickets |
+| `/solve` | Implements already-filed tickets (or hand off to Cursor Auto, etc.) |
+
+Full quality bar: [`../issue/references/execution-ready-bar.md`](../issue/references/execution-ready-bar.md).  
+Leaf body: [`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md).  
+Decomposition: [references/decomposition.md](references/decomposition.md).  
+Direction conflicts: [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md).
 
 ## Operating contract
 
-- **Many descriptions → many Linear issues** (atomic leaves). Never cram
+- **Many descriptions → many `.WCP/issues/` files** (atomic leaves). Never cram
   unrelated work into one mega-ticket.
 - **Shared research, per-leaf depth**: investigate the repo holistically, then
-  still pin file-level evidence on every leaf.
+  still write a **self-contained** execution-ready body on every leaf (cheap
+  models often see only one issue).
 - **Connected only when real**: use epic / `blockedBy` / `relatedTo` only when
   dependency or theme warrants it. Independent items stay flat and unlinked.
-- **Do not ask clarifying questions** unless blocked on Linear team/project or
-  a safety-critical ambiguity that would file wrong work. Prefer assumptions
-  in ticket bodies + a short batch plan in chat.
+- **Cheap-model ready**: each create leaf must pass the same create gate as
+  `/issue` (plan, file map, AC, verify, drift, occupancy, assumptions).
+- **Occupancy (WCP)**: prefer leaves with **disjoint primary write paths** so
+  `/solve` can lease them in one wave ([`../docs/wcp.md`](../docs/wcp.md),
+  [references/decomposition.md](references/decomposition.md)). Sharing a file
+  is occupancy, not extra `blockedBy`.
+- **Do not ask clarifying questions** unless a safety-critical ambiguity would file wrong work. Prefer assumptions
+  in ticket bodies + a short batch plan in chat. **Override:** if the dump
+  includes "ask me any questions", "ask me any questions if you have them",
+  or "ask probing questions", ask probing questions until unambiguous, wait
+  for answers, then file. Do not implement.
 - **No git commit, push, or PR. No product code changes.**
 - **Secrets**: never put tokens, env values, connection strings, or Doppler
-  secrets in Linear.
-- **Linear MCP**: `search_tool` then `use_tool`. Prefer `linear__save_issue`
-  without `id` to create. Read schemas first. Literal newlines in markdown
-  (not `\n` escape sequences).
-- **Teton Web eng SoT:** for Teton Web / `teton-web` engineering tickets, file on **Teton Web Platform**. Do not file new eng work on content-only projects (e.g. `tetonweb.com` when marked content-only). Content/copy/asset tickets may use content projects.
-- **Unassigned backlog only**: do not assign; do not set In Progress/Done.
-- **Occupancy (WCP)**: prefer leaves with **disjoint primary write paths** so
-  `/solve` can lease them in one wave ([`../docs/wcp.md`](../docs/wcp.md)).
-  Sharing a file is occupancy, not extra `blockedBy`.
+  secrets in issue files (env **names** only).
+- **Do not call Linear.** Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
+- **Unassigned `open/` only**: do not set `assignee` or `in-progress` while filing. A hard dependency is `blocked/` with `reason: blocked by <id>`. There is no epic file.
+- **One current direction**: this dump wins over older unstarted tickets (and leftover dump bullets) that contradict it. Drop or retire the old direction — do not file both.
 
 ## Args
 
@@ -93,37 +108,41 @@ Follow phases in order. Parallelize reads when possible.
 6. If **`--max N`** and candidates exceed N: rank by priority + foundation
    first; only the top N proceed to file; list deferred titles in the reply.
 
-### Phase 1 — Resolve Linear team and project (once)
+### Phase 1 — Queue
 
-Same priority order as `/issue` / `/solve`. Do **not** ask first.
+Same as `/issue`: the board is `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Read repo docs for package ownership. Use those package names in titles.
 
-1. Repo docs: `AGENTS.md`, `CLAUDE.md`, `.linear-project`, `.linear.json` / yaml, README Linear notes
-2. Memory / recent commits / branch names with issue prefixes (`PREFIX-N`, e.g. `TEAM-123`, `ENG-12`)
-3. Linear: `list_teams` → `list_projects` for that team; prefer an active project
-   matching the product/repo name from docs; skip archived/completed umbrellas
-4. Prefer monorepo package/app language in titles from package ownership docs
-   (e.g. `apps/web`, `packages/api`) when the repo is a monorepo
-5. If still unresolved: one short question with top candidates
+### Phase 2 — Board snapshot, duplicate, and direction-conflict scan (batch)
 
-Reuse team/project for the whole batch.
+**REQUIRED:** follow
+[`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)
+before deep writeups. One snapshot for the whole dump — do not re-crawl per leaf.
 
-### Phase 2 — Board snapshot & duplicate scan (batch)
+Search **non-implemented** issues (Backlog / Todo / unstarted / started — never
+an unfiltered Done dump). This dump is the current direction. Do not file Y
+while leaving unstarted X implementable if they contradict. `## Supersedes` +
+`relatedTo` without a status change is **not** enough.
 
-Before deep writeups:
-
-1. `linear__list_issues` for the team/project with queries from distinctive
-   terms across **all** candidates (routes, feature names, error strings).
-2. Build a short **board hit list** (id, title, state) for overlaps.
-3. Per candidate later:
-   - **Exact/near duplicate** → do **not** create; link existing id in the plan
-   - **Related** → create and set `relatedTo`
-   - **Supersedes** older open work → document under Supersedes; prefer
-     `relatedTo` those ids
-4. One snapshot is enough — do not re-crawl the full board per leaf during file.
+1. Snapshot via status types `backlog` / `unstarted` / `started` + surface
+   queries across **all** candidates (routes, feature names, abandoned approach).
+2. Build a short **board hit list** (id, title, state) for overlaps **and**
+   contradictions.
+3. Per candidate:
+   - **Exact/near duplicate** → do **not** create; `duplicate_of` existing id
+   - **Related, compatible** → create and set `relatedTo`
+   - **Full contradiction** with this dump’s direction, unstarted → create the
+     new leaf, then **retire** the old ids (Canceled or Duplicate + comment)
+   - **Intra-batch contradiction** (dump still contains leftover X and new Y) →
+     **drop X** (`action: drop-contradicted`); file Y only
+   - In Progress (foreign claim) or In Review → do **not** cancel; plan
+     `Conflict — needs you`
+4. `--draft` / `--plan-only`: show retire/drop in the plan; no status writes
+   until a real create succeeds.
 
 ### Phase 3 — Shared codebase investigation
 
 Goal: every leaf is implementable with **light drift verification** only.
+Shared research is fine; **leaf bodies must still be self-contained**.
 
 Investigate areas touched by the dump holistically:
 
@@ -131,19 +150,24 @@ Investigate areas touched by the dump holistically:
 |------|---------|
 | Surfaces | Routes, screens, APIs, jobs, CLI |
 | Code | Primary files, handlers, schemas, migrations |
+| Symbols | Names + ~line ranges per leaf cluster |
+| Contracts | Types, props, API shapes, schema fields |
 | Data | Tables/fields, owning package |
 | Config | Feature flags, env **names** only |
-| Patterns | Sibling features to mirror |
+| Patterns | Sibling features to **mirror** (path + symbol) |
 | Tests / verify | Package scripts from `AGENTS.md` / package.json |
-| Ownership | Which monorepo package/app owns each leaf |
+| Ownership | Which monorepo package owns each leaf |
+| Occupancy | Primary write path + symbol per leaf; barrels; sibling path overlap |
+| Excerpts | Short anchors for non-obvious logic per cluster |
 
 **How (parallelize):**
 
 1. Grep distinctive strings from the whole dump.
-2. Read highest-signal files for each cluster of candidates.
+2. **Read** highest-signal files for each cluster of candidates (not grep-only).
 3. Trace UI → API → service → DB one level for likely roots.
-4. Note package boundaries (e.g. `apps/web/`, `packages/api/`, `packages/db/`).
-5. Optional: `git log -n 5 -- path` only when it clarifies regressions.
+4. Note package boundaries (`app/`, `services/`, `agents/`).
+5. For each likely leaf, jot: primary paths, mirror pattern, contracts, verify cmds.
+6. Optional: `git log -n 5 -- path` only when it clarifies regressions.
 
 Read-only. No destructive commands, no long unrelated builds.
 
@@ -159,18 +183,22 @@ For each final leaf:
 | `title` | Specific, searchable, ≤ ~80 chars |
 | `type` / `priority` | As inferred |
 | `class` | `foundation` \| `feature` \| `polish` \| `content` \| `a11y` \| `chore` |
-| `package` | Owning monorepo path (e.g. `apps/web`, `packages/api`) |
+| `package` | Owning monorepo path |
 | `connectivity` | `independent` \| `related` \| `blocked` \| `epic-child` |
 | `blocked_by` | List of `temp_id`s (hard deps only) |
-| `related` | List of `temp_id`s or existing `TEAM-n` / `PREFIX-n` |
+| `related` | List of `temp_id`s or existing `TEAM-n` |
 | `duplicate_of` | Existing id if skip create |
+| `contradicts` | Existing ids or `temp_id`s this leaf retires / drops |
 
-**Atomicity rules:**
+**Atomicity rules (cheap models):**
 
-- One leaf = one shippable outcome with its own acceptance criteria.
+- One leaf = one shippable outcome with its own acceptance criteria **and** its
+  own step plan / file map.
 - Split “fix X and also redesign Y” into two leaves.
 - Merge only when two bullets are the same change with the same AC.
-- Prefer smaller leaves `/solve` can drain over epic novels.
+- Prefer smaller leaves a cheap model can finish in one session over epic novels.
+- If a leaf would need multi-package runtime work without explicit integration AC,
+  split by package.
 
 **Connectivity rules:**
 
@@ -189,7 +217,7 @@ For each final leaf:
   always skips).
 - `--epic "Title"` forces one parent for all filed leaves this run.
 - Epic body is packaging only — **never** the only implementable unit.
-  `/solve` expands epics to children.
+  `/solve` expands epics to children. Depth lives on children.
 
 **Filing order** (create sequence):
 
@@ -212,7 +240,9 @@ table before filing (unless `--draft` / `--plan-only` stop earlier):
 |---|-------|---|-------|-------|--------|
 | L1 | … | 2 | foundation | — | create |
 | L2 | … | 3 | feature | blockedBy L1 | create |
-| L3 | … | 3 | feature | dup TEAM-199 | skip |
+| L3 | … | 3 | feature | dup 0199 | skip |
+| L4 | Old modal … | 3 | feature | contradicted by L1 | drop-contradicted |
+| L5 | Settings page … | 2 | feature | retire 0040 | create + retire 0040 |
 ```
 
 If `--plan-only`: stop here.  
@@ -222,39 +252,71 @@ question; otherwise proceed to draft + file.
 ### Phase 5 — Draft every leaf (quality bar)
 
 Each **create** leaf uses the body structure in
-[references/issue-body-template.md](references/issue-body-template.md)
-(same bar as `/issue`):
+[`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md)
+(same bar as `/issue`, plus batch metadata):
 
-1. Occupancy (WCP) — primary write path + symbol; sibling overlap
-2. Summary  
-2. User report (quote the specific bullet/fragment)  
-3. Current behavior + evidence  
-4. Expected behavior  
-5. Suspected root cause / scope  
-6. Code map (real paths)  
-7. Implementation notes  
-8. Acceptance criteria (checklist)  
-9. Verification (real package commands)  
-10. Drift check  
-11. Risks / blockers  
-12. Platform / stack  
-13. Related / blockedBy / parent (temp ids ok pre-file; replace with real ids in Linear relations)  
-14. Supersedes (if any)  
-15. Assumptions  
-16. Batch metadata (optional): `temp_id`, `class`, sibling plan title  
+1. Implementer contract (this leaf only; honor blockedBy)  
+2. Occupancy (WCP) — primary write path + symbol; sibling overlap  
+3. Intensity stamp (`## Intensity` — Band + Why + Proof; [`../docs/intensity.md`](../docs/intensity.md))  
+4. Summary  
+5. User report (quote the specific bullet/fragment)  
+6. Current behavior + evidence  
+6. Expected behavior  
+7. Suspected root cause / scope  
+8. Code map (real paths + symbols)  
+9. Relevant contracts  
+10. Code anchors + pattern to mirror  
+11. Step-by-step implementation plan  
+12. File-by-file changes  
+13. Do not touch / out of scope  
+14. Acceptance criteria (checklist)  
+15. Test plan  
+16. Verification (real package commands)  
+17. Drift check  
+18. Risks / blockers  
+19. Platform / stack  
+20. Related / blockedBy / parent  
+21. Supersedes (if any)  
+22. Batch metadata (`temp_id`, `class`, batch name)  
+23. Assumptions / pre-decided  
+
+**Self-contained rule:** do not write “see L1 for the schema” without also
+summarizing the schema fields L2 needs. A Cursor Auto run may only receive L2.
 
 **Titles:** problem-focused, area prefix when helpful  
-`[web] Settings page double-counts active seats`  
+`[Agents] Cost page double-counts kickoff reservations`  
 No trailing period; no “Fix bug”.
 
 **Labels:** only existing team labels that clearly fit; omit if unsure.
 
 **Epic body** (when creating): short packaging note from
-[references/epic-body-template.md](references/epic-body-template.md).
+[references/epic-body-template.md](references/epic-body-template.md).  
+Never put the only AC on the epic.
 
-### Phase 6 — File in Linear
+### Phase 5B — Per-leaf create gate (fail closed)
 
-Skip if `--draft` or `--plan-only`.
+For each leaf marked `create`, **do not file** if any fail:
+
+- [ ] Code map paths exist in the workspace now  
+- [ ] Step-by-step plan has ≥2 concrete steps  
+- [ ] File-by-file table has ≥1 real edit/create path  
+- [ ] AC checklist-testable  
+- [ ] Verification uses real package scripts  
+- [ ] Drift check ≥3 anchors  
+- [ ] Assumptions present when the source bullet was thin  
+- [ ] No secrets  
+- [ ] `## Intensity` stamp with a valid `Band:`  
+- [ ] `## Occupancy (WCP)` primary write path filled (or N/A: no application writes)
+- [ ] Body self-contained (no “see sibling” as sole context)  
+- [ ] Single package ownership (or explicit integration AC)
+- [ ] Direction-conflict search ran; unstarted full contradictions have a retire plan (or drop-contradicted intra-batch)
+
+Failed leaves: keep full draft in the reply (or `--draft` mode), mark action
+`blocked-thin` in the summary, continue filing other ready leaves.
+
+### Phase 6 — Write the files
+
+Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-queue.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason: blocked by <id>` after the blocker file exists. Do not create an epic file. Do not assign. Do not call Linear. The old Linear create steps below are retired; write the markdown files instead.
 
 #### 6A. Epic (optional)
 
@@ -263,7 +325,7 @@ Skip if `--draft` or `--plan-only`.
 
 #### 6B. Leaves in filing order
 
-For each create leaf:
+For each create leaf that passed the gate:
 
 ```text
 title: <title>
@@ -278,7 +340,9 @@ parentId / parent: <epic>     # when epic-child
 3. Do **not** set assignee or In Progress.  
 4. On success: record `temp_id → identifier, url, id`.  
 5. On failure: keep going; report failed leaf + keep drafted body in the reply.  
-6. Skip leaves marked `duplicate_of` (mention existing id instead).
+6. Skip leaves marked `duplicate_of` (mention existing id instead).  
+7. Skip leaves that failed the create gate (`blocked-thin`).
+8. Skip leaves marked `drop-contradicted` (intra-batch; newer direction wins).
 
 #### 6C. Relations (after ids exist)
 
@@ -290,21 +354,32 @@ parentId / parent: <epic>     # when epic-child
 
 Update epic description with child identifiers when easy.
 
+#### 6E. Retire contradicted unstarted issues
+
+After ids exist for created leaves. Follow
+[`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)
+**Retire**. Do not retire if that leaf’s create failed. Do not cancel live
+foreign claims or In Review.
+
 ### Phase 7 — Reply to the user
 
 ```markdown
-**Filed:** N created · K skipped (duplicate) · F failed · D deferred (--max)
+**Filed:** N created · K skipped (duplicate) · C drop-contradicted · T thin (not filed) · F failed · D deferred (--max)
 **Team / Project:** <team> / <project>
-**Epic:** [TEAM-…](url) — <title>   # or “none (flat)”
+**Epic:** none (flat files)
+**Exec-ready:** each created leaf has plan + file map + AC + verify + drift
+**Retired:** [0040](path) — contradicted L1 (canceled)   # omit if none
+**Conflict — needs you:** [0055](path) — in-progress / foreign lease   # omit if none
 
 | ID | Title | P | Links |
 |----|-------|---|-------|
-| [TEAM-1](url) | … | High | blockedBy TEAM-0 |
-| [TEAM-2](url) | … | Medium | related TEAM-1 |
-| — | … | Medium | **skipped** duplicate of TEAM-199 |
+| [0001](path) | … | high | blocked by 0000 |
+| [0002](path) | … | normal | related 0001 |
+| — | … | normal | **skipped** duplicate of 0199 |
+| — | … | Medium | **thin** — missing <…>; draft in thread |
 
-**Focus packages:** `apps/web`, `packages/api`, …
-**Next:** `/solve` or `/solve N` to implement; `/issues --draft` to re-plan.
+**Focus packages:** `app`, …
+**Handoff:** a cheaper model or `/solve` can execute created leaves from the issue file alone.
 ```
 
 If `--draft`:
@@ -325,32 +400,46 @@ Then stop. Do not implement.
 ## Quality checklist (before create)
 
 - [ ] Team resolved; project set when identifiable  
-- [ ] Batch duplicate scan done  
+- [ ] Batch duplicate + direction-conflict scan done (actionable issues)
+- [ ] Unstarted contradicted board issues retired after create (or needs-you)
+- [ ] Intra-batch X vs Y dropped the contradicted leaf  
 - [ ] Leaves are atomic (one outcome each)  
 - [ ] Connectivity not over-blocked (soft vs hard deps)  
 - [ ] Filing order: foundation before feature/polish  
-- [ ] Occupancy (WCP) primary write path on every create leaf (or N/A)
+- [ ] Every create leaf passed Phase 5B create gate  
+- [ ] Occupancy (WCP) primary write path on every create leaf (or N/A)  
+- [ ] Every create leaf is self-contained (no sibling-only context)  
 - [ ] Every create leaf has real code map paths that exist now  
+- [ ] Step plan + file-by-file + do-not-touch present  
 - [ ] Acceptance criteria checklist-testable  
+- [ ] Test plan present (auto and/or manual)  
 - [ ] Verification uses this repo’s real scripts  
-- [ ] Drift-check anchors included  
+- [ ] Drift-check anchors included (≥3)  
+- [ ] Assumptions / pre-decided filled when bullets were thin  
 - [ ] No secrets  
 - [ ] Epic has no sole implementable AC (children do)  
-- [ ] Monorepo package/app ownership correct per leaf  
+- [ ] Monorepo package ownership correct per leaf  
 
 ---
 
 ## Anti-patterns
 
 - One mega-issue for a multi-bullet dump  
-- Filing “investigate X” with no code map  
+- Filing “investigate X” with no code map or plan  
 - Epic-only ticket with all AC on the parent  
+- Leaf bodies that say “see epic / see L1” instead of copying needed contracts  
 - `blockedBy` webs so dense nothing is `/solve`-eligible  
 - Creating duplicates of open board issues  
+- Filing Y while leaving unstarted X implementable when they contradict  
+- Filing both leftover X and new Y from the same dump  
+- Treating `## Supersedes` / `relatedTo` / chat as the retire step  
+- Skipping the conflict search because this is “not a stack migration”  
 - Asking team/project when docs already say  
 - Implementing fixes under this skill  
 - Inventing findings the user never mentioned (that’s `/project-review`)  
-- Mixing two packages’ runtime ownership in one leaf without an explicit integration AC
+- Mixing app vs services ownership in one leaf  
+- Filing thin shells “to fill in later” — cheap models will freestyle  
+- Shared research notes only in chat, not in each leaf body
 - Two leaves with the same primary write path when they could split
 - Minting `blockedBy` only because two leaves share a file (that is WCP occupancy)  
 
@@ -371,7 +460,9 @@ Then stop. Do not implement.
 |-------|------------|
 | `/issue` | Single ticket, rapid-fire one-liner |
 | `/issues` | Multi ticket, shared research, graph optional |
+| `/start` | New repo from next-starter-template; files a **new** Linear project + V1; then nested `/solve` |
 | `/project-review` | Agent-invented audit → many tickets |
 | `/walk` | Live front-facing UI walk → many tickets |
 | `/solve` | Implements filed leaves; expands epics |
 | `/prb` | Ships code on `dev` → PR → main |
+| Cursor Auto / cheap model | Intended **consumer** of tickets this skill files |

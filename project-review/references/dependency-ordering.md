@@ -86,7 +86,7 @@ Review pass ({mode}) – {Project or Surface} – YYYY-MM
 
 Examples:
 
-- `Review pass (fast) – Acme Product – 2026-07`
+- `Review pass (fast) – 2026-07`
 - `Review pass (deep) – Onboarding – 2026-07`
 
 Epic body: short packaging note only (see `issue-template.md`).  

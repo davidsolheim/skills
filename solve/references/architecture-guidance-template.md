@@ -144,7 +144,7 @@ After coding (worker):
 
 1. [ ] Cheap construction (`solve-implementer`; bugs-only inner review on heavy/critical)
 2. [ ] Verify per repo AGENTS / issue verification
-3. [ ] Commit on issue branch only
+3. [ ] Do not commit. Do not stash. Leave the worktree dirty for the orchestrator
 4. [ ] Write worker summary to the path the orchestrator gave you
 5. [ ] **Do not** merge `dev`, push, PR, or set Linear Done
 

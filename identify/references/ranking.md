@@ -116,8 +116,9 @@ PROPOSED = kept
 If the **entire** top of the board is one hotspot: cap `PROPOSED` at 2 (or 1
 if `MAX_N == 1`), set `FAST_OK = false`, and say so in the proposal.
 
-`FAST_OK` is true only when `FAST_ON_APPROVE` and no pair in `PROPOSED`
-overlaps and thin S0 found no platform conflict in this batch.
+`FAST_OK` is true when no pair in `PROPOSED` overlaps on a primary write path
+and thin S0 found no platform conflict in this batch. `fast` / `--fast` on
+`/identify` is a no-op.
 
 ---
 

@@ -24,13 +24,15 @@ Evidence, strongest first:
 | In Review already and on `origin/dev` only | Inspect-only if body is ready |
 | In Review already and now on `origin/main` | **Done** |
 
-Comment with ref + sha or PR url when you change status. Never Done without
+Comment with ref + sha or PR url when you change status (`list_comments`
+first; skip if this sha/PR is already on the thread). Never Done without
 main/trunk evidence.
 
 ## 2. Epic rollup
 
 If the issue has children and **every** child is Done / Canceled / Duplicate /
-Completed: comment (list child ids if short) and set the epic **Done**.
+Completed: `list_comments` first; skip a second rollup if one already exists;
+else comment (list child ids if short) and set the epic **Done**.
 Same rule as `/solve` Phase 2E rollup. Do not implement the epic shell.
 
 If some children are still open: do not close the epic. You may still upgrade
@@ -40,7 +42,8 @@ the epic’s short description (leaves stay the solve targets).
 
 **Duplicate** when the same user-visible outcome and the same primary paths
 are already tracked on another issue (open or Done). Set state **Duplicate**,
-comment `Duplicate of TEAM-N`, set `relatedTo` if the API allows.
+`list_comments` then comment `Duplicate of TEAM-N` (skip if already present),
+set `relatedTo` if the API allows.
 
 **Canceled** when the ticket targets a fully abandoned stack or a feature the
 repo/newer tickets explicitly dropped, **and** a superseding issue exists (or
@@ -75,7 +78,8 @@ Tidy applies it to **every due** issue).
 
 **Ready** (no body write) if all exist: code map of real paths, checklist AC,
 repo verification commands, ≥3 drift anchors, ordered plan or file-by-file
-list.
+list, and `## Occupancy (WCP)` with a primary write path (or explicit N/A
+when the leaf writes no application files). Missing occupancy is thin.
 
 **Thin** → investigate (read-only), update the **existing** issue. Do not
 create a replacement ticket. Do not change priority unless it is obviously

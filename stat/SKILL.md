@@ -3,7 +3,7 @@ name: stat
 description: >
   Use when the user runs /stat, says "stat", "board status", "project status",
   "what's open", "show issues that need to be resolved", "what's left to
-  solve", or wants a read-only briefing of this repo's Linear project sorted
+  solve", or wants a read-only briefing of this repo's `.WCP/issues/` queue sorted
   most urgent to least. Also /stat N or area words. Do not use for session
   /status (auth/model/context) or for picking a solve batch (/identify).
 argument-hint: "[N] [area…]"
@@ -11,8 +11,8 @@ argument-hint: "[N] [area…]"
 
 # /stat — Open issues, urgent first
 
-Read **this repo’s Linear project**. List **every issue that still needs
-resolution**. Sort **most urgent → least**. Then **stop**.
+Read **`.WCP/issues/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). List **every issue that still needs
+resolution** (`open`, `in-progress`, `blocked`). Sort **most urgent → least**. Do not call Linear. Then **stop**.
 
 This skill does **not** implement, claim, tidy, upgrade, or start `/solve` /
 `/identify`.
@@ -27,11 +27,9 @@ This skill does **not** implement, claim, tidy, upgrade, or start `/solve` /
 - **Rank** = Linear **priority**, then **user-facing impact** (`U`), then
   identifier number. Keys: `$IDENTIFY_SKILL_DIR/references/ranking.md`
   (Sort keys + Priority + User-facing impact **only**).
-- **Read-only on Linear.** No comments, assignee, or state changes.
+- **Read-only on the queue.** Do not edit issue files.
 - **Secrets:** never print tokens, env values, or Doppler secrets.
-- **Linear MCP:** `search_tool` then `use_tool`. Schemas first. Inventory =
-  eligibility **Linear inventory fetch** (`team` + `project` + `state`, slim
-  fields). Never list the project unfiltered (dumps Done; truncates).
+- **Inventory:** list `open/`, `in-progress/`, and `blocked/`. Do not call Linear. Skip `done/` and `canceled/` unless the user asks.
 
 ## Trigger phrases
 
@@ -92,47 +90,24 @@ skip `U`.
 
 ---
 
-## Phase 1 — Resolve Linear team and project
+## Phase 1 — Queue
 
-Same automatic order as `/issue` Phase 1. Read `$ISSUE_SKILL_MD` Phase 1 and
-follow it. Do not ask first. Ask **once** with top candidates only if
-unresolved.
+The board is `.WCP/issues/` in this checkout. Do not resolve a team or project.
 
 ---
 
 ## Phase 2 — Inventory
 
-Read `ELIGIBILITY_MD` **Linear inventory fetch** and follow it:
+List `*.md` in `.WCP/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Do not call Linear.
 
-1. `list_issue_statuses`, then `list_issues` per kept status **name** with
-   `team` + `project` + `state`, slim fields, page each state. Types
-   `backlog` / `unstarted` / `started` only.
-2. **Open set** = that union. Do **not** pull `description` on this pass.
-3. `list_comments` **only** on `started` issues (In Progress / In Review /
-   Blocked equivalents) to detect live `claimed-by:` (< 60 min).
-4. Do **not** apply 2B as a hide filter. 2D/2E are wait-reasons, not drops.
+| Folder | Wait |
+| --- | --- |
+| `blocked/` | `blocked` |
+| `in-progress/` and lease in the future, other assignee | `claimed` |
+| `in-progress/` and lease expired | `ready` (reclaim is `/solve`'s job; you only report) |
+| `open/` | `ready` |
 
-If `AREA_FILTER` is set: keep issues whose title, labels, or identifier match.
-If nothing matches: **stop** and ask whether to re-run unfiltered.
-
-If the open set is empty: report team/project and **stop**. Do not invent work.
-
-### Wait reason (one per issue)
-
-Compute from inventory + started comments only:
-
-| Signal | Wait |
-|--------|------|
-| Status/label Blocked, or open `blockedBy` if already loaded | `blocked` |
-| Live foreign `claimed-by:` | `claimed` |
-| In Progress, other assignee | `other-assignee` |
-| In Review | `in-review` |
-| Has children in this open set (`parentId` of others → this id) | `epic` |
-| Child (`parentId` set) | `child of TEAM-…` |
-| Else unstarted / unclaimed In Progress | `ready` |
-
-Do not `get_issue` the whole board. Load relations only when a Blocked issue
-has no wait reason yet.
+If `AREA_FILTER` is set: keep issues whose title or id matches. If nothing matches, stop and ask. If the set is empty, say the queue is empty and stop. Do not invent work.
 
 ---
 
@@ -141,8 +116,7 @@ has no wait reason yet.
 Read `RANKING_MD` (Sort keys + Priority + User-facing impact). **Do not**
 apply Size cut, Overlap cut, or Identify batch guidance.
 
-1. Map Linear priority → `P1`–`P4` (`1` Urgent, `2` High, `3`/`0` Medium,
-   `4` Low). Missing priority = Medium.
+1. Map `priority` → `P1`–`P4` (`critical` Urgent, `high` High, `normal` Medium, `low` Low). Missing priority = Medium.
 2. Score `U` from **title + labels** (no live app walk; no bulk
    descriptions). When unsure between adjacent scores, pick the **lower**.
 3. Sort: `P` ascending, then `U` descending, then `TEAM-(\d+)` ascending.

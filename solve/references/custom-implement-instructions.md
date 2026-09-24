@@ -15,9 +15,9 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 3. **Patterns**: match existing route, UI, Neon/runtime, and test conventions in the repo **unless** the current issue’s supersession notes explicitly replace that pattern. Prefer existing helpers over new abstractions when not superseding.
 4. **Repo rules**: follow root `AGENTS.md` / `CLAUDE.md` / `README.md` for this workspace (Linear tracking, package manager, validation matrix, no reintroducing removed systems).
 5. **Secrets**: never commit `.env`, print Doppler/tokens/connection strings, or log secrets.
-6. **Git while implementing**: stay on the issue branch created by `/solve`. Do not switch to `main` or `dev`. Do not push. Do not open PRs.
-6b. **Occupancy (WCP)**: load skill `water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md). `export WCP_AGENT` as assigned. look → acquire → write-ok → re-read disk → edit → release. Tests first with `// WCP <id>:`. Never rewind sibling edits. Never hold a lease through tests.
-7. **Commits**: prefer **not** committing during construction. Leave a clean, reviewable working tree (or only intentional WIP commits on the issue branch). The `/solve` orchestrator stages and commits after verification. Scratch files under `$TMPDIR` are never staged.
+6. **Git while implementing**: stay on the branch the orchestrator assigned. **Shared-dev (default parallel):** stay on local `dev`; do not create branches, worktrees, stash, reset, or restore sibling files; do not commit. **Sequential and worktree:** stay on the issue branch; do not switch to `main`; do not commit and do not stash. Never push or open PRs.
+6b. **Occupancy (WCP)**: load skill `water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md). Name yourself with `wcp name <id>` (prefer the issue id lowercased) and export `WCP_AGENT` and `WCP_NAME_TOKEN`. Write the test first (`// WCP <id>: <existing-path> …`) and do not claim the test file. Write a new file with no claim. For a file that already existed: look → acquire --test → write-ok → re-read disk → edit → release. Never rewind sibling edits. Never hold a lease through tests.
+7. **Commits**: do not commit and do not stash. Leave the tree dirty. The `/solve` orchestrator commits after verification, and only when `wcp look` shows no live source-file lease. Scratch files under `$TMPDIR` are never staged.
 8. **Files**: stage-worthy changes only for this issue (including intentional overrides of earlier work). Leave unrelated dirty files untouched.
 9. **Summary**: always write the implement summary file requested by the orchestrator (paths changed, design decisions, supersession overrides, verification notes, **runtime-proof evidence**).
 10. **Runtime proof**: follow [`../../docs/prove-it-works.md`](../../docs/prove-it-works.md). Do not claim construction complete on typecheck/tests/build alone when the change is user-visible, auth, billing, public API, schema, or a shared helper.
@@ -38,7 +38,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 - Smallest complete change that meets **current** acceptance criteria (which may include a selective override of prior work). Delete dead weight in-scope before adding.
 - Existing Neon runtime routes / `useRuntimeResource` / server helpers when the repo already uses them **and** this issue is not superseding that pattern
 - Unit tests for new logic when the issue or repo validation matrix expects them; **failing test first** for bugs when a cheap local path exists
-- Issue id in any commit messages if you must commit mid-loop (e.g. `TW-123: …`)
+- The orchestrator puts the issue id in the commit subject (`0123: …`). Workers do not commit mid-loop.
 
 ## Avoid
 
@@ -47,7 +47,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 - Pushing or creating PRs
 - Discarding unrelated user work (`git reset --hard`, force-checkout over dirty unrelated files)
 - Marking Linear Done (orchestrator owns Linear closeout)
-- Merging into `dev` (orchestrator owns merge after verify)
+- Merging into `dev` or committing on `dev` (orchestrator owns commit after verify)
 - Claiming construction complete without runtime proof when the change is in-scope ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md))
 - Running bundled `/implement` until-zero-nits, or treating `/prb` nits as construction blockers
 
@@ -63,12 +63,12 @@ If the user passes free-text after `/solve` (other than `--effort N`, `--concurr
 
 ## Batch / fast guidance (multi-issue)
 
-When the orchestrator provides a **batch guidance** path (`guidance.md` from `/solve all`, `/solve N` with `N≥2`, or `/solve … fast` — sometimes still named `architecture.md`):
+When the orchestrator provides a **batch guidance** path (`guidance.md` from `/solve all`, `/solve N` with `N≥2`, or any parallel `/solve` — sometimes still named `architecture.md`):
 
 1. **Read that file fully** before coding. Treat **canonical/abandoned platforms**, **Shared contracts**, **Supersession**, **execution order notes**, **Tech intersections**, and **Conflict zones** as hard constraints.
 2. If the original Linear ticket and the guidance disagree on **platform/stack**, **guidance wins**. Implement re-scoped AC when `action=rescope`.
 3. Do **not** invent parallel APIs, schemas, env keys, or patterns that conflict with the guidance or with other issues listed there.
 4. Do **not** add dependencies on **abandoned platforms** (e.g. ClickHouse client work when canonical is Neon).
-5. Stay on the assigned issue branch (and worktree in fast mode). Do **not** merge to `dev`/`main`, push, open PRs, or update Linear state (orchestrator owns those).
+5. Stay on the assigned branch. Shared-dev: stay on `dev`, WCP leases, do **not** commit. Do **not** merge to `dev`/`main`, push, open PRs, or update Linear state (orchestrator owns those).
 6. Prefer the smallest change that meets this leaf’s **current** (possibly re-scoped) acceptance criteria while remaining compatible with shared contracts.
 7. Document supersession/rescope compliance in the implement summary.

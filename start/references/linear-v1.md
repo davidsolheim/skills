@@ -1,47 +1,16 @@
-# Linear capture for `/start` V1
+# V1 queue for `/start`
 
-Used by `/start` Phase 4. Ticket quality is **not** forked: use
+Used by `/start` Phase 4. Write leaves into `.WCP/issues/open/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Do not create a Linear project. Do not call Linear. Ticket quality is **not** forked: use
 
-- [`../../issue/SKILL.md`](../../issue/SKILL.md) Phase 4 quality bar (and `references/execution-ready-bar.md` if present)
+- [`../../issue/references/execution-ready-bar.md`](../../issue/references/execution-ready-bar.md)
 - [`../../issue/references/issue-body-template.md`](../../issue/references/issue-body-template.md)
 - [`../../issues/references/decomposition.md`](../../issues/references/decomposition.md)
 - [`../../issues/references/epic-body-template.md`](../../issues/references/epic-body-template.md)
-- `../../issue/references/direction-conflict.md` if present
+- [`../../issue/references/direction-conflict.md`](../../issue/references/direction-conflict.md)
 
-`search_tool` → `use_tool`. Literal markdown newlines.
+## Queue
 
-## Team
-
-Confirmed in Phase 1. If more than one Linear MCP server is connected, use the
-one whose `list_teams` includes the resolved team.
-
-`list_teams` before create. Do not invent a team.
-
-## Project
-
-**Do not** file a new product on an existing **umbrella / platform** board that
-belongs to another product. Create (or reuse) a Linear project whose name
-**is this product**.
-
-**Existing `/start`:** if `.linear-project` or AGENTS already names a project
-and `list_projects` finds it on the team → **reuse**. Do not create a second
-project with a similar name.
-
-1. `list_projects` `team` + `query` = product name / slug / `.linear-project`
-2. If an active project already **is** this product (name/slug match) → reuse it
-3. Else `save_project` without `id`:
-
-```text
-name: <Product name>          # human name, e.g. Acme App
-setTeams: ["<team>"]
-summary: <job in ≤255 chars>
-description: <markdown: intent, V1 bullets, repo path, VISION.md pointer>
-state: started                # if the API accepts a started-type; else omit
-links: [{ url: <github or omit>, title: Repo }]
-```
-
-4. Capture name, id, url, team key/prefix
-5. Patch DEST `AGENTS.md`, `VISION.md` Linear section, `.linear-project`
+Write each V1 leaf as a file in DEST `.WCP/issues/open/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Do not create a Linear project. Do not call Linear. Create `open/`, `in-progress/`, `done/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under `.WCP/issues/`.
 
 ## What to ticket (V1 only)
 
@@ -72,33 +41,20 @@ Identity is usually **one** foundation leaf, not six micro-tickets.
 
 Prefer 4–12 leaves. Split if a cheap model would need a multi-day plan.
 
-## Epic
-
-Default: one epic `V1 – <Product>`. Body from epic-body-template; source
-`/start`; **do not implement the shell**.
-
-If that epic already exists on this project (existing `/start` retry), **reuse
-it**. File only V1 leaves that are not already open/done (duplicate scan).
-
-`--no-epic` is not a `/start` flag; only skip the epic if exactly one leaf.
-
 ## Leaves
 
-Each create leaf: full `/issue` template (include Batch metadata:
-`temp_id`, `class`, `batch: start-v1-<slug>`).
+There is no epic file. Put `batch: start-v1-<slug>` in the leaf body when a batch name helps.
+
+Each create leaf: full `/issue` template (include `temp_id` and `class`).
 
 Create gate (fail closed) — same as `/issue` 5A. Paths must exist in DEST now
 (starter paths count).
 
 Filing:
 
-- Unassigned, Backlog/Todo (or team default unstarted)
-- **Not** In Progress, **not** Done, **not** claimed
-- `parentId` = epic
-- `project` = this new project
-- `priority`: identity + blocking schema = High (2); core features = High or Medium; polish = Medium/Low
-- `blockedBy` after ids exist
-- Labels only if they already exist on the team
+- `status: open`, empty `assignee` and `lease_expires`
+- `priority`: identity and blocking schema are high; core features are high or normal; polish is normal or low
+- A hard dependency is a file in `blocked/` with `reason: blocked by <id>`
 
 User report on each leaf: quote the vision V1 bullet.
 
@@ -109,18 +65,13 @@ Platform / stack on every leaf:
 
 ## Board snapshot
 
-New project → usually empty. Still `list_issues` once on this project
-(backlog/unstarted/started) so we do not duplicate a retry of `/start`.
-
-Do not snapshot some other product’s board looking for “similar” work to attach to.
+Read `.WCP/issues/` before writing so a second `/start` does not file the same leaf again.
 
 ## Draft mode
 
-`--draft`: no `save_project` / `save_issue`. Output the project markdown +
-every leaf body in chat.
+`--draft`: print the leaf bodies in chat. Do not write the files.
 
-## Linear failure
+## Write failure
 
-Say which call failed. Keep DEST docs. Print project + leaf drafts. Phase 6
-build does **not** run unless the user already passed `--no-linear` and wants
-vision-driven implement.
+Say which write failed. Keep DEST docs. Print the leaf drafts. Phase 6
+build does **not** run unless the user already asked to build from `VISION.md`.

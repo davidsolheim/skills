@@ -38,12 +38,21 @@ Use this structure for the user-facing end summary. Keep it scannable. Full issu
 /solve
 /solve 5
 /solve all
-/solve all fast
+/solve all
 ```
 (Pick based on how hard you want to drain the queue.)
 
 ### Duplicates skipped
 - Candidate “…” ≈ [TEAM-88](url) — not re-filed (offline board_match)
+
+### Retired
+- [TEAM-40](url) — contradicted filed leaf (Canceled)
+
+### Conflict — needs you
+- [TEAM-55](url) — In Progress / foreign claim; not canceled
+
+### Drop-contradicted
+- Candidate “…” vs [TEAM-80](url) — user ticket is canonical; finding not filed
 
 ### Discovered not filed
 - <title> (P2) — reason: fast mode filter | failed quality gate | …
