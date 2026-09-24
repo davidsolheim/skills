@@ -132,7 +132,7 @@ Use the full structure in [references/issue-body-template.md](references/issue-b
 
 1. **Implementer contract** — scope lock; follow the plan; drift-then-implement
 2. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
-3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Do not key off ticket length or Linear priority alone.
+3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Do not key off ticket length or priority alone.
 4. **Summary** — 2–4 sentences, product + technical
 5. **User report** — quoted or paraphrased original description
 5. **Current behavior** — what the code/UI does today (with path/symbol evidence)

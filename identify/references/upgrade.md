@@ -36,7 +36,10 @@ Treat as **ready** (no Linear write) when the body already has all of:
 - An ordered plan or file-by-file change list
 - Occupancy (WCP) primary write path, or explicit N/A for docs-only
 
-Missing `## Intensity` alone does **not** make a ticket thin. When you **do** rewrite a thin ticket, stamp `## Intensity` per [`../../docs/intensity.md`](../../docs/intensity.md).
+Missing `## Intensity` or Occupancy (WCP) alone does **not** make a ticket
+thin. When you **do** rewrite a thin ticket, stamp `## Intensity` per
+[`../../docs/intensity.md`](../../docs/intensity.md) and fill Occupancy (WCP)
+from the `/issue` template ([`../../docs/wcp.md`](../../docs/wcp.md)).
 
 Treat as **thin** if any of those are missing, or the body is product prose
 without paths/symbols.

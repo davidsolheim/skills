@@ -30,7 +30,9 @@ push, or open PRs.
 - **Cooldown: 7 days** per issue unless overridden. Ledger + stamp:
   [`references/ledger.md`](references/ledger.md).
 - **Quality bar** = `/issue` (same as Identify upgrades). Do not invent a
-  second template.
+  second template. When thickening, fill **Occupancy (WCP)** from that
+  template ([`../docs/wcp.md`](../docs/wcp.md)). Sharing a file is occupancy,
+  not a reason to block the ticket.
 - **Status** matches the queue: `done` when a work commit exists and acceptance is met. `canceled` for a high-confidence duplicate or obsolete ticket, with `reason`. `blocked` only for a real dependency. Do not invent In Review.
 - **High-confidence writes apply immediately**, including Cancel/Duplicate.
   Low-confidence closes are listed, not applied. Rules:

@@ -84,7 +84,8 @@ when the leaf writes no application files). Missing occupancy is thin.
 **Thin** → investigate (read-only), update the **existing** issue. Do not
 create a replacement ticket. Do not change priority unless it is obviously
 mislabeled vs a broken primary path (promote) or a title-only Urgent chore
-(leave it; list in report).
+(leave it; list in report). When you **do** rewrite, fill Occupancy (WCP)
+from the `/issue` template ([`../../docs/wcp.md`](../../docs/wcp.md)).
 
 Fail closed: no half-rewritten body.
 

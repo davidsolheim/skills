@@ -255,33 +255,33 @@ Each **create** leaf uses the body structure in
 [`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md)
 (same bar as `/issue`, plus batch metadata):
 
-1. Implementer contract (this leaf only; honor blockedBy)  
-2. Occupancy (WCP) — primary write path + symbol; sibling overlap  
-3. Intensity stamp (`## Intensity` — Band + Why + Proof; [`../docs/intensity.md`](../docs/intensity.md))  
-4. Summary  
-5. User report (quote the specific bullet/fragment)  
-6. Current behavior + evidence  
-6. Expected behavior  
-7. Suspected root cause / scope  
-8. Code map (real paths + symbols)  
-9. Relevant contracts  
-10. Code anchors + pattern to mirror  
-11. Step-by-step implementation plan  
-12. File-by-file changes  
-13. Do not touch / out of scope  
-14. Acceptance criteria (checklist)  
-15. Test plan  
-16. Verification (real package commands)  
-17. Drift check  
-18. Risks / blockers  
-19. Platform / stack  
-20. Related / blockedBy / parent  
-21. Supersedes (if any)  
-22. Batch metadata (`temp_id`, `class`, batch name)  
-23. Assumptions / pre-decided  
+1. Implementer contract (this leaf only; honor blockedBy)
+2. Occupancy (WCP) — primary write path + symbol; sibling overlap
+3. Intensity stamp (`## Intensity` — Band + Why + Proof; [`../docs/intensity.md`](../docs/intensity.md))
+4. Summary
+5. User report (quote the specific bullet/fragment)
+6. Current behavior + evidence
+6. Expected behavior
+7. Suspected root cause / scope
+8. Code map (real paths + symbols)
+9. Relevant contracts
+10. Code anchors + pattern to mirror
+11. Step-by-step implementation plan
+12. File-by-file changes
+13. Do not touch / out of scope
+14. Acceptance criteria (checklist)
+15. Test plan
+16. Verification (real package commands)
+17. Drift check
+18. Risks / blockers
+19. Platform / stack
+20. Related / blockedBy / parent
+21. Supersedes (if any)
+22. Batch metadata (`temp_id`, `class`, batch name)
+23. Assumptions / pre-decided
 
 **Self-contained rule:** do not write “see L1 for the schema” without also
-summarizing the schema fields L2 needs. A Cursor Auto run may only receive L2.
+summarizing the schema fields L2 needs. A cheaper model may only receive L2.
 
 **Titles:** problem-focused, area prefix when helpful  
 `[Agents] Cost page double-counts kickoff reservations`  
