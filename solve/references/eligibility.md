@@ -8,7 +8,7 @@ Queue contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Claim and 
 
 ## Inventory
 
-List `*.md` under `.WCP/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Reclaim expired `in-progress` leases before selecting (player skill). Do not treat `done/` or `canceled/` as work to start.
+List `*.md` under `.WCP/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Reclaim expired `in-progress` leases before selecting (player skill). Do not treat `in-review/`, `done/`, or `canceled/` as work to start. An `in-review` file is waiting for the reviewer.
 
 `/solve today`: keep files whose `created` local date is today. Empty `created`: use `git log -1 --format=%cI -- <path>`.
 
@@ -23,7 +23,7 @@ Include:
 
 Exclude:
 
-- `done`, `canceled`, `blocked`
+- `done`, `canceled`, `blocked`, `in-review`
 - `in-progress` with a future `lease_expires` and a different `assignee`
 
 A `done` issue whose `commit` is an ancestor of local `dev` is finished for `/solve`. It is not a new implement target. A dependent whose `reason` names that id is no longer blocked: unblock it to `open` and leave `reason`.
@@ -83,6 +83,7 @@ A preferred id (`0123` or `TEAM-123`) is the file whose `id` contains that numbe
 | `blocked/` and blocker is `done` or `canceled` | Unblock to `open`, then it is eligible |
 | `blocked/` and blocker is out of scope | Skip |
 | Live `in-progress` lease, other assignee | Skip |
+| `in-review` | Skip as implement target. The orchestrator launches the reviewer |
 | `done` with `commit` on local `dev` | Skip as implement target |
 | Guidance says skip / abandoned platform | Cancel only at high confidence; otherwise skip |
 | Packaging-only body | Work the listed child ids |

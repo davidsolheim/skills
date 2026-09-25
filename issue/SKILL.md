@@ -55,12 +55,12 @@ Follow phases in order. Parallelize reads when possible.
 1. Treat the user's message (or `/issue` args) as the sole problem statement.
 2. Infer type: **bug**, **feature**, **chore**, **regression**, **tech debt**, or **docs**.
 3. Infer rough priority from language (e.g. "broken checkout" → High; "nice to have" → Low). Default **Medium (3)** if unclear.
-   - Priority map for Linear: `0=None, 1=Urgent, 2=High, 3=Medium, 4=Low`
+   - Priority words map through [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
 4. If the description clearly contains **multiple independent outcomes**, say so and prefer `/issues` — or split only if the user insists on one ticket (then warn that cheap-model execution will suffer).
 
 ### Phase 1 — Queue
 
-The queue is `.WCP/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing.
+The queue is `.WCP/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Notion status for the same file is [`../docs/notion-issues.md`](../docs/notion-issues.md). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing.
 
 ### Phase 2 — Duplicate / overlap / direction-conflict check
 
@@ -118,10 +118,6 @@ Investigate enough to pin everything in the [execution-ready bar](references/exe
 - Include area prefix when helpful: `[Order] Checkout fails when cart has modifiers`
 - No trailing period; no vague titles like "Fix bug"
 
-#### Labels
-
-If team labels exist (`linear__list_issue_labels`), apply only labels that clearly fit (e.g. `Bug`, `Web`, `Native`). Do not invent labels. Omit labels when unsure.
-
 #### Priority
 
 Set from Phase 0. User-stated urgency wins.
@@ -132,7 +128,7 @@ Use the full structure in [references/issue-body-template.md](references/issue-b
 
 1. **Implementer contract** — scope lock; follow the plan; drift-then-implement
 2. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
-3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Do not key off ticket length or priority alone.
+3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Do not key off ticket length or Linear priority alone.
 4. **Summary** — 2–4 sentences, product + technical
 5. **User report** — quoted or paraphrased original description
 5. **Current behavior** — what the code/UI does today (with path/symbol evidence)
@@ -155,7 +151,7 @@ Use the full structure in [references/issue-body-template.md](references/issue-b
 
 Write for another agent that is **less capable than you**. Specific paths, symbols, ordered steps, and AC beat vague product prose. Prefer complete tickets (~80–250 lines body) over short ones missing the how.
 
-### Phase 5 — Create gate, then write the file
+### Phase 5 — Create gate, then write the file and the Notion row
 
 #### 5A. Create gate (fail closed)
 
@@ -184,6 +180,7 @@ If the gate fails: investigate more, or paste the draft in chat and say what is 
 3. The body is the execution-ready contract from Phase 4.
 4. Do not assign. Do not set `in-progress`. Do not commit product code. Leave the file in the worktree.
 5. If the write fails, report the error and paste the body.
+6. Upsert the Notion row at Status `open` ([`../docs/notion-issues.md`](../docs/notion-issues.md)). If Notion fails, the file still stands; say so.
 
 #### 5C. Retire contradicted unstarted issues
 
@@ -194,8 +191,8 @@ Only after create succeeds. Follow [direction-conflict.md](references/direction-
 Rapid-fire reply format:
 
 ```markdown
-**Created:** [TEAM-123](url) — <title>
-**Team / Project:** <team> / <project>
+**Created:** 0123 — <title>
+**Notion:** <url> | failed (file still written)
 **Priority:** <level>
 **Intensity:** <light|standard|heavy|critical> (effort <1|2|3|5>)
 **Focus:** <one-line scope, primary paths>
@@ -237,7 +234,7 @@ When the user sends multiple issues back-to-back:
 
 ## Quality checklist (before create)
 
-- [ ] Team resolved from repo/memory/Linear; project set when identifiable
+- [ ] Notion row upserted, or the failure is in the reply
 - [ ] Duplicate + direction-conflict check done (actionable issues, not Done dump)
 - [ ] Unstarted contradicted issues retired after create (or needs-you if claimed / In Review)
 - [ ] Create gate (Phase 5A) passed
@@ -286,16 +283,16 @@ When the user sends multiple issues back-to-back:
 |-------|------------|
 | `/issue` | One ticket on an **existing** repo |
 | `/issues` | Many tickets; no implement |
-| `/start` | New repo from next-starter-template; new Linear **project** + V1 epic; then build |
+| `/start` | New repo from next-starter-template; Notion issues database for that repo; then build |
 | `/solve` | Implements filed leaves |
 
 ---
 
-## File write failure
+## Notion failure
 
-If the issue file cannot be written:
+If the Notion upsert fails:
 
 1. Say what failed
-2. Still complete investigation
-3. Output the full drafted issue in the chat
-4. Do not pretend the file was written
+2. The `.WCP/issues/` file is still the ticket
+3. Do not pretend the Notion row exists
+4. Do not call Linear

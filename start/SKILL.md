@@ -9,21 +9,21 @@ description: >
 argument-hint: "[brief…] [--slug SLUG] [--dir PATH] [--team TEAM] [--docs-only|--no-linear|--no-build|--draft] [fast]"
 ---
 
-# /start — Scaffold or validate, onboard, Linear, build V1
+# /start — Scaffold or validate, onboard, file V1, build
 
 Two modes:
 
 | Mode | When | What |
 |------|------|------|
-| **greenfield** | empty DEST | Clone **next-starter-template**, onboard docs, Linear, V1 on `dev` |
-| **existing** | DEST is already a repo/tree | **Do not overlay the template.** Validate starter **bones** + `AGENTS.md` / `VISION.md` / `README.md` / identity. Repair docs. Then Linear + V1 if still needed |
+| **greenfield** | empty DEST | Clone **next-starter-template**, onboard docs, file V1, build on `dev` |
+| **existing** | DEST is already a repo/tree | **Do not overlay the template.** Validate starter **bones** + `AGENTS.md` / `VISION.md` / `README.md` / identity. Repair docs. Then file V1 and build if still needed |
 
 This is not `/issues` (tickets only) and not `/solve` alone.
 **Greenfield** creates the repo. **Existing** must pass
 [`references/existing-repo.md`](references/existing-repo.md) before later phases.
 
 **North star:** after one `/start`, a stranger can open `$HOME/src/<slug>`, read
-`VISION.md` + `AGENTS.md`, find the Linear project, and run the app’s V1 on
+`VISION.md` + `AGENTS.md`, find `.WCP/issues/`, and run the app’s V1 on
 local `dev`.
 
 ## Operating contract
@@ -31,11 +31,11 @@ local `dev`.
 - **Template:** [github.com/davidsolheim/next-starter-template](https://github.com/davidsolheim/next-starter-template). Do not invent a different stack. Do not mutate the template repo.
 - **Onboard:** greenfield always runs DEST `AGENTS.md` first-run after scaffold. Existing runs the same protocol only for **repair** gaps (marker still present, missing/wrong VISION/AGENTS/README/identity). Questionnaire SoT is DEST `AGENTS.md` — do not fork the question list into this skill.
 - **Queue default on:** write V1 leaves into `.WCP/issues/open/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not create a Linear project.
-- **Build default on:** nested `/solve all` of the V1 epic in DEST. Do not implement V1 yourself; do not skip build unless `--no-build` / `--docs-only` / `--draft` / Linear failed.
+- **Build default on:** nested `/solve all` of the V1 leaves in DEST. Do not implement V1 yourself; do not skip build unless `--no-build` / `--docs-only` / `--draft`. A Notion failure does not skip the build when the files exist.
 - **V1 = VISION.md “V1” section**, not the whole future product. Starter auth/CMS/admin/contact already exist — do not re-ticket them unless they must change for this product.
 - **Git (greenfield):** fresh history (no template commits). `main` + lowercase `dev`. **Existing:** keep history; create `dev` if missing. No push/PR/deploy unless the user asks.
 - **Secrets:** Doppler names only. Never reuse the starter Doppler project or another product’s `DATABASE_URL`. Never commit `.env` values.
-- **Queue:** write issues under `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear.
+- **Queue:** write issues under `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. `--no-linear` skips filing and the Notion upsert.
 - **Models:** every `spawn_subagent` sets `model: grok-4.6` ([`../docs/grok-models.md`](../docs/grok-models.md)).
 - **Onboard questions:** required by DEST `AGENTS.md` first-run when that marker is present or docs fail validate. Prefill from the brief, flags, and existing README/VISION. Ask only gaps. Never product-onboard the public template repo.
 
@@ -172,22 +172,21 @@ Phase 3 is not done while the first-run marker remains, or while `VISION.md` is 
 
 ---
 
-## Phase 4 — Linear capture
+## Phase 4 — Queue + Notion
 
 Skip if `--docs-only`, `--no-linear`, or `--draft` (draft still produces full bodies in chat).
 
-Follow [`references/linear-v1.md`](references/linear-v1.md). Existing: **reuse** the bound project/epic when they already exist.
+Follow [`references/linear-v1.md`](references/linear-v1.md). Write the files, then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). The database title is the repo slug. Its description is the origin URL.
 
-1. `save_project` for this product (name from vision; `setTeams` = resolved team) **unless** reusing. Link the GitHub repo if it exists.
-2. Write project URL/id into `AGENTS.md` + `VISION.md` + `.linear-project`. Amend or follow-up commit on `main`/`dev`.
-3. Decompose **VISION.md V1 only** using `/issues` decomposition. Investigate the **new** tree (starter paths are real).
-4. Create epic `V1 – <Product>` (packaging only). File atomic leaves with the `/issue` body template + create gate. Unassigned, Backlog/Todo. `blockedBy` for hard deps.
-5. Do not file “add Better Auth / Drizzle / CMS / Doppler” unless V1 must change that starter behavior.
-6. Always include a **product identity** leaf if metadata/home/footer still say starter.
+1. Decompose **VISION.md V1 only** using `/issues` decomposition. Investigate the **new** tree (starter paths are real).
+2. File atomic leaves in `open/`. A hard dependency goes in `blocked/` with `reason`. No epic file. Unassigned.
+3. Do not file “add Better Auth / Drizzle / CMS / Doppler” unless V1 must change that starter behavior.
+4. Always include a **product identity** leaf if metadata/home/footer still say starter.
+5. Upsert each Notion row at the file's status.
 
-`--draft`: print project plan + full leaf bodies; do not `save_project` / `save_issue`.
+`--draft`: print the plan and full leaf bodies. Do not write files or Notion.
 
-Linear auth fail: keep docs; dump drafted project + issues in chat; **do not build** unless `--no-linear` was already the intent. Default build needs the board.
+Notion failure: keep the files and the docs; say which rows failed. Build still runs from the files.
 
 ---
 
@@ -223,7 +222,7 @@ Prompt must include:
 
 - Read `$SOLVE_SKILL_MD` and follow it end-to-end
 - Workspace is **DEST** (the new repo)
-- Linear team + **this new project** only
+- Queue is `.WCP/issues/` in DEST. Do not call Linear. Do not set Notion `done`
 - `SOLVE_COUNT_MODE = all`
 - `SHARED_DEV` = true (`/solve all` is shared-dev parallel; `FAST_BUILD` / `fast` is a no-op)
 - `FAST_MODE` = false (do **not** use worktrees)
@@ -235,9 +234,9 @@ Prompt must include:
 
 `/start` must not write application source while the nested solve runs.
 
-If `--no-linear` but build requested: implement V1 from `VISION.md` on local `dev` in DEST. Follow [`../docs/wcp.md`](../docs/wcp.md) and skill `water-cooler-protocol` for every edit (name yourself, lease pre-existing files, release before tests). Do not use bundled `/implement`. Prefer Linear plus nested `/solve` when Linear works.
+If `--no-linear` but build requested: implement V1 from `VISION.md` on local `dev` in DEST. Follow [`../docs/wcp.md`](../docs/wcp.md) and skill `water-cooler-protocol` for every edit (name yourself, lease pre-existing files, release before tests). Do not use bundled `/implement`.
 
-After drain: V1 leaves In Review on local `dev`. Do not mark Done. Do not `/prb`.
+After drain: local files are `done` after review. Notion stays `in-review` until `/prb` or `/yeet`. Do not set Notion `done`. Do not `/prb`.
 
 ---
 
@@ -286,7 +285,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 
 | Skill | Role |
 |-------|------|
-| **`/start`** | Greenfield scaffold **or** existing-repo bones/docs validate+repair → Linear → V1 on local `dev` |
+| **`/start`** | Greenfield scaffold **or** existing-repo bones/docs validate+repair → file V1 → build on local `dev` |
 | `/issue` | One ticket on an **existing** repo |
 | `/issues` | Many tickets; **no** scaffold, **no** implement |
 | `/solve` | Nested consumer for V1 leaves |
@@ -296,7 +295,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 ```text
 /start (empty dest)     → scaffold → AGENTS.md / VISION.md / README.md
 /start (existing dest)  → bones + docs validate → repair gaps
-       → Linear V1 epic (reuse project if bound)
+       → V1 leaves in `.WCP/issues/` plus Notion
        → nested /solve all in DEST
        → later /prb when the user wants main
 ```

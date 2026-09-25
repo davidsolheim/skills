@@ -8,6 +8,12 @@ inside their existing phases.
 sufficient** for in-scope changes. Do not mark In Review, push `origin/dev` for
 ship, or merge to `main` on proxies, self-reports, or “it compiles.”
 
+Compile / typecheck / unit tests are a **separate** `/prb` hard gate (Phase 1.6,
+[`../prb/references/local-compile.md`](../prb/references/local-compile.md)), run
+before push so type errors never consume the babysit window. This file is the
+runtime-proof contract. A green matrix does not pass this bar; this bar does
+not replace the matrix.
+
 ## In-scope (must drive the real path)
 
 The change is in-scope if **any** of:
@@ -29,7 +35,7 @@ Check the **real artifact**, not a derived story:
 3. Confirm the output: UI state, response body, DB row, file written — not
    “the handler looks right.”
 4. Capture evidence (command output, screenshot path, response snippet). Keep
-   it for the Linear closeout / `/prb` report. Do not commit secrets.
+   it for the `/prb` report and the Notion ship update. Do not commit secrets.
 
 **Project-local verify skill (load if present, never invent a slash):**
 
@@ -82,7 +88,7 @@ fixed.
 | Skill | When | Fail action |
 |-------|------|-------------|
 | `/solve` | Phase 6 (and fast workers before they push the issue branch) | Do not merge to `dev` / do not In Review |
-| `/prb` | Phase 1.5 **after** a clean review panel, **before** push. Independent of the panel. `--skip-review` skips the panel only, **not** this proof | Do not push / do not open PR |
+| `/prb` | Phase 1.5 **after** a clean review panel, **before** push. Independent of the panel. `--skip-review` skips the panel only, **not** this proof. Compile/tests are Phase 1.6, not this file | Do not push / do not open PR |
 | `/yeet` | After `origin/main` is in `dev`, **before** merge to `main` | Do not merge |
 
 `--skip-review` does **not** waive runtime proof. Docs-only ships are out of
@@ -92,7 +98,7 @@ contract.
 
 ## Closeout evidence (required when in-scope)
 
-Linear completion / `/prb` report must include:
+The `/prb` report must include:
 
 - Commands run + pass/fail
 - What was driven (route, API, CLI) and the observed end state
@@ -105,6 +111,7 @@ Linear completion / `/prb` report must include:
 |--------|---------|
 | "Tests passed" | Tests are a proxy. Drive the path. |
 | "No browser tools" | Use curl, CLI, or the verify skill. If still impossible, **block** — do not pass. |
+| "Browser timed out / no login" | Unproven. Retry with a signed-in session, or curl the same route. A helper/unit render is not a substitute for a changed admin/editor path. |
 | "I'll note 'not performed'" | That is a fail, not a pass. |
 | "Screenshot from before the fix" | Re-drive after the change. |
 | "Call sites look fine" | Run the safety fact. |
@@ -117,3 +124,4 @@ Linear completion / `/prb` report must include:
 - Treating implementer summary as observation
 - Generating a new verify skill or slash instead of driving this ticket
 - Asking the user to click around as the only proof when tools can drive it
+- Passing an in-scope editor/admin ship because a helper rendered and the browser timed out

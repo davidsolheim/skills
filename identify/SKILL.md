@@ -245,23 +245,11 @@ orchestrator CAS-claims as it launches workers.
 
 For each `ID` in `QUEUE` on the **sequential** path, **immediately before** its nested `/solve`:
 
-1. Confirm still unclaimed (or already claimed by this `RUN_ID`).
-   **`list_comments` first.** Skip a new claim comment if this `RUN_ID` already
-   has a live `claimed-by:` on the issue.
-2. Assign to me if unassigned. Set **In Progress**.
-3. Comment, first line exactly:
+1. Claim the file (player skill): `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
+2. Re-read. If `assignee` is not you, drop that leaf and continue.
+3. Set the Notion row to `in-progress` ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
 
-```text
-claimed-by: identify · session <session> · worktree <cwd> · run <RUN_ID>
-```
-
-Then one short paragraph: identify-approved queue (sibling ids + order);
-this leaf is next; nested `/solve` will implement.
-
-4. Re-fetch. If a **different** run’s `claimed-by:` is newer: drop that leaf
-   from `QUEUE`, tell the user, continue with the rest.
-
-Do **not** claim parent epics. Do **not** mark Done.
+Do **not** claim parent epics. Do **not** set Notion `done`.
 
 If the **current** claim loses CAS: skip that id, do not claim ahead. If
 every remaining id loses CAS: stop and report. Do not start `/solve`.
@@ -332,10 +320,8 @@ for ID in QUEUE:
 On queue stop, user abort, or pick-only after a mistaken claim, for each leaf
 this `RUN_ID` claimed that is **not** solved and **not** the in-flight failure:
 
-1. `list_comments` first. Skip if `released: identify-stopped · run <RUN_ID>`
-   already exists. Else comment, first line: `released: identify-stopped · run <RUN_ID>`
-2. Set Backlog/Todo (team default for unstarted)
-3. Unassign if Identify assigned them this run
+1. If this run still holds the file and the lease is live, set `status: open`, clear `assignee` and `lease_expires`, and move it to `open/`.
+2. Set the Notion row to `open`.
 
 Do not release a leaf the nested solve already moved to In Review / completed.
 

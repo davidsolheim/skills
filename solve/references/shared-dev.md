@@ -22,10 +22,11 @@ Finish a set of eligible leaves **ASAP** on **one** local `dev` working tree:
 3. Spawn a **disjoint-path** ready set in one turn (`solve-implementer`,
    `isolation: none`, same cwd, already on `dev`). Occupancy: [`../../docs/wcp.md`](../../docs/wcp.md).
 4. Workers use **WCP exclusive file leases**. No worktrees. No per-issue branches.
-5. After **all** live workers finish, the orchestrator **verifies the combined
-   tree**. It commits on `dev` only when `wcp look` shows no live source-file
-   lease, then marks each landed ticket `done` in `.WCP/issues/`. No push/PR
-   unless asked. Workers do not commit and do not stash.
+5. After **all** live workers finish, each successful leaf is in `in-review/`.
+   The orchestrator launches one reviewer per file. The reviewer fixes and sets
+   `done`. The orchestrator commits on `dev` only after those reviewers have
+   exited and `wcp look` shows no live source-file lease. No push/PR unless
+   asked. Workers do not commit and do not stash.
 
 Quality that still applies: S0, blocked tickets, WCP leases, one assignee,
 runtime proof on the combined tree, drain gate. Quality that this mode
@@ -130,7 +131,7 @@ Shared-dev plan: K implementable · S skipped · concurrency C · run <RUN_ID>
 Scope: created today <YYYY-MM-DD> | <other scope> | none
 Launch now: TEAM-…, TEAM-… (disjoint primary paths; WCP leases)
 Held for next wave (path overlap): TEAM-…
-Delivery: shared local `dev` → combined verify → empty board → commit → done
+Delivery: shared local `dev` → in-review → one reviewer per issue → empty board → commit
 Worktrees: none
 main/prod: /prb (not this run)
 ```
@@ -150,7 +151,7 @@ ready leaf:
 2. Set `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
 3. Re-read. If `assignee` is not this run, abort that leaf.
 
-Workers **must not** close or move the issue file.
+Workers move their own ticket to `in-review/` when acceptance is met. They do not set `done`.
 
 ### Launch rule (non-negotiable)
 
@@ -197,7 +198,8 @@ You are a solve **worker** for a single `.WCP/issues/` leaf on a **shared** loca
   file you did not claim. If a file you need already changed, implement your AC on top.
   Do not `git add -A`. Do not `git clean`.
 - Do **not** create branches, worktrees, or check out any other branch
-- Do **not** commit, stash, merge, push, open a PR, or edit the issue file's status. A stash on this shared tree hides another writer's files
+- Do **not** commit, stash, merge, push, or open a PR. A stash on this shared tree hides another writer's files
+- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.WCP/issues/in-review/`. Do not set `done`
 - Cheap construction: the issue body + custom-implement-instructions.md.
   **No** bundled `/implement` until-zero-nits
 - Scope: this leaf only
@@ -243,9 +245,25 @@ verify, bugs only. Nits do not block. Resume implementers once for open bugs.
 
 ---
 
-## D6 — Commit on local `dev` (orchestrator)
+## D6 — Review each `in-review` file (orchestrator)
 
-Workers do not commit. After combined verify passes for the successful set:
+Workers do not commit. After combined verify passes, each successful leaf is in `in-review/`. If a successful worker left the file `in-progress`, move it to `in-review/`.
+
+Launch one reviewer per file, in one turn:
+
+```text
+spawn_subagent:
+  subagent_type: solve-reviewer
+  model: grok-4.6
+  isolation: none
+  description: [in-review] <ISSUE> <short title>
+```
+
+Prompt: read the issue and the paths in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`. If the check fails, fix under a WCP file lease and release it. Do not commit. Do not stash. When the check passes, set `status: done`, clear `assignee` and `lease_expires`, and move the file to `done/`. Leave `commit` empty.
+
+Wait until every reviewer has exited. Do not commit while one is running.
+
+## D6b — Commit on local `dev` (orchestrator)
 
 1. `wcp look`. If any source-file lease is live, wait. Do not commit. Do not stash.
 2. Stage only this wave’s finished product paths. Leave unrelated dirty files unstaged. Leave the issue files for D7. Never secrets / `.env` / `.WCP/RUN.md` / `.WCP/run.sqlite` / sqlite wal/shm. Never `git add -A`.
@@ -268,13 +286,12 @@ branch delete. Confirm `git log -1` is on `dev`.
 
 ---
 
-## D7 — Close the tickets
+## D7 — Write the hash
 
-`wcp look` is still empty. For each leaf whose paths landed in the work commit:
+The reviewer already set `done`. `wcp look` is still empty. For each leaf whose paths landed in the work commit:
 
 1. Append paths to `files` if they are not already listed. Write the work-commit hash into `commit`.
-2. Set `status: done`. Clear the lease. Move the file to `done/`.
-3. Unblock any `blocked/` ticket whose `reason` names this id.
+2. Unblock any `blocked/` ticket whose `reason` names this id.
 
 Then commit those issue-file updates. If a source-file lease is live, wait. Do not stash.
 

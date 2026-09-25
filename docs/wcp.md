@@ -29,7 +29,7 @@ A ticket that must not be claimed yet moves to `.WCP/issues/blocked/` with `reas
 | `/solve` orchestrator | Start the run (`wcp init` / `wcp start --arch`). Do not assign ids. Prefer a disjoint-path wave. Combined verify, then commit on `dev` only when `wcp look` shows no live source-file lease. Never implement app source. Never push. Never stash a live burst. |
 | `/solve` implementer | Player skill. `wcp name <id>`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. Write the test (no claim), write new files (no claim), then look → acquire --test → write-ok → re-read disk → edit → release for files that already existed. Do not commit. Do not stash. |
 | `/prb` fixer | Same player verbs on local `dev`. |
-| `/issue` `/issues` `/project-review` `/walk` `/tidy` `/identify` `/stat` | The tracker is `.WCP/issues/` ([`wcp-queue.md`](wcp-queue.md)). Fill **Occupancy (WCP)** on each leaf. Do not call Linear. |
+| `/issue` `/issues` `/project-review` `/walk` `/tidy` `/identify` `/stat` | The local queue is `.WCP/issues/` ([`wcp-queue.md`](wcp-queue.md)). Notion status is [`notion-issues.md`](notion-issues.md). Fill **Occupancy (WCP)** on each leaf. Do not call Linear. |
 | `/prb` `/yeet` push | Human export to `origin/dev`. `wcp look` before commit and before push. Unset `WCP_AGENT` and `WCP_NAME_TOKEN` before `git push`. |
 | Any other builder on this checkout (`/human-copy`, `/vercel-flags`, `/start`, TypeSafe, composition refactors, `/implement`, `/check-work` fixes) | Same player turn as an implementer. Release before tests or the next thought. Do not commit and do not stash. The session that owns the checkout commits when `wcp look` shows no live source-file lease. |
 | `/execute-plan` | Implementers stay in their own worktrees. Do not put those worktrees on the shared checkout's board. Orchestrator edits on the shared tree use the player turn. |
@@ -67,13 +67,15 @@ Workers never `set-arch` or `stop`.
 Then read `.WCP/issues/open/` and `.WCP/issues/in-progress/`. Reclaim expired
 tickets (player skill, Issues). Do not copy the backlog onto `RUN.md`. If the
 queue directories are missing and this run needs a queue, create `open/`,
-`in-progress/`, `done/`, `canceled/`, and `blocked/`, and one issue from `arch` only.
+`in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/`, and one issue from `arch` only.
 Search `.WCP/issues/canceled/` and `.WCP/issues/blocked/` before filing the same work again. Cancel and block in
 the issue file with `reason` set (player skill, Cancel and Block). Do not claim a blocked ticket.
 
 Assign WCP work from `.WCP/issues/open/` only. One ticket per agent unless the user
 says otherwise. Do not claim a directory. A ticket lease is not a source-file
-lease. Do not call Linear, GitHub Issues, or Notion. Skill filing, solving,
+lease. Do not call Linear or GitHub Issues. After an issue file changes
+status, update Notion ([`notion-issues.md`](notion-issues.md)). Do not call
+Notion during a source-file lease. Skill filing, solving,
 status, tidy, and ship all use this queue ([`wcp-queue.md`](wcp-queue.md)).
 
 Do not `wcp stop` at the end of `/solve` (other writers may still be on the

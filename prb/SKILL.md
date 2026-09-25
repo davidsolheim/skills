@@ -3,35 +3,36 @@ name: prb
 description: >
   Ship session work: fetch origin/main into local main, merge origin/main into
   local dev, run an intensity-selected Local Code Review Gate on grok-4.6
-  (scratch markdown + one fixer on local dev until clean; one Linear gate
-  comment), then push to origin/dev; open a PR from dev into main; babysit
+  (scratch markdown + one fixer on local dev until clean), then push to
+  origin/dev; open a PR from dev into main; babysit
   CI/bot feedback on a 5-minute cadence for up to 15 minutes; auto-merge into
   main only if no useful automated comments or CI failures appear. When the
   ship includes DB migrations, discover and run this project's production
   migration procedure at the correct pre-merge gate (never invent a stack;
   never db:push to prod by default). After PR open and again after production
-  ship, comment on every Linear issue in the ship set with PR URL, merge SHA,
-  and production deployment id/URL when available. Use when the user runs
+  ship, update that repo's Notion issues database: record origin/dev when
+  the PR opens, and set Status done as soon as the merge to origin/main is
+  done. Use when the user runs
   /prb, says "push dev and PR to main", "ship session work", "babysit then
   merge to main", "promote dev to main with CI watch", or production
   migrate-on-ship.
 argument-hint: "[--no-merge] [--skip-migrations] [--skip-ship-build] [--skip-local-compile] [--skip-review] [--exhaustive-review|--no-exhaustive] [--max-fix-cycles N] [--watch-minutes N] [--interval-minutes M]"
 ---
 
-# /prb — Push `dev` → PR into `main` → babysit → migrate (if needed) → merge → Linear ship comments
+# /prb — Push `dev` → PR into `main` → babysit → migrate (if needed) → merge → Notion done
 
 Ship **this session’s finished work** by:
 
 1. Identifying commits/changes that belong on local **`dev`**
 2. **Refreshing from remote first:** `git fetch origin`, update local **`main`** from **`origin/main`**, then **merge `origin/main` into local `dev`** so `dev` has the latest trunk **before any push**
-3. **Local Code Review Gate (Phase 1.5):** intensity-selected `grok-4.6` panel on `origin/main...dev` ([`../docs/intensity.md`](../docs/intensity.md)); if actionable findings exist, fix them on local `dev` from the merged scratch markdown via `prb-fixer` — **closed loop until clean** (or cycle cap / `--skip-review`). **One** Linear comment when the gate finishes. Then **runtime proof** per [`../docs/prove-it-works.md`](../docs/prove-it-works.md) — `--skip-review` skips the panel only, not the proof.
+3. **Local Code Review Gate (Phase 1.5):** intensity-selected `grok-4.6` panel on `origin/main...dev` ([`../docs/intensity.md`](../docs/intensity.md)); if actionable findings exist, fix them on local `dev` from the merged scratch markdown via `prb-fixer` — **closed loop until clean** (or cycle cap / `--skip-review`). Then **runtime proof** per [`../docs/prove-it-works.md`](../docs/prove-it-works.md) — `--skip-review` skips the panel only, not the proof.
 4. **Local compile + ship-set tests (Phase 1.6):** run this project’s build/typecheck and ship-set tests on local `dev` ([`references/local-compile.md`](references/local-compile.md)) so type errors never consume the babysit window. `--skip-review` does **not** skip this.
 5. Pushing **`dev`** to **`origin/dev`** only after step 2 succeeds with a clean merge, step 3 is clean (or explicitly skipped), **and** step 4 passed (or is `n/a` / `--skip-local-compile`)
 6. Opening (or reusing) a PR: **base `main` ← head `dev`**
 7. Babysitting every **5 minutes** for up to **15 minutes** total for CI + useful automated comments
 8. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
 9. **Merging the PR into `main`** only if the watch window ends with no useful automated feedback, CI is green (or never failed), and required production migrations have succeeded
-10. **Queue:** do not call Linear. The issue files in `.WCP/issues/done/` are the ship record. Commit `.WCP/issues/` with the work. See [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
+10. **Notion:** immediately after `origin/dev`, and again after the merge to `origin/main`, update this repo's issues database ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Status `done` is the main ship. Commit `.WCP/issues/` with the work ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)).
 
 Default delivery **does** merge when the quiet window passes. Use `--no-merge` to stop after the watch without merging (and without applying production migrations unless the user explicitly asks).
 
@@ -44,7 +45,7 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 - **Local Code Review Gate before push (hard rule):** **never** `git push origin dev` and **never** open a PR until Phase 1.5 reports **zero actionable findings**, unless the user explicitly passed `--skip-review`. The gate is the intensity-selected `grok-4.6` panel in [`references/local-code-review.md`](references/local-code-review.md) (bands: [`../docs/intensity.md`](../docs/intensity.md); rubric: [`references/review-rubric.md`](references/review-rubric.md)). Orchestrator does not author findings.
 - **Runtime proof before push (hard rule):** after the panel is clean (or skipped), follow [`../docs/prove-it-works.md`](../docs/prove-it-works.md) for in-scope ships. Matrix green is not a pass. `--skip-review` does **not** waive proof.
 - **Local compile + ship-set tests before push (hard rule):** **never** `git push origin dev` until Phase 1.6 has a green compile and ship-set tests on the final local `dev` tree, unless the ship is docs-only (`n/a`) or the user passed `--skip-local-compile`. Procedure: [`references/local-compile.md`](references/local-compile.md). `--skip-review` does **not** skip this. Failure blocks push — do not burn the 15-minute babysit window on a type error `next build` / `$PKG run build` would have shown locally.
-- **Closed-loop fixes on local `dev` only:** when the gate finds issues, merge findings into scratch markdown and spawn **one** `prb-fixer`. Do **not** file Linear issues or nested `/solve`. Do not push mid-loop. Cap full review→fix→re-review cycles (band default in [`../docs/intensity.md`](../docs/intensity.md), override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push. Post **one** `/prb — local review gate` comment on the first ship issue.
+- **Closed-loop fixes on local `dev` only:** when the gate finds issues, merge findings into scratch markdown and spawn **one** `prb-fixer`. Do **not** file new issues or nested `/solve`. Do not push mid-loop. Cap full review→fix→re-review cycles (band default in [`../docs/intensity.md`](../docs/intensity.md), override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push. The gate result is the Phase 5 report.
 - **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb` outside the review closed-loop fixes.
 - **No force-push to `main`.** Prefer normal push to `dev`. If `dev` needs rewrite, use `--force-with-lease` only after a clear reason and never against `main`.
 - **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them. Commit `.WCP/issues/`. Do not commit `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
@@ -52,7 +53,7 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 - **Secrets:** never print Doppler/tokens/connection strings; never commit `.env`.
 - **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Auto-merge is forbidden while those exist.
 - **Human veto:** if the user says stop/don’t merge in-session, cancel scheduled watches and do not merge.
-- **Linear ship comments (hard rule when issues are known):** collect every Linear issue id in the ship set (commit messages, PR text). **Required:** comment on each with the PR URL when the PR is opened/reused (Phase 2). **Required after merge:** comment again with production ship evidence — PR, merge SHA, production **deployment id** + URL when discoverable (Vercel/`gh` deployments/project docs). Do **not** mark Done at PR open. After merge to `main`, mark ship-set issues **Done** (user asked 2026-08-13: `/prb` closes tickets). Do not steal foreign In Progress. `list_comments` immediately before every `save_comment` ([`../docs/linear-comments.md`](../docs/linear-comments.md)). Full procedure: [`references/linear-ship-comments.md`](references/linear-ship-comments.md). Phase 1.5 posts **one** gate comment (template C); it does not mint new Linear issues.
+- **Notion status (hard rule when issues are in the ship):** collect the ship set from `.WCP/issues/` and the commits that will land ([`../docs/notion-issues.md`](../docs/notion-issues.md)). **Required after `origin/dev`:** write Dev SHA and the PR URL. Do **not** set `done` at PR open. **Required after merge to `origin/main`:** set Status `done` and Main SHA immediately. Skip a file another agent holds under a live lease. Do not call Linear.
 - **DB migrations follow the project (hard rule):** when the ship set includes schema/data migrations, discover and run **this repo’s** production migrate path from `AGENTS.md` / migration docs / `package.json` — do **not** invent Drizzle/Prisma/psql commands, Doppler project names, or configs. Prefer versioned `db:migrate` (or the repo’s documented equivalent). **Never** `db:push` / `drizzle-kit push` / `prisma db push` to production by default. **Never** print connection strings or Doppler secret values. **Never** auto-run content seeders as part of migrate. Full procedure: [`references/db-migrations.md`](references/db-migrations.md).
 - **Migrate before merge (default):** if production migrations are required for the ship, apply them **after** the quiet window passes and **before** `gh pr merge`, so production deploy does not race ahead of schema (additive/expand path). Destructive migrations **block** auto-merge until the user explicitly approves.
 - **Ship product build follows the project (hard rule):** when root `AGENTS.md` (or equivalent) documents a **required `/prb` ship product build** (e.g. rebuild + codesign a macOS `.app`), discover and run **that exact command** after Phase 1.6 and **before** `git push origin dev`. Re-run after babysit fix pushes when the ship still touches app code. Failure blocks push. Do **not** invent archive/notary steps not documented. Full procedure: [`references/ship-product-build.md`](references/ship-product-build.md).
@@ -95,7 +96,7 @@ Record for the run: `SKIP_REVIEW`, `SKIP_LOCAL_COMPILE`, `SHIP_INTENSITY`, `EXHA
 6. **Migration inventory (always):** per [`references/db-migrations.md`](references/db-migrations.md) §1–2, record whether `origin/main...dev` changes migration/schema paths, and if so start the discovery table (`MIGRATE_CMD`, Doppler project/production config, forbidden push scripts, risk class). If migrations exist only uncommitted, stop and get them committed onto `dev` first.
 7. **Ship product build inventory (always):** per [`references/ship-product-build.md`](references/ship-product-build.md), read `AGENTS.md` for a required `/prb` ship product build. Record `SHIP_BUILD_REQUIRED`, `SHIP_BUILD_CMD`, `SHIP_BUILD_OUTPUT`. If the user passed `--skip-ship-build`, note a loud skip for the report.
 8. **Local compile inventory (always):** per [`references/local-compile.md`](references/local-compile.md), record `LOCAL_COMPILE_CMD` and `LOCAL_TEST_CMD` from this repo’s package manager / `package.json` / AGENTS. If the user passed `--skip-local-compile`, note a loud skip for the report.
-9. **Linear ship-id inventory (always):** per [`references/linear-ship-comments.md`](references/linear-ship-comments.md), start `SHIP_LINEAR_IDS` from `git log origin/main..dev --pretty=%B` (and branch names if useful). Re-scan before Phase 2 / 4.5 comments. Phase 1.5 does **not** add new Linear ids.
+9. **Notion ship set (always):** per [`../docs/notion-issues.md`](../docs/notion-issues.md), start `SHIP_ISSUE_IDS` from `.WCP/issues/` and `git log origin/main..dev --pretty=%H%n%s`. Re-scan before the Phase 2 and Phase 4.5 Notion updates. Phase 1.5 does not add new issues.
 
 Unrelated dirty paths (leave alone): `.cursor/hooks/**`, `.deepsec/`, local env files, etc.
 
@@ -190,7 +191,7 @@ cycle = 0
 while actionable findings remain:
   if cycle >= MAX_FIX_CYCLES:   # intensity band default
     STOP — do not push; do not open PR; report outstanding findings in the
-    one gate comment + Phase 5
+    Phase 5 report
   cycle += 1
 
   Spawn one prb-fixer (model grok-4.6) with the merged cycle markdown.
@@ -205,12 +206,12 @@ while actionable findings remain:
 
 Rules:
 
-- **No Linear tickets** for gate findings. Scratch markdown is the contract.
+- **No new tickets** for gate findings. Scratch markdown is the contract.
 - All fixes land on **local `dev` only**. Never push inside the loop.
 - After a fix cycle: stay on `dev`; if `origin/main` may have moved, re-fetch and re-merge Phase 1A–1B before re-review/push.
 - If the fixer fails: leave findings open; do not pretend fixed; **deny push** if any actionable remain after re-review.
 - Track `FINDINGS_FIXED_COUNT`, `REVIEW_CYCLES_USED`.
-- When the gate exits (clean, cap, or tooling-block): **one** template C comment on the first `SHIP_LINEAR_ID` ([`references/linear-ship-comments.md`](references/linear-ship-comments.md)). No ship ids → report only.
+- When the gate exits (clean, cap, or tooling-block): the Phase 5 report is the record. Do not call Linear. Notion updates wait until `origin/dev` and `origin/main`.
 
 ### 1.5C — Safety limits
 
@@ -260,7 +261,7 @@ This does **not** replace runtime proof or GitHub CI babysit.
 - Project has no documented ship product build → set `SHIP_BUILD=n/a`, continue to 1D.
 - User passed `--skip-ship-build` → loud warning; set `SHIP_BUILD=skipped`; continue to 1D only if the user intentionally waived.
 
-### Required (example: the desktop app macOS app)
+### Required (example: the desktop app)
 
 1. Confirm `SHIP_BUILD_CMD` from `AGENTS.md` (do not invent).
 2. Run from the git root with a long timeout (Release + codesign).
@@ -337,15 +338,13 @@ If `MIGRATIONS_IN_SHIP=yes`, include a PR body bullet such as: pending productio
 
 Store `PR_NUMBER` and `PR_URL`.
 
-### 2B — Linear “in ship” comments (required)
+### 2B — Notion on `origin/dev` (required)
 
-**Authority:** [`references/linear-ship-comments.md`](references/linear-ship-comments.md).
+**Authority:** [`../docs/notion-issues.md`](../docs/notion-issues.md).
 
-1. Refresh `SHIP_LINEAR_IDS` from ship commits + PR title/body.
-2. For each id: **`list_comments` first**, then post template **A** only if that issue has no `/prb — in ship` comment for this `PR_NUMBER` (see [`references/linear-ship-comments.md`](references/linear-ship-comments.md)).
-3. Record `LINEAR_PR_COMMENTS_POSTED` (includes skipped-as-already-present) and any failures. Continue the ship even if Linear is partially down — dump failed bodies into the final report.
-
-Do **not** mark issues Done here. After **merge to `main`**, `/prb` **does** mark ship-set issues **Done** (see Phase 4.5). Claim protocol: `solve/references/multiplayer-linear.md`.
+1. Refresh `SHIP_ISSUE_IDS` from `.WCP/issues/` and ship commits.
+2. Upsert each id. Set **Dev SHA** to `origin/dev` and **PR** to `PR_URL`. If Status is `open` or `in-progress`, set `in-review`. Do not set `done`.
+3. Record `NOTION_DEV_UPDATED` and any failures. Continue the ship if Notion fails. Put the failed ids in the Phase 5 report.
 
 ---
 
@@ -400,7 +399,7 @@ Prefer durable scheduling so checks continue if the chat idles:
 
 1. Create a **foreground or background** schedule only if the environment supports `scheduler_create` / `/loop`. Example intent:
    - interval: `5m`
-   - prompt: continue `/prb` check cycle for PR `$PR_NUMBER` in repo `$OWNER/$REPO`; do not open a new PR; run Phase 3B once; if watch end reached, run Phase 3.5 then Phase 4. If the PR is **already MERGED**, do not merge again; for Phase 4.5, `list_comments` on each ship id and **skip** template B when `/prb — shipped to production` for this PR already exists. Mid-window ticks never post Linear ship comments.
+   - prompt: continue `/prb` check cycle for PR `$PR_NUMBER` in repo `$OWNER/$REPO`; do not open a new PR; run Phase 3B once; if watch end reached, run Phase 3.5 then Phase 4. If the PR is **already MERGED**, do not merge again; run Phase 4.5 once if Notion Status is not yet `done` for this merge SHA. Mid-window ticks do not update Notion.
 2. Track `WATCH_STARTED_AT` (ISO UTC) and `WATCH_ENDS_AT = start + watch-minutes`.
 3. Cap automatic ticks: `ceil(watch-minutes / interval-minutes)` plus the initial t=0 check (default: t=0, t=5, t=10, and final at t=15).
 4. If schedulers are unavailable, run an explicit wait loop with `get_command_or_subagent_output` / shell sleep **only** if policy allows; otherwise perform t=0 check, tell the user to re-run `/prb check $PR_NUMBER` at 5m marks, and **do not merge** until a final check at ≥15m has been executed in-session.
@@ -409,7 +408,7 @@ Also support resume:
 
 ```text
 /prb check [PR_NUMBER]
-/prb merge [PR_NUMBER]   # only after quiet window + green CI; re-validate §3A + Phase 3.5 migrations; then Phase 4.5 Linear ship comments
+/prb merge [PR_NUMBER]   # only after quiet window + green CI; re-validate §3A + Phase 3.5 migrations; then Phase 4.5 Notion done
 ```
 
 
@@ -487,7 +486,7 @@ Do **not** `reset --hard` if it would destroy unique local commits.
 
 If Phase 3.5 was skipped incorrectly and production code now requires unapplied schema, **run production migrate immediately** using the discovered project command, then report the incident — do not leave production broken.
 
-**After a successful merge:** immediately run **Phase 4.5** (Linear production ship comments) before the user report.
+**After a successful merge:** immediately run **Phase 4.5** (Notion Status `done`) before the user report.
 
 ### If merge blocked
 
@@ -496,39 +495,30 @@ Report clearly:
 - PR URL
 - Why blocked (failed check names, comment excerpts, conflicts, **failed/pending production migrate**, destructive migration awaiting approval)
 - Next action (`/prb check`, fix + Phase 1.5 + Phase 1.6 + push `dev`, complete migrate, or human merge)
-- Whether Phase 2 Linear PR comments already landed (`LINEAR_PR_COMMENTS_POSTED`)
+- Whether the Phase 2 Notion dev update already landed (`NOTION_DEV_UPDATED`)
 
-Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned). Do **not** post production ship comments if merge did not happen.
+Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned). Do **not** set Notion `done` if merge did not happen.
 
 ---
 
-## Phase 4.5 — Linear production ship comments (after merge)
+## Phase 4.5 — Notion done (after merge to `origin/main`)
 
-After a successful merge to `main`, for each id in `SHIP_LINEAR_IDS` that this ship implemented: set state **Done** (in addition to the production comment). Skip ids that are still In Progress with a **foreign** live `claimed-by:` comment.
+**When:** the PR merged to `main` in Phase 4, or a resume path confirms it is already merged and Notion is not yet `done` for this merge SHA.
+**Skip:** `--no-merge` and the merge never happened, or `SHIP_ISSUE_IDS` is empty after a full rescan. Skip a file another agent holds under a live lease.
 
-**When:** PR was **merged** to `main` in Phase 4 (or a resume path confirms the PR is already merged and production comments were not posted yet).  
-**Skip:** `--no-merge` and merge never happened; or `SHIP_LINEAR_IDS` is empty after a full rescan.
+**Authority:** [`../docs/notion-issues.md`](../docs/notion-issues.md).
 
-**Authority:** [`references/linear-ship-comments.md`](references/linear-ship-comments.md).
-
-1. Resolve `MERGE_SHA` on `main` (`git rev-parse origin/main` after fetch, or PR merge commit from `gh pr view`).
-2. Re-scan issue ids from the merged range if needed.
+1. Resolve `MERGE_SHA` on `main` (`git rev-parse origin/main` after fetch, or the PR merge commit from `gh pr view`).
+2. Re-scan `SHIP_ISSUE_IDS` from `.WCP/issues/` and the merged range.
 3. **Discover production deployment** for `MERGE_SHA` (poll up to ~2–3 minutes):
    - GitHub deployments/statuses for `production`
-   - Vercel CLI / MCP / project docs (`dpl_…`, inspect URL, production URL)
+   - Vercel CLI / project docs (`dpl_…`, inspect URL, production URL)
    - Other host documented in `AGENTS.md`
-   - If none: `DEPLOY_ID=n/a` with reason (library repo / still pending / no CD)
-4. For each id in `SHIP_LINEAR_IDS`: **`list_comments` first**. Post template **B** only if there is no `/prb — shipped to production` comment for this `PR_NUMBER` or `MERGE_SHA`. If one already exists, skip (do not post a second). Template B fields:
-   - PR number + URL
-   - Merge commit SHA
-   - Production **deployment ID**
-   - Production deployment URL / inspector link
-   - Migrate note (config **name** only, no secrets)
-   - ISO UTC timestamp
-5. If the issue is already **Done** and template B is present, leave status alone. Otherwise set **Done** after the comment (or skip) as in the operating contract. Skip **Done** on ids that are still In Progress with a **foreign** live `claimed-by:`.
-6. Record `LINEAR_SHIP_COMMENTS_POSTED` (includes skipped-as-already-present), `DEPLOY_ID`, `DEPLOY_URL`, failures.
+   - If none: `DEPLOY_ID=pending` with reason (library repo / still pending / no CD)
+4. Immediately upsert each id: Status `done`, **Main SHA** = `MERGE_SHA`, **PR** = `PR_URL`, **Deploy** = deployment id or URL when known. Do not wait for a later session. A pending deploy still sets `done`.
+5. Record `NOTION_DONE`, `DEPLOY_ID`, `DEPLOY_URL`, and any failed ids.
 
-If Linear fails entirely: include the full comment body once in Phase 5 under **Linear comments (not posted)** plus the id list.
+If Notion fails: list those ids under **Notion (not updated)** in Phase 5. Do not call Linear.
 
 ---
 
@@ -541,9 +531,8 @@ If Linear fails entirely: include the full comment body once in Phase 5 under **
 **Runtime proof:** driven `<path>` → `<observed>` | n/a (out of scope) | blocked (unproven)
 **Local compile:** `$LOCAL_COMPILE_CMD` ok | n/a | skipped (--skip-local-compile) | blocked (<reason>)
 **Ship-set tests:** `$LOCAL_TEST_CMD` ok | n/a | skipped | blocked (<reason>)
-**Gate comment:** `/prb — local review gate` on TEAM-123 | none (no ship ids) | failed
-**Linear ship set:** TEAM-123, TEAM-124, … | none detected
-**Linear ship comments:** PR notes on K issues · production notes on K issues · failures: none | <ids>
+**Notion on dev:** Dev SHA on K issues | none | failed <ids>
+**Notion done:** done on K issues | skipped (not merged) | failed <ids>
 **Deploy:** id `dpl_…` | url <…> | pending | n/a (<reason>)
 **Ship build:** n/a | rebuilt `<path>` @ <time> | skipped (--skip-ship-build) | blocked (<reason>)
 **Pushed:** origin/dev @ <sha> | not pushed (<reason>)
@@ -557,7 +546,7 @@ If Linear fails entirely: include the full comment body once in Phase 5 under **
 **Local:** main/dev synced notes
 ```
 
-If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report with `Pushed: not pushed`, `PR: not opened`, and full Review / Linear / Local compile lines so the user can continue manually.
+If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report with `Pushed: not pushed`, `PR: not opened`, and full Review / Notion / Local compile lines so the user can continue manually.
 
 ---
 
@@ -576,14 +565,14 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 - **Never merge a ship that includes DB migrations without completing Phase 3.5** (unless `--skip-migrations` or explicit user waiver)
 - **Never invent** migrate commands or Doppler production config names; follow the project under the current git root
 - **Never** `db:push` / schema push to production by default; never print `DATABASE_URL` or Doppler secrets; never auto-seed CMS/content as part of `/prb`
-- Do not file Linear issues for gate findings; all closed-loop fixes land on local `dev` only
+- Do not file new issues for gate findings; all closed-loop fixes land on local `dev` only
 - **Never skip the intensity-selected `grok-4.6` panel** in Phase 1.5 (unless `--skip-review`); orchestrator does not substitute its own review. Do not run a 4-agent panel on a light ship, and do not skip security or challenge on a non-light ship.
 - **Never skip runtime proof** on an in-scope ship ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)); `--skip-review` is not a waiver
 - **Never push if Phase 1.6 compile or ship-set tests failed** (unless `n/a` or `--skip-local-compile`); `--skip-review` is not a waiver. Re-run Phase 1.6 after babysit fixes before re-pushing
 - **Never push if thoroughness, security, or challenge failed** to return valid JSON
 - **Never push when a required ship product build failed** (unless `--skip-ship-build`); always re-run the documented build after babysit fixes that change app sources when AGENTS requires it
-- **Never skip Linear ship comments** when `SHIP_LINEAR_IDS` is non-empty and the PR was opened (Phase 2) or merged (Phase 4.5) — post what you know even if deploy id is still pending
-- **Never put secrets** (Doppler values, connection strings, tokens) in Linear ship comments
+- **Never skip the Notion update** when `SHIP_ISSUE_IDS` is non-empty and the PR was opened (Phase 2B) or merged (Phase 4.5). Set `done` as soon as `origin/main` has the merge, even if the deploy id is still pending
+- **Never put secrets** (Doppler values, connection strings, tokens) in Notion properties
 
 ## Anti-patterns
 
@@ -596,7 +585,7 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 - Demoting an always-actionable-class finding to a nit (“operator footgun”, “not the default path”)
 - Compressing exhaustive or babysit prompts (stub “hunt for NEW” / `git show` only)
 - Treating a clean review panel or typecheck as runtime proof for UI/auth/billing/API/schema/shared-helper ships
-- Filing Linear issues or nested `/solve` for gate findings
+- Filing new issues or nested `/solve` for gate findings
 - Fixing review findings only on a remote branch / PR without landing on local `dev` first
 - Staging or committing `$TMPDIR` review scratch
 - Infinite review→fix loops without honoring `--max-fix-cycles`
@@ -615,11 +604,9 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 - Skipping Phase 1.6 because the review panel was clean or `--skip-review` was set
 - Shipping a native/macOS app repo that documents a required ship build without running it before push
 - Inventing notary/archive steps that `AGENTS.md` does not document
-- Merging to production without commenting on ship Linear issues (PR + deploy id when available)
-- Posting a Linear ship comment without `list_comments` first
-- Spamming duplicate `/prb` ship comments (orchestrator racing a babysit tick, or re-run on the same PR)
-- Commenting production “shipped” on issues when the PR never merged
-- Auto-closing or reopening Linear issues as a substitute for a clear ship comment
+- Merging to `origin/main` without setting Notion Status `done` on the ship set
+- Setting Notion `done` when the PR never merged
+- Calling Linear for ship status
 - Spawning a 4-agent panel on a light ship, or skipping security or challenge on a non-light ship
 - Passing a fake `effort:` field on `spawn_subagent` (use `prb-reviewer` / `prb-fixer`)
 - Skipping exhaustive on a non-light ship without `--no-exhaustive`
@@ -628,8 +615,8 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 
 | Skill | Difference |
 |-------|------------|
-| `/issue` | Files thorough Linear tickets only; **not** used in Phase 1.5 |
+| `/issue` | Files one `.WCP/issues/` file and its Notion row; **not** used in Phase 1.5 |
 | `/solve` | Cheap construction onto **local** `dev`; **not** the `/prb` closed loop |
 | `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |
-| `/prb` | End-to-end: session → **intensity-selected grok-4.6 review gate + scratch fixer** → **local compile + ship-set tests** → `origin/dev` → PR into `main` → timed babysit → **project production migrate when needed** → merge → **Linear ship comments (PR + deploy id)** |
+| `/prb` | End-to-end: session → **intensity-selected grok-4.6 review gate + scratch fixer** → **local compile + ship-set tests** → `origin/dev` → Notion dev SHA → PR into `main` → timed babysit → **project production migrate when needed** → merge → **Notion Status done** |

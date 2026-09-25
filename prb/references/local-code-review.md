@@ -1,6 +1,6 @@
 # /prb — Local Code Review Gate + Closed-Loop Fix Cycle
 
-When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.6` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings live in scratch markdown. A `prb-fixer` applies them on local `dev`. The gate re-runs until clean (or the cycle cap). **One** Linear comment when the gate finishes.
+When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.6` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings live in scratch markdown. A `prb-fixer` applies them on local `dev`. The gate re-runs until clean (or the cycle cap). The Phase 5 report is the gate record. Notion updates happen after `origin/dev` and `origin/main` ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)).
 
 Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This file is the detailed procedure for **Phase 1.5**. Rubric and specialist prompts are not duplicated here.
 
@@ -38,7 +38,7 @@ Parse from the `/prb` invocation. Record:
 | `MAX_FIX_CYCLES` | from intensity band (override `--max-fix-cycles N`) |
 | `REVIEW_CYCLES_USED` | 0 |
 | `FINDINGS_FIXED_COUNT` | 0 |
-| `GATE_COMMENT_ISSUE` | first `SHIP_LINEAR_ID` or empty |
+| `SHIP_ISSUE_IDS` | from [`../../docs/notion-issues.md`](../../docs/notion-issues.md); empty until the ship updates Notion |
 | `REVIEW_EXIT` | unset → later `clean` \| `skipped` \| `blocked-at-cap` \| `blocked-tooling` |
 
 ---
@@ -232,7 +232,7 @@ if EXHAUSTIVE_REVIEW and filter_actionable(findings) is empty:
 
 ## 7. Closed-loop fix cycle
 
-Scratch is the ticket. Linear is one comment at the end.
+Scratch is the ticket. The Phase 5 report is the gate record. Do not call Linear.
 
 ### Algorithm
 
@@ -241,7 +241,7 @@ if SKIP_REVIEW:
   REVIEW_EXIT = skipped
   run runtime proof ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md)) on in-scope ship set
   if proof fails: DENY_PUSH
-  else: post_gate_comment(); return allow_push  # orchestrator still runs Phase 1.6 before git push
+  else: return allow_push  # orchestrator still runs Phase 1.6 before git push
 
 cycle = 0
 findings_fixed = 0
@@ -257,13 +257,11 @@ loop:
     REVIEW_EXIT = clean
     REVIEW_CYCLES_USED = cycle
     FINDINGS_FIXED_COUNT = findings_fixed
-    post_gate_comment()
     return allow_push  # orchestrator still runs Phase 1.6 before git push
 
   if cycle >= MAX_FIX_CYCLES:
     REVIEW_EXIT = blocked-at-cap
-    post_gate_comment()  # leftovers listed
-    return DENY_PUSH
+    return DENY_PUSH  # leftovers go in the Phase 5 report
 
   cycle += 1
 
@@ -275,7 +273,7 @@ loop:
     - `wcp look`; if a source-file lease is live, wait
     - commit product files only (HEREDOC; never stage $scratch_dir; do not stash)
     - rm that cycle’s scratch JSON/md (including fixes.md after copying
-      a 5–10 line “what changed” into orchestrator memory for the gate comment)
+      a 5–10 line “what changed” into orchestrator memory for the Phase 5 report)
     findings_fixed += count of actionable items the fixes.md claims
   if fixer fails: leave findings open; may retry once this cycle
 
@@ -327,13 +325,9 @@ If two findings touch the same files, one fixer still does both. Spawn a second 
 - Deduplicate: if the same defect reappears, keep the same F-id in the next merged markdown.
 - New findings discovered on re-review enter the next cycle (counts toward `MAX_FIX_CYCLES`).
 
-### `post_gate_comment`
+### Gate record
 
-Authority: [`linear-ship-comments.md`](linear-ship-comments.md) template C.
-
-- Issue: first `SHIP_LINEAR_ID`. None → skip Linear; put the body in Phase 5.
-- `list_comments` first. Skip if `/prb — local review gate` already exists for this `dev` SHA.
-- Body: actionable list, what landed, commit SHA(s), leftovers. No secrets.
+Do not call Linear. Do not write Notion from this gate. Put the actionable list, what landed, commit SHA(s), and leftovers in the Phase 5 report. No secrets.
 
 ---
 
@@ -362,7 +356,7 @@ Do not treat the first clean review as a permanent waiver for later fix commits.
 Always include:
 
 ```text
-Gate comment: /prb — local review gate on TEAM-123 | none (no ship ids)
+Notion: updated on origin/dev and origin/main by /prb, not by this gate
 Findings fixed: M
 ```
 
@@ -372,14 +366,14 @@ Findings fixed: M
 
 - Pushing or opening a PR with actionable findings still open
 - Skipping the gate without `--skip-review`
-- Filing Linear issues or nested `/solve` for gate findings
+- Filing new issues or nested `/solve` for gate findings
 - Fixing in the orchestrator by hand instead of `prb-fixer`
 - Staging `$TMPDIR` review scratch or committing it
 - Parallel fixers racing merges onto `dev` without an orchestrator
 - Counting nits as gate failures — or ignoring critical/serious as “later”
 - Skipping re-review after fixer commits
 - Pushing from an issue branch instead of local `dev`
-- Printing secrets into review artifacts or Linear bodies
+- Printing secrets into review artifacts or Notion properties
 - Weakening the `origin/main` → `dev` merge requirement “because review passed”
 - Orchestrator writing findings instead of spawning the panel
 - Spawning a 4-agent panel on a light ship, or skipping security on a critical ship

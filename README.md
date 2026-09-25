@@ -10,7 +10,7 @@ Public, portable **[Grok](https://x.ai/)** agent skills used by [David Solheim](
 | **Repo** | [github.com/davidsolheim/skills](https://github.com/davidsolheim/skills) |
 | **Audience** | Anyone running agent-driven engineering with git and a local issue queue |
 
-These packages are **sanitized for open use**: no client brands as required defaults, no home-directory install paths, no private monorepo package names. Work is tracked in `.WCP/issues/` in the checkout ([`docs/wcp-queue.md`](./docs/wcp-queue.md)). The skills do not call Linear.
+These packages are **sanitized for open use**: no client brands as required defaults, no home-directory install paths, no private monorepo package names. Work is tracked in `.WCP/issues/` in the checkout ([`docs/wcp-queue.md`](./docs/wcp-queue.md)). Ship and status updates go to that repo's Notion issues database ([`docs/notion-issues.md`](./docs/notion-issues.md)). The skills do not call Linear.
 
 ---
 
@@ -117,7 +117,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 | Hosting | **Vercel** (preview + production) |
 | Secrets | **Doppler** (or Vercel env / `.env.local` for local only)—skills never commit secrets |
 | CI | GitHub Actions + `gh` CLI for PRs, checks, and merge |
-| Project tracking | **`.WCP/issues/`** in the checkout ([`docs/wcp-queue.md`](./docs/wcp-queue.md)) |
+| Project tracking | **`.WCP/issues/`** in the checkout ([`docs/wcp-queue.md`](./docs/wcp-queue.md)); Notion status per repo ([`docs/notion-issues.md`](./docs/notion-issues.md)) |
 | Agent runtime | **Grok Build**. Subagents are **Grok-only** (`grok-4.6` default, `grok-4.5` for explore fan-out) — see [`docs/grok-models.md`](./docs/grok-models.md) |
 
 ### Agent & delivery tooling
@@ -487,7 +487,8 @@ My Product Launch
     ├── linear-comments.md
     ├── rfc-multiplayer-linear.md
     ├── wcp.md               # how /solve /issues /prb use occupancy
-    └── wcp-queue.md         # how skills read and write .WCP/issues/
+    ├── wcp-queue.md         # how skills read and write .WCP/issues/
+    └── notion-issues.md     # per-repo Notion status database
 ```
 
 ---

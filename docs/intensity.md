@@ -8,8 +8,9 @@ intensity flags in normal use. `--effort N`, `--exhaustive-review`,
 `--no-exhaustive`, and `--max-fix-cycles N` remain hidden overrides.
 
 **Dial agents, not proof.** Runtime proof stays on for in-scope changes
-([`prove-it-works.md`](prove-it-works.md)). Model stays `grok-4.6`. Sequential
-`/solve` stays the default.
+([`prove-it-works.md`](prove-it-works.md)). Model stays `grok-4.6`. Per-issue
+`/solve` stays one cheap implementer; batches run those implementers in
+parallel.
 
 **Fail closed:** missing stamp or ambiguous class → bump **one band up**. Never
 bump down. Do not spawn a classifier agent.
@@ -20,7 +21,7 @@ bump down. Do not spawn a classifier agent.
 |-------|-----|----------|
 | `/issue` | Research + execution-ready contract | Paid once. Do not cheapen. |
 | `/solve` | Apply that contract onto local `dev` | **Low.** One implementer. No review swarm. |
-| `/prb` | Audit `origin/main...dev` before ship | **Medium** panel. Scratch findings. One fixer. One Linear comment. |
+| `/prb` | Audit `origin/main...dev` before ship | **High** panel. Scratch findings. One fixer. Ship must leave with nothing an external PR bot would flag as P0–P2. |
 
 Construction review happens at `/prb`, not inside `/solve`. `/yeet` is the
 explicit skip-the-panel path and still requires proof.
@@ -32,8 +33,8 @@ user roles/agents in `~/.grok/roles/` and `~/.grok/agents/`:
 |-----------------------|-----------|---------|
 | `solve-implementer` | low | `/solve` implementer (sequential + fast workers) |
 | `solve-reviewer` | low | `/solve` inner bug-only reviewer (heavy/critical only) |
-| `prb-reviewer` | medium | `/prb` panel specialists |
-| `prb-fixer` | medium | `/prb` closed-loop fixer |
+| `prb-reviewer` | high | `/prb` panel specialists |
+| `prb-fixer` | high | `/prb` closed-loop fixer |
 
 If the host rejects a custom type, spawn `general-purpose` with `model: grok-4.6`
 and say so once. `[models] default_reasoning_effort = "low"` is the inheritance
@@ -44,17 +45,18 @@ safety net. Do **not** pass a fake `effort:` field on `spawn_subagent`.
 | Band | Typical work | `/solve` | `/prb` panel | Exhaustive | Max fix cycles |
 |------|--------------|----------|--------------|------------|----------------|
 | **light** | Docs, comments, skills, copy-only, rename with no behavior | 1 implementer, **no** inner review | thoroughness only | off | **2** |
-| **standard** | Isolated UI, one-file bug with a cheap test, local component | 1 implementer, **no** inner review | 4-agent once | off | **2** |
-| **heavy** | Interactive UI, new logic, non-auth public API, shared helper with a few callers | 1 implementer + **1 bug-only** reviewer | 4-agent once | off | **2** |
-| **critical** | Auth, gating, billing, tenancy, schema/migration, payments, secrets, blast-radius helpers | 1 implementer + **1 bug-only** reviewer (security-shaped prompt if auth/secrets) | 4-agent | **on** | **2** |
+| **standard** | Isolated UI, one-file bug with a cheap test, local component | 1 implementer, **no** inner review | 4-agent | **on** | **3** |
+| **heavy** | Interactive UI, new logic, non-auth public API, shared helper with a few callers | 1 implementer + **1 bug-only** reviewer | 4-agent | **on** | **3** |
+| **critical** | Auth, gating, billing, tenancy, schema/migration, payments, secrets, blast-radius helpers | 1 implementer + **1 bug-only** reviewer (security-shaped prompt if auth/secrets) | 4-agent | **on** | **4** |
 
-4-agent panel = thoroughness, security, rules, challenge. Thoroughness failure
-is still fatal. Specialists may warn-and-continue.
+4-agent panel = thoroughness, security, rules, challenge. Thoroughness,
+security, and challenge failure is fatal (do not push). Rules may
+warn-and-continue.
 
 A tiny CSS/copy tweak on a user-visible surface is **standard**, not light.
 UI is in-scope for proof; it does not need an inner review swarm.
 
-Linear **priority is a tie-break**, not the classifier. Urgent + money/auth
+Queue **priority is a tie-break**, not the classifier. Urgent + money/auth
 path → **critical** even if the title is small. A High copy fix is still light.
 
 Ticket length is not intensity. Classify on **risk class**, not prose volume,
@@ -88,7 +90,7 @@ Walk **top to bottom**; first match wins. Ambiguous → next higher band.
    schema/migration, payments, secrets, cookies/webhooks as auth, Stripe (or
    equivalent money), shared helper used broadly (blast radius). Path keywords
    in the code map: `auth`, `billing`, `stripe`, `payments`, `migrations`,
-   `schema`, `middleware` (auth/session). Linear Urgent **and** a money/auth
+   `schema`, `middleware` (auth/session). Priority `critical` **and** a money/auth
    path.
 2. **heavy** if interactive UI (empty/error/loading, new flow), new business
    logic, public API that is not auth/billing, or a shared helper with a few
@@ -136,13 +138,16 @@ Then apply the Bands table for panel, exhaustive, and max fix cycles.
 `--exhaustive-review` forces exhaustive on. `--no-exhaustive` forces it off.
 `--max-fix-cycles N` wins over the table.
 
-**Closed-loop:** do **not** file Linear issues or nested `/solve`. Fix from the
-merged gate markdown via `prb-fixer`. One Linear comment when the gate finishes
-([`../prb/references/linear-ship-comments.md`](../prb/references/linear-ship-comments.md)
-template C). Leftovers at cap stay in that comment + the Phase 5 report.
+**Closed-loop:** do **not** file new issues or nested `/solve`. Fix from the
+merged gate markdown via `prb-fixer`. Leftovers at cap stay in the Phase 5
+report. Notion status is [`notion-issues.md`](notion-issues.md), after
+`origin/dev` and `origin/main`, not during the gate.
 
-**Babysit re-review:** re-run only specialists whose area changed. A copy fix
-does not relaunch security + rules + challenge. Nits never block ship.
+**Babysit re-review:** always on `origin/main...dev` with the same full rubric
++ overlay as Phase 1.5 (never a stub prompt, never `git show` as the only
+target). Copy-only / comment-only deltas: thoroughness only. Any other delta:
+full intensity panel. A plaster that leaves a sibling hole is a new finding.
+Nits never block ship.
 
 `--skip-review` still skips the panel (not proof). `/yeet` stays the explicit
 skip-the-panel path.

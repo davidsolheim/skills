@@ -1,8 +1,6 @@
 # Publish pass
 
-**Do not call Linear.** Write each ready leaf into `.WCP/issues/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason`. There is no epic file. `--draft` keeps the local package and writes nothing.
-
-Any step below that says `save_issue`, team, project, or `blockedBy` means that file write instead.
+**Do not call Linear.** Write each ready leaf into `.WCP/issues/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md), then upsert Notion per [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Independent leaves go in `open/` at Status `open`. A hard dependency goes in `blocked/` with `reason` and Notion Status `blocked`. There is no epic file. `--draft` keeps the local package and writes nothing.
 
 Default: **file** solve-ready leaves so `/solve` has a real queue.
 
@@ -13,9 +11,8 @@ Default: **file** solve-ready leaves so `/solve` has a real queue.
 
 ## Preconditions
 
-- Team resolved (required)
-- Project resolved when identifiable
-- Board **snapshot** already taken (or explicitly offline) — offline match done ([`board-sync.md`](board-sync.md))
+- Notion database for this repo ([`../../docs/notion-issues.md`](../../docs/notion-issues.md))
+- Board **snapshot** already taken — offline match done ([`board-sync.md`](board-sync.md))
 - Every leaf to file passed quality gates
 - Dependency order planned
 - **Deep:** candidates live in `issue-candidates/final/*.md` with `status: ready_to_file` (or equivalent)
@@ -29,9 +26,9 @@ Default: **file** solve-ready leaves so `/solve` has a real queue.
 |------|-------------|
 | Deep | `$SCRATCH_DIR/issue-candidates/final/*.md` only |
 | Fast | `final/*.md` if present; else full in-memory/draft bodies that passed gates |
-| Draft | Nothing in Linear; keep `final/` on disk |
+| Draft | Nothing filed; keep `final/` on disk |
 
-After create, write `linear_id` / `linear_url` back into `_merged/index.json` when that index exists.
+After create, write the issue id into `_merged/index.json` when that index exists.
 
 ---
 
@@ -39,10 +36,10 @@ After create, write `linear_id` / `linear_url` back into `_merged/index.json` wh
 
 | Result | Action |
 |--------|--------|
-| Publish **fully succeeded** (all intended finals have Linear ids; epic OK unless `--no-epic`) | **Delete** `$SCRATCH_DIR` (`rm -rf` the `project-review-<RUN_ID>` dir only) |
-| `--draft`, Linear down, or **any** intended final not filed | **Keep** `$SCRATCH_DIR` — required for re-file without rediscovery |
+| Publish **fully succeeded** (every intended final has an issue id) | **Delete** `$SCRATCH_DIR` (`rm -rf` the `project-review-<RUN_ID>` dir only) |
+| `--draft`, Notion unavailable, or **any** intended final not filed | **Keep** `$SCRATCH_DIR` — required for re-file without rediscovery |
 
-Capture epic/leaf ids and URLs for the handoff **before** deleting.  
+Capture leaf ids for the handoff **before** deleting.  
 If deleted, handoff says scratch was removed after successful file (no path needed for recovery).  
 If kept, handoff **must** include the absolute scratch path.
 
@@ -50,16 +47,9 @@ Filtered-out discoveries (signal filter / `--p0-p1-only` never in `final/`) do n
 
 ---
 
-## MCP discipline
+## Notion
 
-1. `search_tool` for Linear tools (create/update issue, list labels, etc.).
-2. Read input schemas before calling.
-3. Prefer create via `save_issue` / equivalent **without** id.
-4. Use **literal newlines** in markdown descriptions (not `\\n` strings).
-5. Never put secrets in titles or bodies.
-6. Do **not** re-list the full board during publish for routine dedupe (snapshot already applied). On unexpected duplicate API error: mark candidate in index, continue next final.
-
-Tool names vary by server (`linear__save_issue`, team-specific servers). Discover rather than hard-code wrong names.
+After each file write, upsert that row ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)). Never put secrets in titles, bodies, or Notion properties. Do not re-read the whole queue per leaf. On a duplicate file, skip the create and continue.
 
 ---
 
@@ -79,77 +69,26 @@ Unfiled discoveries go in handoff under **Discovered not filed** (and remain on 
 
 ## Priority map
 
-| Review | Linear priority field |
-|--------|----------------------|
-| P0 data loss / broken core production path | `1` Urgent |
-| Other P0 / most high-visibility P1 | `2` High |
-| Remaining P1 / solid P2 | `3` Medium |
-| Minor P2 | `4` Low |
-
-(`0` = None — avoid for filed review leaves.)
+| Review | priority |
+|--------|----------|
+| P0 data loss / broken core production path | `critical` |
+| Other P0 / most high-visibility P1 | `high` |
+| Remaining P1 / solid P2 | `normal` |
+| Minor P2 | `low` |
 
 ---
 
-## Labels
+## State
 
-If `list_issue_labels` (or equivalent) succeeds:
+New leaves are `open` and unassigned. Do not set `in-progress` or `done`. `/solve` claims the file. Notion `done` waits for `/prb` or `/yeet`.
 
-- Apply only existing labels that clearly fit: Bug, Enhancement, UI, A11y, Content, etc.
-- Do **not** invent labels.
-- Omit when unsure.
+## Create sequence
 
----
-
-## State & assignee
-
-| Field | Value |
-|-------|--------|
-| State | Backlog, Todo, Triage, or team default for **new unstarted** work |
-| Assignee | **Unassigned** |
-| In Progress | **Never** |
-| Done | **Never** |
-
-`/solve` owns claim (In Progress + assignee + start comment).
-
----
-
-## Create sequence (publish pass)
-
-### A. Epic (unless `--no-epic`)
-
-1. Create parent issue/epic with packaging body from `issue-template.md`.
-2. Title: `Review pass ({mode}) – {Project or Surface} – YYYY-MM`
-3. Prefer Epic type/label if the team uses it **and** the API supports it; otherwise a normal parent issue with children is fine.
-4. Capture epic id + URL + identifier.
-5. Prefer reusing an open “Review pass” epic from the **board snapshot** when same surface/month (see board-sync).
-
-### B. Leaves (dependency order)
-
-For each `final/*.md` (or ordered final list from index) in Phase 6 / D6 order:
-
-1. Create with full issue-template body (strip YAML frontmatter if Linear should only get markdown sections — or include a clean body export field).
-2. Set `team`, `project`, `priority`, `labels` (if any), `parentId`/`parent` = epic when applicable.
-3. Do not assign.
-4. Capture identifier, URL, id → update local index `filed`.
-
-### C. Relations (after ids exist)
-
-1. Set `blockedBy` for hard deps (map `blocked_by_candidates` → Linear ids via index).
-2. Set `relatedTo` for `related_board` ids from offline match.
-3. If API requires update calls post-create, batch them cleanly.
-
-### D. Retire contradicted unstarted issues
-
-After the new leaf exists, for each `retire_after_file` id on that candidate:
-follow [`../../issue/references/direction-conflict.md`](../../issue/references/direction-conflict.md)
-**Retire**. Confirm unstarted (and no live foreign claim) with `get_issue` /
-`list_comments` on those ids only; skip a second superseded-by comment if one
-already exists. Skip if this leaf’s create failed.
-`--draft`: no status writes.
-
-### E. Epic rollup note (optional)
-
-If easy, update epic description with a bullet list of child identifiers. Not required for `/solve`.
+1. For each ready final, in dependency order, write the queue file and upsert Notion.
+2. A hard dependency is `blocked/` with `reason: blocked by <id>`.
+3. Put the initiative name in the leaf body. Do not write an epic file.
+4. Record the new id in the local index.
+5. Retire contradicted unstarted files per [`../../issue/references/direction-conflict.md`](../../issue/references/direction-conflict.md). Skip a file under a live lease. `--draft` writes nothing.
 
 ---
 
@@ -157,11 +96,11 @@ If easy, update epic description with a bullet list of child identifiers. Not re
 
 | Failure | Action |
 |---------|--------|
-| Auth error | Stop filing; **keep** full scratch package; handoff **not filed** with absolute path |
-| Project mismatch | Fix project/team; retry once |
+| Notion auth error | Stop filing; **keep** full scratch package; handoff **not filed** with absolute path |
+| Database mismatch | Fix the slug or origin URL; retry once |
 | Single leaf fails | Continue others; report failed path; **keep** scratch (partial) |
-| Relations fail | Leaves still valid; note missing blockedBy in handoff; if all leaves created, may delete scratch (relations can be fixed in Linear later) — prefer **keep** if relation plan was material and incomplete |
-| Unexpected duplicate on create | Mark index; do not re-crawl entire board; continue |
+| Blocked `reason` missing | Leaves still valid; note the missing reason in the handoff; **keep** scratch if the dependency plan was material |
+| Unexpected duplicate on create | Mark index; do not re-read the whole queue; continue |
 
 Never pretend issues were created when they were not.  
 Never re-run full deep discovery solely because publish failed — re-file from `final/` while scratch is kept.  
@@ -177,11 +116,10 @@ Prefer pointing at disk:
 # Project review drafts — NOT FILED
 
 Mode: deep
-Team/project: …
+Repo: …
 Scratch: /tmp/grok-…/project-review-<RUN_ID>/
 Finals: …/issue-candidates/final/
 Index: …/issue-candidates/_merged/index.json
-Epic title: …
 
 ## Finals ready to publish
 1. CAND-001 — <title> (P0, foundation) — path: …
@@ -202,25 +140,24 @@ Mode: fast
 
 ---
 
-## What this skill must never do on Linear
+## What this skill must never do
 
 - Assign to self or others
-- Set In Progress / Done / Canceled on **new** leaves
-- Post “starting work” comments
-- Mass-edit or mass-cancel pre-existing issues
+- Set `in-progress` or `done` on **new** leaves
+- Set Notion `done` (`/prb` or `/yeet` owns that)
+- Mass-cancel pre-existing issues
 - Skip targeted retire of unstarted full contradictions (`retire_after_file`)
-- Close the epic as Done (children incomplete)
+- Write an epic file
 - Create from uncleaned `_inbox` dumps
-- Per-candidate board search during publish
+- Per-candidate queue search during publish
 
 ---
 
-## Alignment with `/solve` Linear policy
+## Alignment with `/solve`
 
 | Moment | Review | Solve |
 |--------|--------|-------|
-| Create backlog leaves | Yes (publish pass) | No |
-| Claim / In Progress | No | Yes |
-| Start/completion comments | No | Yes |
-| Mark leaf Done | No | Yes after local `dev` merge |
-| Epic expand / rollup Done | No | Yes when children terminal |
+| Create `open/` leaves and Notion rows | Yes (publish pass) | No |
+| Claim / `in-progress` | No | Yes, and Notion `in-progress` |
+| Set the local file `done` | No | Reviewer, after the check |
+| Set Notion `done` | No | No (`/prb` or `/yeet`) |

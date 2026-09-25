@@ -8,9 +8,15 @@ Used by `/start` Phase 4. Write leaves into `.WCP/issues/open/` per [`../../docs
 - [`../../issues/references/epic-body-template.md`](../../issues/references/epic-body-template.md)
 - [`../../issue/references/direction-conflict.md`](../../issue/references/direction-conflict.md)
 
+Do not call Linear.
+
+## Database
+
+Follow [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Title is the lowercase repo slug. Description and every row's Repo property are the normalized origin URL. Reuse that database when it already exists.
+
 ## Queue
 
-Write each V1 leaf as a file in DEST `.WCP/issues/open/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Do not create a Linear project. Do not call Linear. Create `open/`, `in-progress/`, `done/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under `.WCP/issues/`.
+Write each V1 leaf as a file in DEST `.WCP/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under `.WCP/issues/`. There is no epic file.
 
 ## What to ticket (V1 only)
 
@@ -52,9 +58,10 @@ Create gate (fail closed) — same as `/issue` 5A. Paths must exist in DEST now
 
 Filing:
 
-- `status: open`, empty `assignee` and `lease_expires`
+- `status: open`, empty `assignee` and `lease_expires`, file in `open/`
+- Notion Status `open` after the file write
 - `priority`: identity and blocking schema are high; core features are high or normal; polish is normal or low
-- A hard dependency is a file in `blocked/` with `reason: blocked by <id>`
+- A hard dependency is a file in `blocked/` with `reason: blocked by <id>` and Notion Status `blocked`
 
 User report on each leaf: quote the vision V1 bullet.
 
@@ -69,9 +76,8 @@ Read `.WCP/issues/` before writing so a second `/start` does not file the same l
 
 ## Draft mode
 
-`--draft`: print the leaf bodies in chat. Do not write the files.
+`--draft`: print the leaf bodies in chat. Do not write the files or Notion rows.
 
-## Write failure
+## Notion failure
 
-Say which write failed. Keep DEST docs. Print the leaf drafts. Phase 6
-build does **not** run unless the user already asked to build from `VISION.md`.
+Say which upsert failed. Keep DEST docs and any files already written. The files are still the queue. Phase 6 still runs unless the user passed `--no-build`, `--docs-only`, or `--draft`.

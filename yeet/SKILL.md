@@ -8,7 +8,9 @@ description: >
   of the ship SHA until Ready or Error (do not merge / do not claim complete
   on Error). Apply additive production migrations when the ship includes them;
   stop and ask on destructive schema. The WCP issue file is already the close
-  record. Do not call Linear. Use when the user runs /yeet or says "yeet it". Do not use
+  record. After origin/dev, record the dev SHA in that repo's Notion issues
+  database. When the production build of origin/main is Ready, set Status done.
+  Do not call Linear. Use when the user runs /yeet or says "yeet it". Do not use
   for /prb, "push dev and PR to main", "ship it", babysit, or careful
   CI-watched merges — those stay /prb.
 argument-hint: "[--via-dev-pr] [--skip-migrations] [--no-commit]"
@@ -27,15 +29,15 @@ Ship **this session’s finished work now**. `/prb` is the careful path (deep lo
 7. **Watch the GitHub/Vercel build of the `dev` SHA.** Error → do not merge.
 8. Merge immediately (`gh pr merge --rebase --admin`)
 9. Sync local `main`. Do **not** re-push `dev` after merge.
-10. **Watch the production build of the merge SHA.** Error → do not mark Linear Done; fix or report.
-11. Do not call Linear. Done tickets already live in `.WCP/issues/done/`. Production build Ready is the ship gate, not a tracker write.
+10. **Watch the production build of the merge SHA.** Error → do not set Notion `done`; fix or report.
+11. When that production build is Ready, set Notion Status `done` immediately ([`../docs/notion-issues.md`](../docs/notion-issues.md)). The dev push already recorded Dev SHA. Do not call Linear.
 
 ## Operating contract
 
 - Integration branch is lowercase **`dev`**. Trunk is **`main`**. If this repo has no `dev` (local or `origin/dev`), **stop** — do not invent a branch.
 - **Never** `git push origin dev` until `git fetch origin`, local `main` matches `origin/main` (ff-only), and `origin/main` is an ancestor of local `dev`.
 - **WCP:** this skill is the human export ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; wait if live leases remain. **`unset WCP_AGENT` immediately before `git push origin dev`**. Commit `.WCP/issues/`. Do not commit `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
-- **No review gate. No `/prb` babysit** of bot comments. **Do wait for the ship build.** After the `dev` push, poll GitHub Actions `build` (or this repo’s compile job) and the Vercel preview for that SHA until success or failure (cap ~10 minutes). After merge, poll the Vercel **production** deploy (or GitHub `build` on `main`) the same way. Error → **do not merge** (preview/CI) or **do not claim complete / do not mark Linear Done** (production). `/yeet` does not run the `/prb` panel. It still must drive user-visible / auth / billing / API / schema / shared-helper ships ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
+- **No review gate. No `/prb` babysit** of bot comments. **Do wait for the ship build.** After the `dev` push, poll GitHub Actions `build` (or this repo’s compile job) and the Vercel preview for that SHA until success or failure (cap ~10 minutes). After merge, poll the Vercel **production** deploy (or GitHub `build` on `main`) the same way. Error → **do not merge** (preview/CI) or **do not claim complete / do not set Notion done** (production). `/yeet` does not run the `/prb` panel. It still must drive user-visible / auth / billing / API / schema / shared-helper ships ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
 - Merge with `gh pr merge --rebase --admin` so `main` lands on dev's already-pushed commits. If rebase is refused, `gh pr merge --merge --admin`. If `--admin` is denied, report the error and **stop**.
 - **One dev preview + one main production per ship.** dev's preview comes from the Phase 2 dev push (or from merging `--via-dev-pr` into dev). main's production comes from the dev→main merge. Never push dev again after that merge — a dev push of the merge commit starts a second dev preview for the same ship.
 - Default path is **direct on `dev`**. Do **not** open a feature-branch PR into `dev` unless `dev` is branch-protected or the user passed `--via-dev-pr`.
@@ -68,7 +70,7 @@ Ignore unknown tokens after logging them.
    3. Else uncommitted intentional session files — Phase 0.5
 6. If after 0.5 there is nothing new vs `origin/main` on `dev`, report and exit.
 7. **Migrations:** if `origin/main...dev` (plus the commit you are about to make) touches this repo’s migration/schema paths, follow `/prb` [`references/db-migrations.md`](../prb/references/db-migrations.md) for discovery (`MIGRATE_CMD`, Doppler **production** config **name**, risk class). Uncommitted migration SQL must be committed in 0.5 before apply.
-8. **Linear ids:** collect `SHIP_LINEAR_IDS` from `git log origin/main..dev --pretty=%B`, branch name, and the session ticket. Re-scan after commit.
+8. **Ship issues:** collect `SHIP_ISSUE_IDS` per [`../docs/notion-issues.md`](../docs/notion-issues.md) from `.WCP/issues/` and `git log origin/main..dev --pretty=%H%n%s`. Re-scan after commit.
 
 Unrelated dirty paths (leave alone): `.cursor/hooks/**`, `.deepsec/`, local env files, `tmp/`.
 
@@ -83,9 +85,9 @@ If the dirty set looks **mixed or huge** (unrelated packages, generated junk mix
 Otherwise:
 
 1. Stage only the session source files (and their tests). Never stage the ignore list above.
-2. Invent a short subject from the diff + a ticket id when known (`0123: …`). Do not ask for a subject unless the dirty set is ambiguous.
+2. Invent a short subject from the diff + the issue id when known (`0123: …`). Do not ask for a subject unless the dirty set is ambiguous.
 3. Commit on local `dev` (or on the `--via-dev-pr` branch).
-4. Re-scan Linear ids from the new commit.
+4. Re-scan `SHIP_ISSUE_IDS` from the new commit.
 
 ## Phase 1 — Refresh trunk into `dev`
 
@@ -135,6 +137,8 @@ If `git push origin dev` is rejected non-ff, merge `origin/dev` into local `dev`
 
 Title/body must match `git log origin/main..dev --oneline`.
 
+Immediately after this push, run the Notion **on dev** update ([`../docs/notion-issues.md`](../docs/notion-issues.md)): Dev SHA and PR URL. Do not set `done`.
+
 ## Phase 2.5 — Runtime proof (in-scope)
 
 **Authority:** [`../docs/prove-it-works.md`](../docs/prove-it-works.md).
@@ -154,7 +158,7 @@ Poll until **success or failure** (not until a 15-minute review window). Cap **1
 1. `HEAD_SHA` = `origin/dev` after the Phase 2 push.
 2. **Vercel (required when the repo deploys there):** `vercel ls` / `vercel inspect <preview-url> --wait` for the Preview of `$HEAD_SHA`. **Error** is a fail. **Ready** is the pass.
 3. If GitHub Actions has a compile step (`bun run build` / `next build`) that failed on `$HEAD_SHA`, treat that as the same fail even if you have not seen Vercel yet — pull the TypeScript/log error.
-4. On **failure**: do **not** merge. Pull the failed build log, fix, commit on `dev`, push, re-watch. Do not mark Linear Done.
+4. On **failure**: do **not** merge. Pull the failed build log, fix, commit on `dev`, push, re-watch. Do not set Notion `done`.
 5. On **timeout** with no conclusion: do **not** merge. Report the last status.
 
 `--skip-build-watch` (only if the user passed it): skip this phase; loud warning.
@@ -193,13 +197,13 @@ Do not `reset --hard` if it would destroy unique local commits. If `--admin` fai
 Same rules as Phase 2.6, for **`$MERGE_SHA` on `main`**.
 
 1. Poll `vercel inspect` of the **Production** deployment for `$MERGE_SHA` until Ready or Error (cap ~10 minutes). GitHub compile-step failure on `main` is the same fail.
-2. **Error** → do **not** mark Linear Done. Fetch the log, fix on `dev`, ship again. Report **Build:** failed.
-3. **Ready** → continue to Phase 5.
-4. Timeout with no conclusion → do not Done; report last status.
+2. **Error** → do **not** set Notion `done`. Fetch the log, fix on `dev`, ship again. Report **Build:** failed.
+3. **Ready** → immediately set Notion Status `done` and Main SHA ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Then Phase 5.
+4. Timeout with no conclusion → do not set `done`; report last status.
 
 ## Phase 5 — Queue
 
-Do not call Linear. If a shipped issue file is still `open` or `in-progress` and its work commit is in this ship, set `commit` and `status: done` and move it to `done/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Skip a file another agent holds under a live lease.
+If a shipped issue file is still `open` or `in-progress` and its work commit is in this ship, set `commit` and `status: done` and move it to `done/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Skip a file another agent holds under a live lease. Notion Status is already `done` from Phase 4.5 when the production build is Ready. If this step moves a file that was missing from that update, upsert it to `done` now. Do not call Linear.
 
 ## Report
 
@@ -213,7 +217,7 @@ Do not call Linear. If a shipped issue file is still `open` or `in-progress` and
 **Merge:** merged @ <sha> | blocked (<reason>)
 **Build:** preview Ready @ <sha> · production Ready @ <sha> | failed (`<url>`) | timeout | skipped
 **Migrations:** none | applied production (`<config>`) | blocked | skipped
-**Linear:** Done on TEAM-123 | none | skipped foreign In Progress | skipped (build failed)
+**Notion:** done on 0123 | dev SHA only | none | skipped (live lease) | skipped (build failed)
 **Local:** main synced to origin/main; dev not re-pushed after merge
 ```
 
@@ -221,7 +225,7 @@ Do not call Linear. If a shipped issue file is still `open` or `in-progress` and
 
 - Starting a `/prb` babysit of review-bot comments
 - Merging while Vercel preview/production (or `next build`) for the ship SHA is **Error** or still running
-- Marking Linear **Done** before the production build is Ready
+- Setting Notion **done** before the production build is Ready
 - Merging an in-scope ship because `/yeet` skips the review panel (proof is still required)
 - Opening a feature-branch PR into `dev` when not asked and `dev` is not protected
 - Pushing `dev` that does not contain `origin/main`
@@ -231,4 +235,4 @@ Do not call Linear. If a shipped issue file is still `open` or `in-progress` and
 - Merging a ship that needs new tables without this repo’s production migrate
 - Stealing `/prb` when the user said “ship it” or “push dev and PR to main”
 - Inventing a `dev` branch in a repo that does not have one
-- Posting a Linear ship comment without `list_comments` first
+- Calling Linear for ship status

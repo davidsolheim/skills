@@ -75,8 +75,8 @@ Set `ISSUE_SKILL_MD`, `SOLVE_SKILL_DIR`, `RANKING_MD`.
 `ELIGIBILITY_MD` = `$SOLVE_SKILL_DIR/references/eligibility.md`
 (fallback `$HOME/.grok/skills/solve/references/eligibility.md`).
 
-If **issue** is missing, still list teams/projects from Linear and ask once.
-If **ranking** is missing, sort Linear priority `1, 2, 3|0, 4` then identifier;
+If **issue** is missing, still list the local queue.
+If **ranking** is missing, sort priority `critical`, `high`, `normal`, `low`, then identifier;
 skip `U`.
 
 ---
@@ -128,7 +128,7 @@ apply Size cut, Overlap cut, or Identify batch guidance.
 
 ```markdown
 **Status:** [Team] / [Project] · [open] open
-**Rank:** Linear priority, then user-facing impact, then identifier
+**Rank:** priority, then user-facing impact, then identifier
 **Args:** top=[N or all] · area=[filter or none]
 **Counts:** P1=n · P2=n · P3=n · P4=n · ready=n · blocked=n · claimed=n · in-progress=n · in-review=n · epics=n
 
@@ -152,7 +152,7 @@ Rules:
   to work next; `/prb` only for in-review rows if they ask how to ship.
 - Then **stop**.
 
-If Linear auth/tools fail: say which server failed. Do not invent issues.
+If the queue directory is missing, say so. Do not invent issues. Do not call Linear.
 
 ---
 

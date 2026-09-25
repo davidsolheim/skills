@@ -25,16 +25,13 @@ Before any product edit on that ticket:
 
 ## Close
 
-Workers do not commit and do not stash. The orchestrator commits the work only when `wcp look` shows no live source-file lease. After that hash exists on local `dev`:
+The solver does not commit and does not stash. When acceptance is met, the solver sets `status: in-review`, clears `lease_expires`, and moves the file to `in-review/`.
 
-1. Append touched paths to `files`.
-2. Write that commit hash into `commit`.
-3. Set `status: done`. Clear `assignee` and `lease_expires`. Move the file to `done/`.
-4. Commit the issue file. `wcp look` is still empty. Do not stash.
+The orchestrator launches one reviewer per file in `in-review/`. The reviewer checks security, accessibility, functionality, and aesthetics, fixes failures under a file lease, and sets `status: done`. The reviewer does not commit.
 
-There is no In Review status. `done` is the completion record.
+After that reviewer has exited and `wcp look` shows no live source-file lease, the orchestrator commits the work, writes that hash into `commit`, and commits the issue file.
 
-On failure: leave `in-progress` if you still hold it, or `blocked` with `reason` when a human has to answer. Do not set `done` without a hash.
+On failure before review: leave `in-progress` if you still hold it, or `blocked` with `reason` when a human has to answer. The reviewer is the one who sets `done`.
 
 ## `/identify`
 

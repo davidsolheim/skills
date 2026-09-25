@@ -1,7 +1,8 @@
 # Direction-conflict check
 
-Search **non-implemented** Linear issues for a **contradicting direction**
-before filing. Do not leave both X and Y implementable.
+Search **non-implemented** `.WCP/issues/` files for a **contradicting direction**
+before filing. Do not leave both X and Y implementable. Notion follows
+[`../../docs/notion-issues.md`](../../docs/notion-issues.md). Do not call Linear.
 
 Duplicates are the same intent. Contradictions are **mutually exclusive**
 intents for the same surface. Stack migrations are one subtype, not the whole
@@ -17,7 +18,7 @@ Parent skills: [`../SKILL.md`](../SKILL.md) (`/issue`),
 | `/project-review` | **Repo + board canonical direction.** An agent-invented finding does **not** beat an explicit user ticket of the opposite intent. |
 
 `/project-review` classifies **offline** against the one board snapshot. Retire
-only at publish (orchestrator). Workers never call Linear.
+only at publish (orchestrator). Workers never call Notion.
 
 ---
 
@@ -40,33 +41,24 @@ Example: backlog “do X”, user now says “do Y instead” → file Y, **reti
   the same create set, **drop X** (`drop-contradicted`); file Y only.
 
 `--draft` / `--plan-only`: classify and show retire/drop; do **not** change
-Linear status until a real create succeeds.
+file or Notion status until a real create succeeds.
 
 ---
 
 ## Search (actionable issues only)
 
-Do **not** `list_issues` with only `team` + `project` (dumps Done/Canceled).
+Read `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/`.
 
-1. `list_issue_statuses` for the team. Keep types `backlog`, `unstarted`,
-   `started`. Drop `completed`, `canceled`, `duplicate`.
-2. For each kept status **name**, `list_issues` with `team` + `project` +
-   `state` (that name) + `query` from the new work’s surface. Parallelize.
-   Page if needed. Slim fields: `id`, `title`, `status`, `statusType`, `url`,
-   `assignee`, `priority`. Omit `description` on this pass.
-3. Query terms: route, feature, component, product noun, stack, and the
-   approach being abandoned (modal, ClickHouse, “keep X”, …). Several short
-   queries beat one vague one.
-4. `get_issue` (body) only for hits that share the same surface. Skip Done /
-   Canceled / Duplicate even if a query returns them.
+1. Match title and body against the new work’s surface: route, feature,
+   component, product noun, stack, and the approach being abandoned.
+2. Read the body only for hits that share that surface.
+3. A live `in-progress` lease (`lease_expires` in the future, assignee not you)
+   is not auto-retired.
 
-`/issues`: one snapshot for the whole dump.
+`/issues`: one pass for the whole dump.
 
-`/project-review`: do **not** add per-candidate `list_issues`. Use the existing
-actionable snapshot (status types `backlog` / `unstarted` / `started`, paged).
-Include title, state, assignee, url; description excerpt when cheap. `get_issue`
-/ `list_comments` only at publish, and only for ids you are about to retire, to
-confirm unstarted vs live foreign claim.
+`/project-review`: use the local files already read for the board snapshot.
+Do not re-read the whole queue per candidate.
 
 ---
 
@@ -108,25 +100,16 @@ Low confidence (“maybe related”) → `relatedTo` only; do not cancel.
 
 ## Retire (after the new issue exists)
 
-Do this only after `linear__save_issue` create succeeds (need the new id).
-If create fails, do not touch X.
+Do this only after the new file exists. If that write fails, do not touch X.
 
-For each unstarted full-contradiction id:
+For each unstarted full-contradiction file that is not under a live lease:
 
-1. `list_comments` first (confirm no live foreign `claimed-by:`; skip if a
-   superseded-by TEAM-NEW comment already exists). Then `save_comment` on X:
-   superseded by TEAM-NEW (url); not to be implemented; current direction is
-   this invocation.
-2. `save_issue` update on X:
-   - Prefer `state: Duplicate` + `duplicateOf: TEAM-NEW` when X is the old
-     version of the same outcome.
-   - Else `state: Canceled`.
-   - `relatedTo: [TEAM-NEW]` when not using `duplicateOf`.
-3. New ticket body: `## Supersedes` with **Board action** (Canceled /
-   Duplicate / left open — claimed or residual).
-4. New ticket `relatedTo` those ids.
+1. Set `status: canceled`, write `reason` naming the new id, clear the lease,
+   and move the file to `canceled/` (player skill, Cancel).
+2. Set that Notion row to `canceled`.
+3. New ticket body: `## Supersedes` with the old id.
 
-Do **not** assign, claim, or set In Progress. Do **not** mark Done.
+Do **not** assign, claim, or set `in-progress`. Do **not** set `done`.
 
 ---
 
@@ -162,7 +145,7 @@ the same way. Candidate index: `contradicts_board`, `retire_after_file`.
 | "Review must never cancel tickets" | Mass-cancel is forbidden. Targeted retire of unstarted full contradictions is required. |
 | "The review finding always wins" | Only if repo/board canonical agrees. Else drop the finding; keep the user ticket. |
 | "X might have residual value" | If residual AC remains, partial + comment. If not, retire. |
-| "Chat mention is enough" | `/identify` does not read chat. Linear state must change. |
+| "Chat mention is enough" | `/identify` does not read chat. The file and the Notion row must change. |
 
 ## Red flags — STOP
 

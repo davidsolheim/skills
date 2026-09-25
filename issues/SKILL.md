@@ -32,7 +32,7 @@ check — without siblings, and without rediscovering architecture.
 |-------|------|
 | `/issue` | One short description → one ticket |
 | **`/issues`** | Many items / one dump → many tickets (this skill) |
-| `/start` | Greenfield from next-starter-template: docs + new Linear project + V1 build |
+| `/start` | Greenfield from next-starter-template: docs + Notion issues database + V1 build |
 | `/project-review` | Agent invents findings without a user laundry list (whole project) |
 | `/walk` | Agent invents findings from a **live UI walk** (front-facing screens only) |
 | `/solve` | Implements already-filed tickets (or hand off to Cursor Auto, etc.) |
@@ -65,7 +65,7 @@ Direction conflicts: [`../issue/references/direction-conflict.md`](../issue/refe
 - **No git commit, push, or PR. No product code changes.**
 - **Secrets**: never put tokens, env values, connection strings, or Doppler
   secrets in issue files (env **names** only).
-- **Do not call Linear.** Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
+- **Do not call Linear.** Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert each Notion row ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
 - **Unassigned `open/` only**: do not set `assignee` or `in-progress` while filing. A hard dependency is `blocked/` with `reason: blocked by <id>`. There is no epic file.
 - **One current direction**: this dump wins over older unstarted tickets (and leftover dump bullets) that contradict it. Drop or retire the old direction — do not file both.
 
@@ -74,8 +74,8 @@ Direction conflicts: [`../issue/references/direction-conflict.md`](../issue/refe
 | Arg | Meaning |
 |-----|---------|
 | *(none)* | Full flow: research → plan → file |
-| `--draft` | Research + plan + full drafted bodies in chat; **do not** create in Linear |
-| `--plan-only` | Stop after the decomposition table (no full bodies, no Linear create) |
+| `--draft` | Research + plan + full drafted bodies in chat; **do not** write files or Notion |
+| `--plan-only` | Stop after the decomposition table (no full bodies, no files, no Notion) |
 | `--no-epic` | Never create a parent epic; file flat leaves only |
 | `--epic "Title"` | Force a parent epic with this title for connected leaves |
 | `--max N` | Cap leaves filed this run (file highest priority first; list deferred) |
@@ -101,8 +101,7 @@ Follow phases in order. Parallelize reads when possible.
    clear sentence boundaries. If the dump is prose, extract distinct outcomes.
 3. For each raw item, draft a one-line **candidate title** and type
    (`bug` | `feature` | `chore` | `regression` | `tech debt` | `docs`).
-4. Infer priority language per item when present; default **Medium (3)**.
-   Linear map: `0=None, 1=Urgent, 2=High, 3=Medium, 4=Low`.
+4. Infer priority language per item when present; default **normal**. Map words through [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
 5. If **zero** distinct items: fall back to single-ticket behavior and tell the
    user to prefer `/issue` next time — still file one high-quality issue.
 6. If **`--max N`** and candidates exceed N: rank by priority + foundation
@@ -110,7 +109,7 @@ Follow phases in order. Parallelize reads when possible.
 
 ### Phase 1 — Queue
 
-Same as `/issue`: the board is `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Read repo docs for package ownership. Use those package names in titles.
+Same as `/issue`: the board is `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Notion uses this repo's origin URL ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Read repo docs for package ownership. Use those package names in titles.
 
 ### Phase 2 — Board snapshot, duplicate, and direction-conflict scan (batch)
 
@@ -118,26 +117,17 @@ Same as `/issue`: the board is `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/
 [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)
 before deep writeups. One snapshot for the whole dump — do not re-crawl per leaf.
 
-Search **non-implemented** issues (Backlog / Todo / unstarted / started — never
-an unfiltered Done dump). This dump is the current direction. Do not file Y
-while leaving unstarted X implementable if they contradict. `## Supersedes` +
-`relatedTo` without a status change is **not** enough.
+Search `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/`. This dump is the current direction. Do not file Y while leaving an unstarted X implementable if they contradict. `## Supersedes` without a status change is **not** enough.
 
-1. Snapshot via status types `backlog` / `unstarted` / `started` + surface
-   queries across **all** candidates (routes, feature names, abandoned approach).
-2. Build a short **board hit list** (id, title, state) for overlaps **and**
-   contradictions.
+1. One pass over those folders for every candidate surface (routes, feature names, abandoned approach).
+2. Build a short **hit list** (id, title, status) for overlaps **and** contradictions.
 3. Per candidate:
    - **Exact/near duplicate** → do **not** create; `duplicate_of` existing id
-   - **Related, compatible** → create and set `relatedTo`
-   - **Full contradiction** with this dump’s direction, unstarted → create the
-     new leaf, then **retire** the old ids (Canceled or Duplicate + comment)
-   - **Intra-batch contradiction** (dump still contains leftover X and new Y) →
-     **drop X** (`action: drop-contradicted`); file Y only
-   - In Progress (foreign claim) or In Review → do **not** cancel; plan
-     `Conflict — needs you`
-4. `--draft` / `--plan-only`: show retire/drop in the plan; no status writes
-   until a real create succeeds.
+   - **Related, compatible** → create and name the other id in the body
+   - **Full contradiction** with this dump’s direction, unstarted, no live lease → create the new leaf, then **retire** the old file (`canceled` + `reason`)
+   - **Intra-batch contradiction** (dump still contains leftover X and new Y) → **drop X** (`action: drop-contradicted`); file Y only
+   - Live `in-progress` lease or `in-review` → do **not** cancel; plan `Conflict — needs you`
+4. `--draft` / `--plan-only`: show retire/drop in the plan; no status writes until a real file exists.
 
 ### Phase 3 — Shared codebase investigation
 
@@ -202,22 +192,18 @@ For each final leaf:
 
 **Connectivity rules:**
 
-| Relation | When | Linear |
-|----------|------|--------|
-| Independent | No shared hard dependency | No parent, no `blockedBy` |
-| Soft related | Same area, either shippable alone | `relatedTo` after create |
-| Hard blocked | B’s AC impossible until A lands | `blockedBy` after create |
-| Epic cluster | ≥2 leaves share one theme **and** user dump is one initiative | Parent epic + children |
+| Relation | When | File |
+|----------|------|------|
+| Independent | No shared hard dependency | `open/`, no `reason` |
+| Soft related | Same area, either shippable alone | mention the other id in the body |
+| Hard blocked | B’s AC impossible until A lands | dependent in `blocked/` with `reason: blocked by <id>` |
+| Initiative | ≥2 leaves share one theme | name it in each leaf body; no epic file |
 
-**Epic decision (default):**
+**Initiative name:**
 
-- Create an epic when **≥2** leaves share a clear initiative name **and** are
-  not pure independent chores from different domains.
-- Skip epic when items are a grab-bag of unrelated residuals (`--no-epic`
-  always skips).
-- `--epic "Title"` forces one parent for all filed leaves this run.
-- Epic body is packaging only — **never** the only implementable unit.
-  `/solve` expands epics to children. Depth lives on children.
+- When **≥2** leaves share a clear initiative, put that name in each leaf body.
+- There is no epic file. `--no-epic` is already the file rule. `--epic "Title"`
+  is that shared name, not a parent ticket.
 
 **Filing order** (create sequence):
 
@@ -316,57 +302,30 @@ Failed leaves: keep full draft in the reply (or `--draft` mode), mark action
 
 ### Phase 6 — Write the files
 
-Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-queue.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason: blocked by <id>` after the blocker file exists. Do not create an epic file. Do not assign. Do not call Linear. The old Linear create steps below are retired; write the markdown files instead.
+Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-queue.md) and [`../docs/notion-issues.md`](../docs/notion-issues.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason: blocked by <id>` after the blocker file exists. Do not create an epic file. Do not assign. Do not call Linear.
 
-#### 6A. Epic (optional)
+#### 6A. Leaves in filing order
 
-1. Create parent when Phase 4 says so.
-2. Capture `id`, `identifier`, `url`.
+For each create leaf that passed the gate, write `.WCP/issues/open/<id>-<slug>.md` or `blocked/` when it has a hard dependency. Frontmatter `status` matches the folder. Empty `assignee`, `lease_expires`, and `commit`.
 
-#### 6B. Leaves in filing order
+1. Do **not** set assignee or `in-progress`.
+2. On success: record `temp_id → id`. Upsert the Notion row at that status.
+3. On failure: keep going; report the failed leaf and keep the drafted body.
+4. Skip leaves marked `duplicate_of`.
+5. Skip leaves that failed the create gate (`blocked-thin`).
+6. Skip leaves marked `drop-contradicted`.
 
-For each create leaf that passed the gate:
-
-```text
-title: <title>
-team: <team>
-project: <project when known>
-description: <full markdown>
-priority: <0-4>
-labels: [...]                 # only if confident
-parentId / parent: <epic>     # when epic-child
-```
-
-3. Do **not** set assignee or In Progress.  
-4. On success: record `temp_id → identifier, url, id`.  
-5. On failure: keep going; report failed leaf + keep drafted body in the reply.  
-6. Skip leaves marked `duplicate_of` (mention existing id instead).  
-7. Skip leaves that failed the create gate (`blocked-thin`).
-8. Skip leaves marked `drop-contradicted` (intra-batch; newer direction wins).
-
-#### 6C. Relations (after ids exist)
-
-1. Map `blocked_by` temp ids → Linear identifiers; set `blockedBy`.  
-2. Set `relatedTo` for soft links and board relatives.  
-3. If relation API fails: leaves remain valid; note missing links in the reply.
-
-#### 6D. Epic rollup (optional)
-
-Update epic description with child identifiers when easy.
-
-#### 6E. Retire contradicted unstarted issues
+#### 6B. Retire contradicted unstarted issues
 
 After ids exist for created leaves. Follow
 [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)
-**Retire**. Do not retire if that leaf’s create failed. Do not cancel live
-foreign claims or In Review.
+**Retire**. Do not retire if that leaf’s create failed. Do not cancel a live lease or an `in-review` file.
 
 ### Phase 7 — Reply to the user
 
 ```markdown
 **Filed:** N created · K skipped (duplicate) · C drop-contradicted · T thin (not filed) · F failed · D deferred (--max)
-**Team / Project:** <team> / <project>
-**Epic:** none (flat files)
+**Notion:** <database url> · rows written N | failed ids
 **Exec-ready:** each created leaf has plan + file map + AC + verify + drift
 **Retired:** [0040](path) — contradicted L1 (canceled)   # omit if none
 **Conflict — needs you:** [0055](path) — in-progress / foreign lease   # omit if none
@@ -445,12 +404,12 @@ Then stop. Do not implement.
 
 ---
 
-## Linear MCP failure
+## Notion failure
 
-1. Say Linear is unavailable and what failed  
-2. Still finish research + plan + full drafted bodies  
-3. Output the batch in chat for paste  
-4. Do not pretend issues were created  
+1. Say what failed
+2. Files already written still count as filed
+3. Do not pretend the Notion rows exist
+4. Do not call Linear
 
 ---
 
@@ -460,7 +419,7 @@ Then stop. Do not implement.
 |-------|------------|
 | `/issue` | Single ticket, rapid-fire one-liner |
 | `/issues` | Multi ticket, shared research, graph optional |
-| `/start` | New repo from next-starter-template; files a **new** Linear project + V1; then nested `/solve` |
+| `/start` | New repo from next-starter-template; Notion issues database for that repo; then nested `/solve` |
 | `/project-review` | Agent-invented audit → many tickets |
 | `/walk` | Live front-facing UI walk → many tickets |
 | `/solve` | Implements filed leaves; expands epics |

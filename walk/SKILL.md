@@ -52,15 +52,14 @@ If they already know the tickets → `/issue` or `/issues`.
 5. **Coverage gate.** Every front-facing unit is `walked`, `blocked_auth`,
    `blocked_flag`, `broken_load`, or `not_front`. Do not stop because “enough
    tickets.” Zero findings on a clean screen is success for that unit.
-6. **Local-first, then Linear.** Candidates on disk; one board snapshot; one
-   publish pass. Reuse `/project-review` board-sync and linear-filing.
+6. **Local-first, then Notion.** Candidates on disk; one pass over `.WCP/issues/`; one
+   publish pass. Reuse `/project-review` filing, which writes files and Notion rows.
 7. **Unassigned backlog only.** No In Progress, no assignee, no `/solve` claim.
 8. **No product code changes.** Scratch files only.
 9. **Secrets.** Never put tokens, env values, connection strings, or Doppler
    secrets in Linear or candidate files.
-10. **Linear MCP.** `search_tool` then `use_tool`. Schemas first. Literal
-    newlines in markdown. **Before every `save_comment`:** `list_comments`
-    ([`../docs/linear-comments.md`](../docs/linear-comments.md)).
+10. **Notion.** After the files are written, upsert each row
+    ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear.
 
 ## Invocation
 
@@ -266,10 +265,10 @@ when same project and same week.
 
 Filing order: foundation → feature/bug → polish/idea/improvement/a11y/content.
 
-### Phase 6 — File to Linear (default)
+### Phase 6 — File the queue and Notion (default)
 
 Follow `$REVIEW_SKILL_DIR/references/linear-filing.md` with this **filter
-override**:
+override**. That file writes `.WCP/issues/` and the Notion row. Do not call Linear.
 
 | Mode | What to file |
 |------|----------------|

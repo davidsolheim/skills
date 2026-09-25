@@ -33,7 +33,7 @@ push, or open PRs.
   second template. When thickening, fill **Occupancy (WCP)** from that
   template ([`../docs/wcp.md`](../docs/wcp.md)). Sharing a file is occupancy,
   not a reason to block the ticket.
-- **Status** matches the queue: `done` when a work commit exists and acceptance is met. `canceled` for a high-confidence duplicate or obsolete ticket, with `reason`. `blocked` only for a real dependency. Do not invent In Review.
+- **Status** matches the queue: `done` when a work commit exists and acceptance is met. `in-review` is a real status. `canceled` for a high-confidence duplicate or obsolete ticket, with `reason`. `blocked` only for a real dependency.
 - **High-confidence writes apply immediately**, including Cancel/Duplicate.
   Low-confidence closes are listed, not applied. Rules:
   [`references/actions.md`](references/actions.md).
@@ -43,7 +43,7 @@ push, or open PRs.
   questions; ask once at the end.
 - **No implement, no assign-for-solve, no `claimed-by:`.**
 - **Secrets:** env **names** only.
-- **Do not call Linear.** Edit the issue files. Inventory is `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/` unless the user names that id. Skip a live lease held by someone else.
+- **Do not call Linear.** Edit the issue files, then update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Inventory is `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/` unless the user names that id. Skip a live lease held by someone else. A file whose commit is on `origin/main` is Notion `done`. A file whose commit is only on `origin/dev` is Notion `in-review`.
 
 ## Trigger phrases
 
@@ -145,7 +145,7 @@ children when both are due):
 Follow [`references/actions.md`](references/actions.md) in this order:
 
 1. **Claimed?** already filtered.
-2. **Completed in git?** → In Review or Done + evidence comment.
+2. **Completed in git?** A work commit that meets acceptance sets the file `done`. Notion follows where that commit sits: `origin/main` → `done`; only `origin/dev` → `in-review`.
 3. **Epic rollup?** all children terminal → Done + rollup comment.
 4. **High-confidence duplicate / fully obsolete?** → Duplicate or Canceled +
    one comment (canonical or superseding id).
@@ -156,7 +156,7 @@ Follow [`references/actions.md`](references/actions.md) in this order:
 8. **Needs a human?** do not guess. Append to `NEEDS_YOU`. Leave state.
    Still stamp the pass so we do not re-ask for a week.
 
-Apply high-confidence Linear writes as you go. Do not implement code.
+Apply high-confidence file and Notion updates as you go. Do not implement code.
 
 If upgrade cannot reach the `/issue` bar without a product decision or a
 code pin, do **not** save a half body. Record `needs-you` instead.
@@ -170,10 +170,7 @@ needs-you). Do **not** stamp claimed-skips or cooldown-skips.
 
 After the due set is processed, write:
 
-1. A `tidy-pass:` comment on each processed issue (see ledger.md).
-   `list_comments` first; skip a second stamp if this `RUN_ID` already posted
-   `tidy-pass:` today.
-2. The local ledger file (create parent dirs). Merge with previous entries.
+1. The local ledger file (create parent dirs). Merge with previous entries. Do not post a tracker comment.
 
 ---
 
@@ -211,17 +208,16 @@ close). Do **not** re-scan the whole board unless they run `/tidy` again.
 
 ---
 
-## Linear hygiene
+## Status writes
 
 | Write | When |
 |-------|------|
 | Body / title | Thin or vague, after research |
-| `relatedTo` / `blockedBy` / parent | High-confidence only |
-| In Review | Evidence on `origin/dev`, not on `main` |
-| Done | Evidence on `origin/main`, or epic all children terminal |
-| Duplicate / Canceled | High-confidence only + one comment |
-| `tidy-pass:` comment | Every processed due issue |
-| Assignee / `claimed-by:` / In Progress | **Never** |
+| `blocked/` + `reason` | Hard dependency, naming the blocker id |
+| `canceled` + `reason` | High-confidence duplicate or obsolete |
+| Notion `in-review` | That file's commit is on `origin/dev` and not on `origin/main` |
+| Notion `done` | That file's commit is on `origin/main` |
+| Assignee / `in-progress` claim | **Never** |
 | App source / git branch / push | **Never** |
 
 ---
