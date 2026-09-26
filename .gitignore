@@ -1,0 +1,6 @@
+
+# Water Cooler occupancy and runtime. The queue under .wcp/issues/ is tracked.
+.wcp/RUN.md
+.wcp/run.sqlite
+.wcp/run.sqlite-wal
+.wcp/run.sqlite-shm
