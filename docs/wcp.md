@@ -5,6 +5,8 @@ Spec: [watercoolerprotocol.com](https://watercoolerprotocol.com) /
 [PROTOCOL.md](https://github.com/davidsolheim/water-cooler-protocol/blob/dev/PROTOCOL.md).
 Player verbs: skill `water-cooler-protocol`.
 
+The queue folder is `.wcp/`. If the checkout has `.WCP/` and no `.wcp/`, that legacy folder is the queue. Do not create `.wcp/` beside it. If both exist, stop.
+
 This file is how every skill that edits a checkout uses that protocol:
 `/solve`, `/issues`, `/issue`, `/identify`, `/start`, `/prb`, `/yeet`,
 `/project-review`, `/walk`, `/tidy`, `/human-copy`, `/vercel-flags`,
@@ -67,7 +69,7 @@ Workers never `set-arch` or `stop`.
 Then read `.wcp/issues/open/` and `.wcp/issues/in-progress/`. Reclaim expired
 tickets (player skill, Issues). Do not copy the backlog onto `RUN.md`. If the
 queue directories are missing and this run needs a queue, create `open/`,
-`in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/`, and one issue from `arch` only.
+`in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that queue folder, and one issue from `arch` only. Do not create `.wcp/` while `.WCP/` is the live directory.
 Search `.wcp/issues/canceled/` and `.wcp/issues/blocked/` before filing the same work again. Cancel and block in
 the issue file with `reason` set (player skill, Cancel and Block). Do not claim a blocked ticket.
 

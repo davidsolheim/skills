@@ -16,7 +16,7 @@ Follow [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Title is th
 
 ## Queue
 
-Write each V1 leaf as a file in DEST `.wcp/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under `.wcp/issues/`. There is no epic file.
+Write each V1 leaf as a file in DEST `.wcp/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). If DEST has `.WCP/` and no `.wcp/`, write under `.WCP/issues/` instead. Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` when they are missing. Do not create `.wcp/` beside `.WCP/`. Ids are the next number under that issues directory. There is no epic file.
 
 ## What to ticket (V1 only)
 

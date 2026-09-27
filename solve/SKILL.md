@@ -214,7 +214,7 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 
 ## Phase 1 — Queue
 
-The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` if a run needs a queue and they are missing. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`.
+The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). If the checkout has `.WCP/` and no `.wcp/`, the board is `.WCP/issues/`. Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that folder if a run needs a queue and they are missing. Do not create `.wcp/` beside `.WCP/`. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`.
 
 ---
 

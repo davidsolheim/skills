@@ -2,6 +2,8 @@
 
 The local queue for `/issue`, `/issues`, `/solve`, `/identify`, `/stat`, `/tidy`, `/project-review`, `/walk`, `/start`, `/prb`, and `/yeet` is `.wcp/issues/` in the current git checkout. Notion status for that same work is [`notion-issues.md`](notion-issues.md).
 
+Every path these skills write as `.wcp/` means that folder. If the checkout has `.WCP/` and no `.wcp/`, read and write `.WCP/` instead, including when `issues/` does not exist yet. Do not create `.wcp/` while `.WCP/` is the live directory. If both directories exist, stop. Do not rename one folder onto the other, and do not rename during a run.
+
 Do not call Linear or GitHub Issues. Do not resolve a team or a project. Do not post `claimed-by` comments.
 
 Claim, renew, reclaim, close, cancel, and block are the player skill `water-cooler-protocol`, section Issues. This file is how those skills read and write the queue. Do not invent a second lease.
@@ -16,6 +18,8 @@ Claim, renew, reclaim, close, cancel, and block are the player skill `water-cool
 .wcp/issues/canceled/
 .wcp/issues/blocked/
 ```
+
+On a checkout that still has only `.WCP/`, those same folders are `.WCP/issues/`.
 
 `status` in the file is the source of truth. The folder matches it. Update `status`, then move the file.
 
