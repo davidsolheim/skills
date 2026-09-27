@@ -13,12 +13,12 @@ Workers invent → write local candidate files
      ↓
 Orchestrator merges / dedupes / quality-gates on disk
      ↓
---draft stops here  OR  single Linear publish from final/
+--draft stops here  OR  write `.wcp/issues/` and Notion from final/
 ```
 
-Linear is the **publish** step, not the working set.
+`.wcp/issues/` plus Notion is the **publish** step, not the working set.
 
-- **Do not** thrash Linear’s API while inventing or merging candidates.
+- **Do not** call Linear or Notion while inventing or merging candidates.
 - **Do not** create tickets from raw worker dumps.
 - Deduplication uses the **board snapshot file** + local file comparison.
 
@@ -95,8 +95,7 @@ contradicts_board: []
 retire_after_file: false
 class: foundation | feature | polish | content | a11y
 blocked_by_candidates: []
-linear_id: null
-linear_url: null
+issue_id: null
 slice_id: web-dashboard
 ---
 ```
@@ -106,7 +105,7 @@ slice_id: web-dashboard
 | id, thin body | Worker |
 | status transitions, duplicate_of, board_match, contradicts_board | Orchestrator (D5) |
 | full template sections | Orchestrator / pin workers |
-| linear_id / linear_url | Orchestrator (D7) |
+| issue_id | Orchestrator (D7) |
 
 ---
 
@@ -129,7 +128,7 @@ slice_id: web-dashboard
 | Near-dupe or board dupe | `duplicate` | same; `duplicate_of` or `board_match` set |
 | Nit / weak | `drop` | same; excluded from final |
 | Full template ready | `ready_to_file` | **copied/rendered to `final/`** |
-| Linear created | `filed` | index updated with `linear_id`; after **full** publish verify, entire scratch dir may be **deleted** (see lifecycle below) |
+| Queue file written | `filed` | index updated with `issue_id`; after **full** publish verify, entire scratch dir may be **deleted** (see lifecycle below) |
 
 ---
 
@@ -155,7 +154,7 @@ Build/update `_merged/index.json`:
       "board_match": null,
       "related_board": [],
       "blocked_by_candidates": [],
-      "linear_id": null,
+      "issue_id": null,
       "title": "Fix empty state on /dashboard"
     }
   ],
@@ -181,7 +180,7 @@ Keep the strongest write-up (clearest AC + best pin). Set others `status: duplic
 
 ### 3. Board match (offline only)
 
-Against `board-snapshot.json` **only** — do **not** re-call `list_issues`.
+Against `board-snapshot.json` **only** — do **not** re-read `.wcp/issues/`.
 
 | Confidence | Action |
 |------------|--------|
@@ -224,15 +223,15 @@ Every `final/*.md` must pass the Phase 5 checklist in SKILL.md. Failures leave s
 
 ### 8. Dependency plan
 
-Set `blocked_by_candidates` on index entries (candidate ids). Used in D6/D7 after Linear ids exist.
+Set `blocked_by_candidates` on index entries (candidate ids). Used in D6/D7 after issue ids exist.
 
 ---
 
 ## Phase D7 — Publish
 
 1. Walk `final/*.md` only (filter by filing flags: P0/P1 only if `--p0-p1-only`).
-2. Create Linear issues; set `linear_id`, `linear_url`, `status: filed` in index.
-3. Apply relations from `related_board` and `blocked_by_candidates` (map candidate → linear_id).
+2. Write each `.wcp/issues/` file and upsert Notion; set `issue_id` and `status: filed` in the index.
+3. Apply `blocked by <id>` from `blocked_by_candidates` (map candidate → issue_id).
 4. Retire `retire_after_file` ids (direction-conflict.md). Workers never do this.
 5. **Scratch lifecycle** (see below).
 
@@ -246,12 +245,12 @@ The whole `$SCRATCH_DIR` (`…/project-review-<RUN_ID>/`), not only `issue-candi
 
 | Condition | Action |
 |-----------|--------|
-| Intended publish set is **in Linear** (every published final has `linear_id`; verified) | **Delete** `$SCRATCH_DIR` |
-| Not in Linear (`--draft`, auth fail, partial file, never published) | **Keep** `$SCRATCH_DIR` |
+| Intended publish set is **in `.wcp/issues/`** (every published final has `issue_id`; verified) | **Delete** `$SCRATCH_DIR` |
+| Not filed (`--draft`, Notion failure, partial file, never published) | **Keep** `$SCRATCH_DIR` |
 
 **Filed → delete. Not filed → keep.**
 
-Record Linear ids/URLs in the handoff **before** any delete. Do not delete the parent `grok-$(id -u)/` directory.
+Record issue ids in the handoff **before** any delete. Do not delete the parent `grok-$(id -u)/` directory.
 
 ---
 
@@ -262,9 +261,9 @@ Stop after D5/D6. Handoff points at:
 - `issue-candidates/final/` (ready bodies)
 - `_merged/index.json`
 - Drops/duplicates summary
-- Absolute scratch path (**must keep** — nothing in Linear yet)
+- Absolute scratch path (**must keep** — nothing in `.wcp/issues/` yet)
 
-No Linear create. **Do not delete** scratch.
+No queue write. **Do not delete** scratch.
 
 ---
 
@@ -277,14 +276,14 @@ $SCRATCH_DIR/issue-candidates/final/
 $SCRATCH_DIR/issue-candidates/_merged/index.json
 ```
 
-without full by-route fan-out. Still: **clean locally → then file**. Prefer one board snapshot over per-ticket Linear search. Same scratch rule: delete after verified full Linear file; keep if draft/partial.
+without full by-route fan-out. Still: **clean locally → then file**. Prefer one board snapshot over per-ticket queue reads. Same scratch rule: delete after a verified queue publish; keep if draft or partial.
 
 ---
 
 ## Anti-patterns
 
-- Filing Linear from `_inbox` or uncleaned drafts
-- Calling Linear list/search for each candidate during cleanup
+- Filing from `_inbox` or uncleaned drafts
+- Re-reading `.wcp/issues/` for each candidate during cleanup
 - One giant `candidates.md` that workers fight over
 - Deleting raw inbox before index records paths (keep until run completes)
 - Publishing without board_match pass when snapshot exists
@@ -292,4 +291,4 @@ without full by-route fan-out. Still: **clean locally → then file**. Prefer on
 - Retiring a user ticket because the review invented the opposite
 - Equating “unit reviewed” with “must emit a candidate”
 - **Deleting `$SCRATCH_DIR` while any intended `final/` is unfiled**
-- **Leaving `$SCRATCH_DIR` after a fully verified Linear publish** (delete the run dir)
+- **Leaving `$SCRATCH_DIR` after a fully verified queue publish** (delete the run dir)

@@ -1,21 +1,21 @@
 ---
 name: tidy
 description: >
-  Hygiene pass on this repo's `.WCP/issues/` queue: upgrade thin issues to the
+  Hygiene pass on this repo's `.wcp/issues/` queue: upgrade thin issues to the
   /issue bar, retitle, cancel high-confidence duplicates, block real
   dependencies, and set `done` when a work commit already exists. Skip any
   issue tidied in the last 7 days unless /tidy --force or /tidy 0123.
   Finish the board first, then one needs-you list. Skip live foreign claims.
-  Track last pass via a Linear tidy-pass stamp plus a local ledger. Use when
+  Track the last pass in the local tidy ledger. Use when
   the user runs /tidy, /tidy --force, /tidy TEAM-123, says "tidy Linear",
   "clean up the board", "thicken thin tickets", or "close issues that are
   already done".
 argument-hint: "[--force] [TEAM-123]"
 ---
 
-# /tidy — Queue hygiene for `.WCP/issues/`
+# /tidy — Queue hygiene for `.wcp/issues/`
 
-Inspect **`.WCP/issues/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. For every **due** issue: thicken thin
+Inspect **`.wcp/issues/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. For every **due** issue: thicken thin
 tickets, fix obvious titles/relations, close or duplicate high-confidence
 dead wood, roll up finished epics, and move status when the work is **already
 shipped**. Then **stop** with one needs-you list.
@@ -113,7 +113,7 @@ a live `claimed-by:` comment younger than 60 minutes; fall back to
 
 ## Phase 1 — Queue
 
-The board is `.WCP/issues/` in this checkout. Do not resolve a team or project.
+The board is `.wcp/issues/` in this checkout. Do not resolve a team or project.
 
 ---
 

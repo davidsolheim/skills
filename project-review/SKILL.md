@@ -3,13 +3,13 @@ name: project-review
 description: >
   Fully agentic project review: walk the current repo and (when available) live
   app, invent findings without a human laundry list, and file atomic
-  solve-ready `.WCP/issues/` files so /solve can implement them
+  solve-ready `.wcp/issues/` files so /solve can implement them
   end-to-end. Covers completeness, functional bugs, UI consistency, taste/feel,
   edge cases, responsiveness, accessibility, content, and cross-feature
   consistency. Supports fast (high-signal P0/P1 single-agent) and deep
   (exhaustive multi-agent orchestrator with full inventory coverage, local
   issue-candidates package, then one file and Notion publish). Default writes
-  `.WCP/issues/` and Notion; --draft keeps markdown only. Use when the user runs /project-review,
+  `.wcp/issues/` and Notion; --draft keeps markdown only. Use when the user runs /project-review,
   says review this project, quality pass, UI audit, bug hunt, find issues for
   solve, audit the app, or wants the agent to discover and queue work for /solve.
 argument-hint: "[fast|deep] [--draft|--file] [--p0-p1-only|--include-p2] [--no-epic] [--concurrency N] [--scope-only] [--url URL] [surface…]"
@@ -17,7 +17,7 @@ argument-hint: "[fast|deep] [--draft|--file] [--p0-p1-only|--include-p2] [--no-e
 
 # /project-review — Agentic Discovery → Solve-Ready Queue
 
-Walk the **current project**, invent what is missing / broken / inconsistent / off, and file a clean set of **atomic `.WCP/issues/` leaves** that **`/solve`** can claim and implement without further clarification.
+Walk the **current project**, invent what is missing / broken / inconsistent / off, and file a clean set of **atomic `.wcp/issues/` leaves** that **`/solve`** can claim and implement without further clarification.
 
 This skill is **discovery and issue creation only**. It never implements application code, never merges, never pushes, never opens PRs, and never runs `/solve` unless the user explicitly asks in the same turn after handoff.
 
@@ -36,8 +36,8 @@ Optional human notes, Looms, or “focus on billing” **bias** discovery. They 
 
 | Mode | Trigger | Behavior |
 |------|---------|----------|
-| **Fast** | `fast`, `--fast`, “quick review”, “fast pass” | High-signal single-agent pass. Primary journeys. Prefer P0/P1. Sample secondary lenses. Local candidates, then file `.WCP/issues/` and Notion. |
-| **Deep** | `deep`, `--deep`, or **default** when no mode flag | **Exhaustive multi-agent orchestrator.** Full inventory of routes, UI views, APIs, components, auth, jobs. Guidance package + parallel workers until **every unit is terminal**. Local `issue-candidates/` cleaned offline; one read of `.WCP/issues/` and one publish from `final/`. |
+| **Fast** | `fast`, `--fast`, “quick review”, “fast pass” | High-signal single-agent pass. Primary journeys. Prefer P0/P1. Sample secondary lenses. Local candidates, then file `.wcp/issues/` and Notion. |
+| **Deep** | `deep`, `--deep`, or **default** when no mode flag | **Exhaustive multi-agent orchestrator.** Full inventory of routes, UI views, APIs, components, auth, jobs. Guidance package + parallel workers until **every unit is terminal**. Local `issue-candidates/` cleaned offline; one read of `.wcp/issues/` and one publish from `final/`. |
 
 **Parsing:** Prefer the last of `fast`/`--fast` vs `deep`/`--deep`. If neither appears → **`deep`**.
 
@@ -54,7 +54,7 @@ Mode is fixed for the whole run. Report it in the handoff.
 | Coverage gate | Soft (high-signal done) | Hard: 100% units terminal |
 | Guidance package | Optional light scratch | Required (`guidance.md` + inventory + coverage) |
 | Candidates | Prefer local files before create | Required `issue-candidates/` tree |
-| Queue | One read of `.WCP/issues/`, then file | **Only** D1b snapshot + D7 publish from `final/` |
+| Queue | One read of `.wcp/issues/`, then file | **Only** D1b snapshot + D7 publish from `final/` |
 | Concurrency | n/a | Default 4, max 8, `--concurrency N` |
 
 ## Operating contract
@@ -66,7 +66,7 @@ Mode is fixed for the whole run. Report it in the handoff.
    plus Review metadata in [`references/issue-template.md`](references/issue-template.md).
 4. **Taste must be executable.** Convert feel/hierarchy problems via [`references/taste-to-concrete.md`](references/taste-to-concrete.md). No “make it premium” as sole AC.
 5. **Local-first candidates.** Discovery writes **files** under a scratch package; cleanup and dedupe happen **on disk**. The queue publish is the last step, not the working set ([`references/issue-candidates.md`](references/issue-candidates.md)).
-6. **Board-aware offline.** One read of `.WCP/issues/` for offline
+6. **Board-aware offline.** One read of `.wcp/issues/` for offline
    `board_match` **and** direction-conflict classify; do **not** re-read the queue
    per candidate ([`references/board-sync.md`](references/board-sync.md),
    [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)).
@@ -74,7 +74,7 @@ Mode is fixed for the whole run. Report it in the handoff.
    do not beat an explicit user ticket of the opposite intent.
 7. **Code-pin required** for every filed leaf. No zero-anchor polish tickets.
 8. **Queue-shaped for solve.** Foundation-first filing order + `blockedBy` when hard deps exist ([`references/dependency-ordering.md`](references/dependency-ordering.md)).
-9. **Default file to `.WCP/issues/` and Notion.** `--draft` is opt-out. Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. Deep files **only** from `issue-candidates/final/`.
+9. **Default file to `.wcp/issues/` and Notion.** `--draft` is opt-out. Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. Deep files **only** from `issue-candidates/final/`.
 10. **Scratch lifecycle.** **Filed (issue ids verified) → delete** the run’s `project-review-<RUN_ID>` temp dir. **Not filed** (`--draft`, Notion failure, partial publish) → **keep** the temp dir and put its absolute path in the handoff. Never delete while intended `final/` bodies are only on disk.
 11. **Do not claim work.** New leaves stay `open` and unassigned. That is `/solve`’s job.
 12. **No implementation.** No app code edits, no `/solve`, no push/PR under this skill.
@@ -104,7 +104,7 @@ Mode is fixed for the whole run. Report it in the handoff.
 |-----|---------|
 | `fast` / `--fast` | High-signal P0/P1 on primary journeys (single-agent) |
 | `deep` / `--deep` | Exhaustive multi-agent audit (also the default) |
-| `--draft` | Local package only; do **not** write `.WCP/issues/` or Notion |
+| `--draft` | Local package only; do **not** write `.wcp/issues/` or Notion |
 | `--file` | Explicit file mode (default when `--draft` is absent) |
 | `--p0-p1-only` | After cleanup, publish only P0/P1 (list unfiled P2 in handoff) |
 | `--include-p2` | In **fast** mode, allow well-formed high-leverage P2s to be filed |
@@ -170,7 +170,7 @@ Full procedure: [`references/intended-state.md`](references/intended-state.md).
 Sources (parallelize):
 
 - Product docs, PRD, SOW, Figma links in-repo
-- Open and recent `done/` files (features, known gaps) — optional light read; deep reads `.WCP/issues/` once in D1b
+- Open and recent `done/` files (features, known gaps) — optional light read; deep reads `.wcp/issues/` once in D1b
 - Route map / nav / feature flags in code
 - Marketing or landing copy vs app reality
 - Optional user bias (focus area, Loom, notes)
@@ -196,13 +196,13 @@ Record:
 ```text
 Phase D0    Full project inventory (every route, API, shared component, nav, …)
 Phase D1    Write review guidance package (scratch dir)
-Phase D1b   Read `.WCP/issues/` once → board-snapshot.json
+Phase D1b   Read `.wcp/issues/` once → board-snapshot.json
 Phase D2    Coverage plan report (non-blocking)
 Phase D3    Worker loop → issue-candidates/ files
 Phase D4    Coverage gate (all units terminal)
 Phase D5    Local cleanup (dedupe, board_match + conflict classify offline, pin, final/)
 Phase D6    Dependency graph on final/ only
-Phase D7    Write `.WCP/issues/` and Notion from final/*.md  OR  --draft stop
+Phase D7    Write `.wcp/issues/` and Notion from final/*.md  OR  --draft stop
 Phase D8    Handoff (filed ids; scratch deleted if fully filed, else keep path)
 ```
 
@@ -211,7 +211,7 @@ Phase D8    Handoff (filed ids; scratch deleted if fully filed, else keep path)
 1. **Do not stop early** while inventory units remain `pending` / `in_review` / unretried `failed`.
 2. **Coverage means units reviewed**, not “one ticket per unit.” Zero findings on a clean unit is success.
 3. **Workers never call Linear** and never edit application source.
-4. **Queue only twice:** read `.WCP/issues/` once (D1b), then write files and Notion rows (D7). No per-candidate search.
+4. **Queue only twice:** read `.wcp/issues/` once (D1b), then write files and Notion rows (D7). No per-candidate search.
 5. **Publish only** `issue-candidates/final/*.md` after local cleanup.
 6. **Concurrency** ≤ 8; default 4. No worktrees for review workers.
 7. On file or Notion failure, the local package remains the recovery path — do not re-run full discovery just to re-file.
@@ -270,7 +270,7 @@ Write each finding to scratch `issue-candidates/` when practical (see [`referenc
 
 Before finalizing drafts:
 
-1. Read `.WCP/issues/open/`, `in-progress/`, and `blocked/` once. Skip `done/` and `canceled/`.
+1. Read `.wcp/issues/open/`, `in-progress/`, and `blocked/` once. Skip `done/` and `canceled/`.
 2. Classify each candidate offline against that snapshot: **duplicate** · **related** · **conflict** · **new**. Conflicts follow direction-conflict.md (retire canonical-vs-abandoned at publish, or drop the finding).
 3. Do not re-read the queue for every candidate.
 4. Full procedure: [`references/board-sync.md`](references/board-sync.md).
@@ -323,7 +323,7 @@ Full procedure: [`references/dependency-ordering.md`](references/dependency-orde
 5. **Filing order:** foundations → features → polish/content/a11y.
 6. Plan `blockedBy` for hard deps; do **not** use Blocked *state* for normal chains.
 
-### Phase 7 — Write `.WCP/issues/` files (default)
+### Phase 7 — Write `.wcp/issues/` files (default)
 
 Full procedure: [`references/linear-filing.md`](references/linear-filing.md).
 
@@ -348,7 +348,7 @@ Full procedure: [`references/linear-filing.md`](references/linear-filing.md).
 
 #### Create sequence
 
-Follow [`references/linear-filing.md`](references/linear-filing.md). Write each leaf under `.WCP/issues/` and upsert Notion. No epic file. Do not assign. Do not set `in-progress` or Notion `done`.
+Follow [`references/linear-filing.md`](references/linear-filing.md). Write each leaf under `.wcp/issues/` and upsert Notion. No epic file. Do not assign. Do not set `in-progress` or Notion `done`.
 
 1. `--draft` writes nothing and keeps the scratch package.
 2. **Deep:** file only `issue-candidates/final/*.md`. **Fast:** file cleaned finals.
@@ -397,7 +397,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 | Action | Allowed? |
 |--------|----------|
 | Write `open/` leaves and Notion rows | Yes (default), from cleaned finals |
-| One read of `.WCP/issues/` | Yes (once per run) |
+| One read of `.wcp/issues/` | Yes (once per run) |
 | Per-candidate queue re-reads | **No** |
 | Set `priority` on the file | Yes |
 | Hard dependency | `blocked/` with `reason: blocked by <id>` |
@@ -468,7 +468,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 
 ```text
 /project-review fast     →  high-signal leaves in `open/`
-/project-review deep     →  full inventory → workers → local final/ → `.WCP/issues/` leaves + Notion
+/project-review deep     →  full inventory → workers → local final/ → `.wcp/issues/` leaves + Notion
          ↓
 /identify  (human-approved 2–4)  →  /solve 1 per id
 /solve | /solve N | /solve all [fast]  →  local dev
@@ -496,5 +496,5 @@ These exist so tickets survive the `/solve` implement→review loop:
 | [`references/intended-state.md`](references/intended-state.md) | Infer “done and good” without a human list |
 | [`references/board-sync.md`](references/board-sync.md) | Snapshot + offline dedupe / relate / conflict classify |
 | [`references/dependency-ordering.md`](references/dependency-ordering.md) | Foundation order, blockedBy, epic packaging |
-| [`references/linear-filing.md`](references/linear-filing.md) | Publish from final/ into `.WCP/issues/` and Notion |
+| [`references/linear-filing.md`](references/linear-filing.md) | Publish from final/ into `.wcp/issues/` and Notion |
 | [`references/handoff-template.md`](references/handoff-template.md) | User-facing end summary |

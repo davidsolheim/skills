@@ -2,7 +2,7 @@
 
 External status for `/issue`, `/issues`, `/solve`, `/identify`, `/stat`, `/tidy`, `/project-review`, `/walk`, `/start`, `/prb`, and `/yeet`.
 
-The local queue stays `.WCP/issues/` ([`wcp-queue.md`](wcp-queue.md)). Claim, lease, and review stay in those files. This file is the only Notion procedure. Do not call Linear.
+The local queue stays `.wcp/issues/` ([`wcp-queue.md`](wcp-queue.md)). Claim, lease, and review stay in those files. This file is the only Notion procedure. Do not call Linear.
 
 One issues database per git repo. The database title is the repo slug. The database is identified by the origin URL.
 
@@ -85,7 +85,7 @@ Do not move a Notion status backward from `done` except when the user says to re
 
 ## Ship
 
-`/prb` and `/yeet` collect the ship set from `.WCP/issues/` and `git log origin/main..dev --pretty=%H%n%s`:
+`/prb` and `/yeet` collect the ship set from `.wcp/issues/` and `git log origin/main..dev --pretty=%H%n%s`:
 
 - a file whose `commit` is in that range
 - a file whose id is the leading `0123` or `0123:` on a subject in that range

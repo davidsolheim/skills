@@ -32,7 +32,7 @@ Ship **this session’s finished work** by:
 7. Babysitting every **5 minutes** for up to **15 minutes** total for CI + useful automated comments
 8. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
 9. **Merging the PR into `main`** only if the watch window ends with no useful automated feedback, CI is green (or never failed), and required production migrations have succeeded
-10. **Notion:** immediately after `origin/dev`, and again after the merge to `origin/main`, update this repo's issues database ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Status `done` is the main ship. Commit `.WCP/issues/` with the work ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)).
+10. **Notion:** immediately after `origin/dev`, and again after the merge to `origin/main`, update this repo's issues database ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Status `done` is the main ship. Commit `.wcp/issues/` with the work ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)).
 
 Default delivery **does** merge when the quiet window passes. Use `--no-merge` to stop after the watch without merging (and without applying production migrations unless the user explicitly asks).
 
@@ -48,12 +48,12 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 - **Closed-loop fixes on local `dev` only:** when the gate finds issues, merge findings into scratch markdown and spawn **one** `prb-fixer`. Do **not** file new issues or nested `/solve`. Do not push mid-loop. Cap full review→fix→re-review cycles (band default in [`../docs/intensity.md`](../docs/intensity.md), override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push. The gate result is the Phase 5 report.
 - **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb` outside the review closed-loop fixes.
 - **No force-push to `main`.** Prefer normal push to `dev`. If `dev` needs rewrite, use `--force-with-lease` only after a clear reason and never against `main`.
-- **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them. Commit `.WCP/issues/`. Do not commit `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+- **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them. Commit `.wcp/issues/`. Do not commit `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
 - **WCP export:** this skill is the human push to `origin/dev` ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before commit and before push; if a live source-file lease remains, wait or report. Do not stash that burst. The fixer names itself with `wcp name prb-fix`, uses the player verbs, and does not commit. The orchestrator commits only when `wcp look` is empty. **`unset WCP_AGENT WCP_NAME_TOKEN` immediately before every `git push`** (hooks refuse push while `WCP_AGENT` is set).
 - **Secrets:** never print Doppler/tokens/connection strings; never commit `.env`.
 - **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Auto-merge is forbidden while those exist.
 - **Human veto:** if the user says stop/don’t merge in-session, cancel scheduled watches and do not merge.
-- **Notion status (hard rule when issues are in the ship):** collect the ship set from `.WCP/issues/` and the commits that will land ([`../docs/notion-issues.md`](../docs/notion-issues.md)). **Required after `origin/dev`:** write Dev SHA and the PR URL. Do **not** set `done` at PR open. **Required after merge to `origin/main`:** set Status `done` and Main SHA immediately. Skip a file another agent holds under a live lease. Do not call Linear.
+- **Notion status (hard rule when issues are in the ship):** collect the ship set from `.wcp/issues/` and the commits that will land ([`../docs/notion-issues.md`](../docs/notion-issues.md)). **Required after `origin/dev`:** write Dev SHA and the PR URL. Do **not** set `done` at PR open. **Required after merge to `origin/main`:** set Status `done` and Main SHA immediately. Skip a file another agent holds under a live lease. Do not call Linear.
 - **DB migrations follow the project (hard rule):** when the ship set includes schema/data migrations, discover and run **this repo’s** production migrate path from `AGENTS.md` / migration docs / `package.json` — do **not** invent Drizzle/Prisma/psql commands, Doppler project names, or configs. Prefer versioned `db:migrate` (or the repo’s documented equivalent). **Never** `db:push` / `drizzle-kit push` / `prisma db push` to production by default. **Never** print connection strings or Doppler secret values. **Never** auto-run content seeders as part of migrate. Full procedure: [`references/db-migrations.md`](references/db-migrations.md).
 - **Migrate before merge (default):** if production migrations are required for the ship, apply them **after** the quiet window passes and **before** `gh pr merge`, so production deploy does not race ahead of schema (additive/expand path). Destructive migrations **block** auto-merge until the user explicitly approves.
 - **Ship product build follows the project (hard rule):** when root `AGENTS.md` (or equivalent) documents a **required `/prb` ship product build** (e.g. rebuild + codesign a macOS `.app`), discover and run **that exact command** after Phase 1.6 and **before** `git push origin dev`. Re-run after babysit fix pushes when the ship still touches app code. Failure blocks push. Do **not** invent archive/notary steps not documented. Full procedure: [`references/ship-product-build.md`](references/ship-product-build.md).
@@ -96,7 +96,7 @@ Record for the run: `SKIP_REVIEW`, `SKIP_LOCAL_COMPILE`, `SHIP_INTENSITY`, `EXHA
 6. **Migration inventory (always):** per [`references/db-migrations.md`](references/db-migrations.md) §1–2, record whether `origin/main...dev` changes migration/schema paths, and if so start the discovery table (`MIGRATE_CMD`, Doppler project/production config, forbidden push scripts, risk class). If migrations exist only uncommitted, stop and get them committed onto `dev` first.
 7. **Ship product build inventory (always):** per [`references/ship-product-build.md`](references/ship-product-build.md), read `AGENTS.md` for a required `/prb` ship product build. Record `SHIP_BUILD_REQUIRED`, `SHIP_BUILD_CMD`, `SHIP_BUILD_OUTPUT`. If the user passed `--skip-ship-build`, note a loud skip for the report.
 8. **Local compile inventory (always):** per [`references/local-compile.md`](references/local-compile.md), record `LOCAL_COMPILE_CMD` and `LOCAL_TEST_CMD` from this repo’s package manager / `package.json` / AGENTS. If the user passed `--skip-local-compile`, note a loud skip for the report.
-9. **Notion ship set (always):** per [`../docs/notion-issues.md`](../docs/notion-issues.md), start `SHIP_ISSUE_IDS` from `.WCP/issues/` and `git log origin/main..dev --pretty=%H%n%s`. Re-scan before the Phase 2 and Phase 4.5 Notion updates. Phase 1.5 does not add new issues.
+9. **Notion ship set (always):** per [`../docs/notion-issues.md`](../docs/notion-issues.md), start `SHIP_ISSUE_IDS` from `.wcp/issues/` and `git log origin/main..dev --pretty=%H%n%s`. Re-scan before the Phase 2 and Phase 4.5 Notion updates. Phase 1.5 does not add new issues.
 
 Unrelated dirty paths (leave alone): `.cursor/hooks/**`, `.deepsec/`, local env files, etc.
 
@@ -342,7 +342,7 @@ Store `PR_NUMBER` and `PR_URL`.
 
 **Authority:** [`../docs/notion-issues.md`](../docs/notion-issues.md).
 
-1. Refresh `SHIP_ISSUE_IDS` from `.WCP/issues/` and ship commits.
+1. Refresh `SHIP_ISSUE_IDS` from `.wcp/issues/` and ship commits.
 2. Upsert each id. Set **Dev SHA** to `origin/dev` and **PR** to `PR_URL`. If Status is `open` or `in-progress`, set `in-review`. Do not set `done`.
 3. Record `NOTION_DEV_UPDATED` and any failures. Continue the ship if Notion fails. Put the failed ids in the Phase 5 report.
 
@@ -509,7 +509,7 @@ Cancel any scheduled `/prb` ticks for this PR when terminal (merged or abandoned
 **Authority:** [`../docs/notion-issues.md`](../docs/notion-issues.md).
 
 1. Resolve `MERGE_SHA` on `main` (`git rev-parse origin/main` after fetch, or the PR merge commit from `gh pr view`).
-2. Re-scan `SHIP_ISSUE_IDS` from `.WCP/issues/` and the merged range.
+2. Re-scan `SHIP_ISSUE_IDS` from `.wcp/issues/` and the merged range.
 3. **Discover production deployment** for `MERGE_SHA` (poll up to ~2–3 minutes):
    - GitHub deployments/statuses for `production`
    - Vercel CLI / project docs (`dpl_…`, inspect URL, production URL)
@@ -615,7 +615,7 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 
 | Skill | Difference |
 |-------|------------|
-| `/issue` | Files one `.WCP/issues/` file and its Notion row; **not** used in Phase 1.5 |
+| `/issue` | Files one `.wcp/issues/` file and its Notion row; **not** used in Phase 1.5 |
 | `/solve` | Cheap construction onto **local** `dev`; **not** the `/prb` closed loop |
 | `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |

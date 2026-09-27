@@ -23,19 +23,19 @@ This is not `/issues` (tickets only) and not `/solve` alone.
 [`references/existing-repo.md`](references/existing-repo.md) before later phases.
 
 **North star:** after one `/start`, a stranger can open `$HOME/src/<slug>`, read
-`VISION.md` + `AGENTS.md`, find `.WCP/issues/`, and run the app’s V1 on
+`VISION.md` + `AGENTS.md`, find `.wcp/issues/`, and run the app’s V1 on
 local `dev`.
 
 ## Operating contract
 
 - **Template:** [github.com/davidsolheim/next-starter-template](https://github.com/davidsolheim/next-starter-template). Do not invent a different stack. Do not mutate the template repo.
 - **Onboard:** greenfield always runs DEST `AGENTS.md` first-run after scaffold. Existing runs the same protocol only for **repair** gaps (marker still present, missing/wrong VISION/AGENTS/README/identity). Questionnaire SoT is DEST `AGENTS.md` — do not fork the question list into this skill.
-- **Queue default on:** write V1 leaves into `.WCP/issues/open/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not create a Linear project.
+- **Queue default on:** write V1 leaves into `.wcp/issues/open/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not create a Linear project.
 - **Build default on:** nested `/solve all` of the V1 leaves in DEST. Do not implement V1 yourself; do not skip build unless `--no-build` / `--docs-only` / `--draft`. A Notion failure does not skip the build when the files exist.
 - **V1 = VISION.md “V1” section**, not the whole future product. Starter auth/CMS/admin/contact already exist — do not re-ticket them unless they must change for this product.
 - **Git (greenfield):** fresh history (no template commits). `main` + lowercase `dev`. **Existing:** keep history; create `dev` if missing. No push/PR/deploy unless the user asks.
 - **Secrets:** Doppler names only. Never reuse the starter Doppler project or another product’s `DATABASE_URL`. Never commit `.env` values.
-- **Queue:** write issues under `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. `--no-linear` skips filing and the Notion upsert.
+- **Queue:** write issues under `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. `--no-linear` skips filing and the Notion upsert.
 - **Models:** every `spawn_subagent` sets `model: grok-4.6` ([`../docs/grok-models.md`](../docs/grok-models.md)).
 - **Onboard questions:** required by DEST `AGENTS.md` first-run when that marker is present or docs fail validate. Prefill from the brief, flags, and existing README/VISION. Ask only gaps. Never product-onboard the public template repo.
 
@@ -123,7 +123,7 @@ Existing + public template tree → stop (template maintenance, not product `/st
 - **Refuse both modes** if DEST is the public `next-starter-template` working tree.
 - Greenfield only: if the chosen path exists and is non-empty, **switch to `MODE=existing`** on that path (validate) instead of asking for a new folder — unless the user clearly wanted a **new** sibling project (then ask for another path).
 
-The work queue is `.WCP/issues/` in DEST ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or a Linear project.
+The work queue is `.wcp/issues/` in DEST ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or a Linear project.
 
 ---
 
@@ -222,7 +222,7 @@ Prompt must include:
 
 - Read `$SOLVE_SKILL_MD` and follow it end-to-end
 - Workspace is **DEST** (the new repo)
-- Queue is `.WCP/issues/` in DEST. Do not call Linear. Do not set Notion `done`
+- Queue is `.wcp/issues/` in DEST. Do not call Linear. Do not set Notion `done`
 - `SOLVE_COUNT_MODE = all`
 - `SHARED_DEV` = true (`/solve all` is shared-dev parallel; `FAST_BUILD` / `fast` is a no-op)
 - `FAST_MODE` = false (do **not** use worktrees)
@@ -295,7 +295,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 ```text
 /start (empty dest)     → scaffold → AGENTS.md / VISION.md / README.md
 /start (existing dest)  → bones + docs validate → repair gaps
-       → V1 leaves in `.WCP/issues/` plus Notion
+       → V1 leaves in `.wcp/issues/` plus Notion
        → nested /solve all in DEST
        → later /prb when the user wants main
 ```

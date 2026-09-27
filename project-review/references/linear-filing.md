@@ -1,6 +1,6 @@
 # Publish pass
 
-**Do not call Linear.** Write each ready leaf into `.WCP/issues/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md), then upsert Notion per [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Independent leaves go in `open/` at Status `open`. A hard dependency goes in `blocked/` with `reason` and Notion Status `blocked`. There is no epic file. `--draft` keeps the local package and writes nothing.
+**Do not call Linear.** Write each ready leaf into `.wcp/issues/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md), then upsert Notion per [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Independent leaves go in `open/` at Status `open`. A hard dependency goes in `blocked/` with `reason` and Notion Status `blocked`. There is no epic file. `--draft` keeps the local package and writes nothing.
 
 Default: **file** solve-ready leaves so `/solve` has a real queue.
 

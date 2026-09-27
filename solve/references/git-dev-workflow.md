@@ -131,7 +131,7 @@ unless `seq` or `worktree`), follow [`shared-dev.md`](shared-dev.md). Git differ
    commits on `dev` only when `wcp look` shows no live source-file lease
    (per-issue if paths partition; else one commit listing ids). The issue-file
    update is the next commit, still with an empty board. Do not stage
-   `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+   `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
 5. Still **no push** unless the user explicitly asked.
 
 ## Worktree addendum (opt-in `worktree` only)

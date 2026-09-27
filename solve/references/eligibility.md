@@ -1,6 +1,6 @@
 # Eligibility
 
-Canonical filter for implementable leaves in `.WCP/issues/`. Used by `/solve`, `/identify`, `/stat`, and `/tidy`.
+Canonical filter for implementable leaves in `.wcp/issues/`. Used by `/solve`, `/identify`, `/stat`, and `/tidy`.
 
 Queue contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Claim and close: skill `water-cooler-protocol`. Do not call Linear.
 
@@ -8,7 +8,7 @@ Queue contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Claim and 
 
 ## Inventory
 
-List `*.md` under `.WCP/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Reclaim expired `in-progress` leases before selecting (player skill). Do not treat `in-review/`, `done/`, or `canceled/` as work to start. An `in-review` file is waiting for the reviewer.
+List `*.md` under `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Reclaim expired `in-progress` leases before selecting (player skill). Do not treat `in-review/`, `done/`, or `canceled/` as work to start. An `in-review` file is waiting for the reviewer.
 
 `/solve today`: keep files whose `created` local date is today. Empty `created`: use `git log -1 --format=%cI -- <path>`.
 

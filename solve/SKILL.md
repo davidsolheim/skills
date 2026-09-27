@@ -5,14 +5,14 @@ description: >
   <milestone or area>, says "solve the next issue", "pick up the next ticket",
   "solve design related issues", "issues created today", "same dev branch",
   "ignore each other's work", "verify after they are done", Water Cooler
-  Protocol, WCP, a /goal to finish today's .WCP/issues ASAP with many
+  Protocol, WCP, a /goal to finish today's .wcp/issues ASAP with many
   subagents, or wants open WCP issues completed onto local dev.
 argument-hint: "[N|all|today] [seq] [worktree] [--concurrency N] [--effort N] [ISSUE-ID] [milestone|area|today…] [extra constraints…]"
 ---
 
 # /solve — Next unblocked WCP issue(s) → local `dev`
 
-Select unsolved, unblocked issues from `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. The **parent `/solve` session is the orchestrator** (ticket claim and close, git, commit). It **never** implements application source. Each leaf is **one `solve-implementer`** (low reasoning; optional one bug-only `solve-reviewer` on heavy/critical — [`../docs/intensity.md`](../docs/intensity.md)). Verify, then the orchestrator commits onto the long-lived local **`dev`** branch (lowercase) only when `wcp look` shows no live source-file lease. Workers do not commit and do not stash. Default delivery stops there. `/prb` is the deep review.
+Select unsolved, unblocked issues from `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. The **parent `/solve` session is the orchestrator** (ticket claim and close, git, commit). It **never** implements application source. Each leaf is **one `solve-implementer`** (low reasoning; optional one bug-only `solve-reviewer` on heavy/critical — [`../docs/intensity.md`](../docs/intensity.md)). Verify, then the orchestrator commits onto the long-lived local **`dev`** branch (lowercase) only when `wcp look` shows no live source-file lease. Workers do not commit and do not stash. Default delivery stops there. `/prb` is the deep review.
 
 Multi-issue runs build **batch guidance** first ([`references/batch-guidance.md`](references/batch-guidance.md)) so architectural direction changes (e.g. Neon replacing ClickHouse/Convex) reorder and re-scope work before coding. Then they run **as many independent leaves in parallel as possible on shared local `dev`** ([`references/shared-dev.md`](references/shared-dev.md): **WCP occupancy**, **no worktrees**, orchestrator combined-verifies then commits). Quality gates: S0, WCP ticket status, file leases, runtime proof, drain gate, one assignee per ticket. Worktrees are **opt-in only** (`worktree` / `--worktree` → [`references/fast-mode.md`](references/fast-mode.md)). Occupancy contract: [`../docs/wcp.md`](../docs/wcp.md).
 
@@ -32,13 +32,13 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
 1. **No soft batch cap.** There is **no** implicit limit of 5 (or any other fixed K). Do not stop because “enough issues were done,” context feels long, a wave finished, or a round number looks complete.
 2. **`all` ≠ `5`.** Inner-review is auto-dialed per issue from [`../docs/intensity.md`](../docs/intensity.md) (or `--effort N`, capped at 1). Shared-dev **concurrency** default **all ready** (cap 32). Neither is a solve count. Only a bare integer token sets count mode to `N`.
 3. **Continue after every success** until Phase 2 (or F6 / D8 refill) finds **zero** eligible unblocked implementable leaves **in the active set** (`SCOPE` if set, else the project).
-4. **Mandatory drain gate before Phase 9:** re-read `.WCP/issues/` per [`references/eligibility.md`](references/eligibility.md). Re-apply **scope filter**, eligibility (2B), blocked (2D), and the guidance skip set. If any implementable leaf remains in the active set → **do not** write the final batch summary; resume the batch loop / ready-queue immediately. A scoped run may stop while the rest of the project still has eligible leaves.
+4. **Mandatory drain gate before Phase 9:** re-read `.wcp/issues/` per [`references/eligibility.md`](references/eligibility.md). Re-apply **scope filter**, eligibility (2B), blocked (2D), and the guidance skip set. If any implementable leaf remains in the active set → **do not** write the final batch summary; resume the batch loop / ready-queue immediately. A scoped run may stop while the rest of the project still has eligible leaves.
 5. **Allowed exits only:**
    - No eligible unblocked implementable leaves remain (true drain), **after** the drain gate passes, or
    - User aborts / stalemate needs human input, or
    - Integer-`N` mode only: `len(SOLVED) >= N`, or
    - Sequential **integer-`N`** only: implement/merge hard-fail stops the batch.
-6. **Forbidden exits in `all` mode:** stopping after an arbitrary count (especially ~5); Phase 9 with “re-run `/solve all`” / “re-run `/solve today`” to continue while eligible leaves still exist **in the active set**; treating initial S0 inventory size as a fixed work queue without refill; ending because the first wave is empty without a full re-read of `.WCP/issues/`.
+6. **Forbidden exits in `all` mode:** stopping after an arbitrary count (especially ~5); Phase 9 with “re-run `/solve all`” / “re-run `/solve today`” to continue while eligible leaves still exist **in the active set**; treating initial S0 inventory size as a fixed work queue without refill; ending because the first wave is empty without a full re-read of `.wcp/issues/`.
 7. **Progress messaging:** interim tallies (`Solved k (all mode) · still draining…`) are fine. The **final** Phase 9 summary runs only when the drain gate passes (or a real allowed exit above).
 
 ## Operating contract
@@ -46,7 +46,7 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
 - **Batch size** (how many issues this run solves):
   - **Default**: `1` — `/solve` with no count **and no scope** solves a single issue.
   - **Integer `N`**: `/solve N` solves up to **N** eligible issues in parallel (up to `min(N, 32)` workers unless `--concurrency` or `seq`). Inside a scope, `N` is a cap on that cluster.
-  - **`all`**: **drain** — keep going until **no** eligible unblocked implementable leaves remain **in the active set** (whole project, or `SCOPE` if set). See [Drain contract](#drain-contract-solve-all--non-negotiable). No soft cap. Mandatory re-read of `.WCP/issues/` before exit. Independent leaves run in parallel.
+  - **`all`**: **drain** — keep going until **no** eligible unblocked implementable leaves remain **in the active set** (whole project, or `SCOPE` if set). See [Drain contract](#drain-contract-solve-all--non-negotiable). No soft cap. Mandatory re-read of `.wcp/issues/` before exit. Independent leaves run in parallel.
   - **Scope** (milestone / label / area remainder, or **created today**): resolve per [`references/eligibility.md`](references/eligibility.md) **Scope filter**. A resolved `SCOPE` with no bare `N` sets count mode to **`all` for that cluster only** — drain in parallel among independent in-scope leaves. Do not pick outside `SCOPE`. `/solve today` = created-today window, not a project-wide `/solve all`.
 - **Parallelism**: automatic whenever more than one implementable leaf is in play (`N ≥ 2`, `all`, scoped drain, **today**). Default protocol: [Shared-dev](#shared-dev--same-branch-parallel) + [`references/shared-dev.md`](references/shared-dev.md) (same local `dev`, **WCP exclusive file leases**, orchestrator verifies then commits; cap **32**, default = all ready disjoint paths). `worktree` / `--worktree` is the only way onto [Fast mode](#fast-mode--parallel-orchestrator). `seq` / `--sequential` disables parallelism. `fast` / `--fast` is a no-op.
 - **Occupancy (WCP)**: every implementer load of `water-cooler-protocol` + [`../docs/wcp.md`](../docs/wcp.md). Orchestrator starts the run and does not assign ids. Workers `wcp name` themselves, then write tests and new files with no claim. They `look` / `acquire --test` / `write-ok` / `release` only for a file that already existed. File overlap waits for the next wave or retargets. A ticket in `blocked/` is a queue status, not a file lease. Never rewind sibling edits. Never push while `WCP_AGENT` is set.
@@ -107,7 +107,7 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 | Arg | Meaning |
 |-----|---------|
 | `N` (positive integer) | Solve **up to N** eligible issues this run. **Default: 1** when omitted. `N ≥ 2` runs shared-dev parallel with concurrency `min(N, 32)` unless `--concurrency` or `seq`. |
-| `all` | **Drain** every eligible unblocked implementable leaf in the active set (project, or `SCOPE`). No soft cap. Shared-dev parallel among ready leaves. Mandatory re-read of `.WCP/issues/` before Phase 9; only real stop conditions apply (see [Drain contract](#drain-contract-solve-all--non-negotiable)). |
+| `all` | **Drain** every eligible unblocked implementable leaf in the active set (project, or `SCOPE`). No soft cap. Shared-dev parallel among ready leaves. Mandatory re-read of `.wcp/issues/` before Phase 9; only real stop conditions apply (see [Drain contract](#drain-contract-solve-all--non-negotiable)). |
 | `today` | **Drain issues created today** (`SCOPE.kind = created`). Shared-dev parallel. Not a project-wide `/solve all`. Same drain gate, in-window only. |
 | `seq` / `--sequential` | Force one-at-a-time (escape hatch). Default for batches is shared-dev parallel. |
 | `worktree` / `--worktree` | Opt-in worktree isolation ([`references/fast-mode.md`](references/fast-mode.md)). Default parallel does **not** use worktrees. |
@@ -214,7 +214,7 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 
 ## Phase 1 — Queue
 
-The board is `.WCP/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` if a run needs a queue and they are missing. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`.
+The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` if a run needs a queue and they are missing. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`.
 
 ---
 
@@ -342,7 +342,7 @@ Phase 9    Batch summary (remaining worktrees: 0)
 7. **Failure policy** — cascade-skip dependents of a failed issue; **continue** independent issues.
 8. **No separate Grok CLI processes** in v1 — use `spawn_subagent` + `isolation: "worktree"`.
 9. **Eligibility / epics / Linear comment policy** — same as Phase 2 / Linear issue management (no spam on skips).
-10. **`all` drain** — F6 refill + end-of-run re-read of `.WCP/issues/` until no eligible leaves remain. Do not Phase 9 while implementable leaves remain.
+10. **`all` drain** — F6 refill + end-of-run re-read of `.wcp/issues/` until no eligible leaves remain. Do not Phase 9 while implementable leaves remain.
 11. **Quality is not optional** — per-issue intensity inner-review, issue AC, and [`../docs/prove-it-works.md`](../docs/prove-it-works.md) still apply. Parallelism never skips proof or S0.
 
 ### Sequential vs parallel
@@ -424,7 +424,7 @@ Do **not** stop for: “solved five already,” long context, finished first wav
 **Required when `SOLVE_COUNT_MODE = all`.** Also recommended after multi-issue `N` if you claim the board is empty.
 
 ```text
-1. Re-read `.WCP/issues/` per eligibility.md. Do not call Linear.
+1. Re-read `.wcp/issues/` per eligibility.md. Do not call Linear.
 2. Filter: **scope** (`issue_in_scope` when `SCOPE` is set), eligible states (2B),
    not blocked (2D; out-of-scope blockers stay blocked — do not implement them),
    expand epics (2E), not guidance-skip, not already in SOLVED/FAILED this run
@@ -445,7 +445,7 @@ Then after the loop exits **and** the drain gate passes (for `all`) → **Phase 
 
 ### 2A. List candidates
 
-Read `.WCP/issues/` per [`references/eligibility.md`](references/eligibility.md). If `SCOPE` is set, keep only `issue_in_scope` before 2B–2E.
+Read `.wcp/issues/` per [`references/eligibility.md`](references/eligibility.md). If `SCOPE` is set, keep only `issue_in_scope` before 2B–2E.
 
 ### 2B. Eligible states
 
@@ -606,7 +606,7 @@ Construct a single description string for the implementer:
 - Scope is this leaf issue only — do not implement the full parent epic
 - Do not push, open PRs, merge to dev/main, or update Linear state
 - Do not discard unrelated dirty files
-- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.WCP/issues/in-review/`. Do not set `done`. Do not commit. Do not stash.
+- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.wcp/issues/in-review/`. Do not set `done`. Do not commit. Do not stash.
 - Smallest complete change meeting **current** (possibly re-scoped) acceptance criteria
 - Runtime proof: follow `$SOLVE_SKILL_DIR/../docs/prove-it-works.md` (in-scope classes). Matrix green is not enough.
 
@@ -693,7 +693,7 @@ If merge to dev fails, do not set the file `done` and do not set Notion `done`; 
 
 ## Phase 8 — Review, then commit
 
-The file is in `.WCP/issues/in-review/`. Launch one reviewer. Do not commit while it runs.
+The file is in `.wcp/issues/in-review/`. Launch one reviewer. Do not commit while it runs.
 
 ```text
 spawn_subagent:
@@ -706,7 +706,7 @@ spawn_subagent:
 Prompt:
 
 ```markdown
-You are the reviewer for one `.WCP/issues/in-review/` file. Read the issue and every path in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`.
+You are the reviewer for one `.wcp/issues/in-review/` file. Read the issue and every path in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`.
 
 If the check fails, fix the code. Name yourself with `wcp name`. A pre-existing file uses look → acquire --test → write-ok → edit → release. Do not commit. Do not stash.
 

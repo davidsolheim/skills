@@ -36,7 +36,7 @@ Ship **this session’s finished work now**. `/prb` is the careful path (deep lo
 
 - Integration branch is lowercase **`dev`**. Trunk is **`main`**. If this repo has no `dev` (local or `origin/dev`), **stop** — do not invent a branch.
 - **Never** `git push origin dev` until `git fetch origin`, local `main` matches `origin/main` (ff-only), and `origin/main` is an ancestor of local `dev`.
-- **WCP:** this skill is the human export ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; wait if live leases remain. **`unset WCP_AGENT` immediately before `git push origin dev`**. Commit `.WCP/issues/`. Do not commit `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+- **WCP:** this skill is the human export ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before push; wait if live leases remain. **`unset WCP_AGENT` immediately before `git push origin dev`**. Commit `.wcp/issues/`. Do not commit `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
 - **No review gate. No `/prb` babysit** of bot comments. **Do wait for the ship build.** After the `dev` push, poll GitHub Actions `build` (or this repo’s compile job) and the Vercel preview for that SHA until success or failure (cap ~10 minutes). After merge, poll the Vercel **production** deploy (or GitHub `build` on `main`) the same way. Error → **do not merge** (preview/CI) or **do not claim complete / do not set Notion done** (production). `/yeet` does not run the `/prb` panel. It still must drive user-visible / auth / billing / API / schema / shared-helper ships ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
 - Merge with `gh pr merge --rebase --admin` so `main` lands on dev's already-pushed commits. If rebase is refused, `gh pr merge --merge --admin`. If `--admin` is denied, report the error and **stop**.
 - **One dev preview + one main production per ship.** dev's preview comes from the Phase 2 dev push (or from merging `--via-dev-pr` into dev). main's production comes from the dev→main merge. Never push dev again after that merge — a dev push of the merge commit starts a second dev preview for the same ship.
@@ -70,13 +70,13 @@ Ignore unknown tokens after logging them.
    3. Else uncommitted intentional session files — Phase 0.5
 6. If after 0.5 there is nothing new vs `origin/main` on `dev`, report and exit.
 7. **Migrations:** if `origin/main...dev` (plus the commit you are about to make) touches this repo’s migration/schema paths, follow `/prb` [`references/db-migrations.md`](../prb/references/db-migrations.md) for discovery (`MIGRATE_CMD`, Doppler **production** config **name**, risk class). Uncommitted migration SQL must be committed in 0.5 before apply.
-8. **Ship issues:** collect `SHIP_ISSUE_IDS` per [`../docs/notion-issues.md`](../docs/notion-issues.md) from `.WCP/issues/` and `git log origin/main..dev --pretty=%H%n%s`. Re-scan after commit.
+8. **Ship issues:** collect `SHIP_ISSUE_IDS` per [`../docs/notion-issues.md`](../docs/notion-issues.md) from `.wcp/issues/` and `git log origin/main..dev --pretty=%H%n%s`. Re-scan after commit.
 
 Unrelated dirty paths (leave alone): `.cursor/hooks/**`, `.deepsec/`, local env files, `tmp/`.
 
 ## Phase 0.5 — Auto-commit (unless `--no-commit`)
 
-`wcp look --json` first ([`../docs/wcp.md`](../docs/wcp.md)). If a live source-file lease remains, wait or stop. Do not commit another writer's burst and do not stash it. Stage `.WCP/issues/` with the work. Do not stage `.WCP/RUN.md`, `.WCP/run.sqlite`, or sqlite wal/shm.
+`wcp look --json` first ([`../docs/wcp.md`](../docs/wcp.md)). If a live source-file lease remains, wait or stop. Do not commit another writer's burst and do not stash it. Stage `.wcp/issues/` with the work. Do not stage `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
 
 If the working tree has no session source changes, skip.
 

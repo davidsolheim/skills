@@ -1,6 +1,6 @@
 # WCP issue queue
 
-The local queue for `/issue`, `/issues`, `/solve`, `/identify`, `/stat`, `/tidy`, `/project-review`, `/walk`, `/start`, `/prb`, and `/yeet` is `.WCP/issues/` in the current git checkout. Notion status for that same work is [`notion-issues.md`](notion-issues.md).
+The local queue for `/issue`, `/issues`, `/solve`, `/identify`, `/stat`, `/tidy`, `/project-review`, `/walk`, `/start`, `/prb`, and `/yeet` is `.wcp/issues/` in the current git checkout. Notion status for that same work is [`notion-issues.md`](notion-issues.md).
 
 Do not call Linear or GitHub Issues. Do not resolve a team or a project. Do not post `claimed-by` comments.
 
@@ -9,12 +9,12 @@ Claim, renew, reclaim, close, cancel, and block are the player skill `water-cool
 ## Layout
 
 ```
-.WCP/issues/open/
-.WCP/issues/in-progress/
-.WCP/issues/in-review/
-.WCP/issues/done/
-.WCP/issues/canceled/
-.WCP/issues/blocked/
+.wcp/issues/open/
+.wcp/issues/in-progress/
+.wcp/issues/in-review/
+.wcp/issues/done/
+.wcp/issues/canceled/
+.wcp/issues/blocked/
 ```
 
 `status` in the file is the source of truth. The folder matches it. Update `status`, then move the file.
@@ -42,7 +42,7 @@ The body is the spec. `/issue` and `/issues` put the execution-ready contract in
 
 ## Ids
 
-Scan every `*.md` under `.WCP/issues/`. The next id is one greater than the highest numeric `id`, zero-padded to 4 digits. Filename: `0123-short-slug.md`.
+Scan every `*.md` under `.wcp/issues/`. The next id is one greater than the highest numeric `id`, zero-padded to 4 digits. Filename: `0123-short-slug.md`.
 
 A pin such as `0123` or `TEAM-123` is the issue whose `id` or filename contains that number. Notion uses that same id.
 
@@ -100,7 +100,7 @@ On failure before review, leave the ticket `in-progress` if you still hold the l
 
 ## Ship
 
-`/prb` and `/yeet` are the human export. They commit only when `wcp look` shows no live source-file lease. They do not stash another writer's files. Commit `.WCP/issues/` with the work. A done issue whose `commit` is in the ship stays `done`.
+`/prb` and `/yeet` are the human export. They commit only when `wcp look` shows no live source-file lease. They do not stash another writer's files. Commit `.wcp/issues/` with the work. A done issue whose `commit` is in the ship stays `done`.
 
 Immediately after `origin/dev` is pushed, update Notion with the dev SHA and the PR URL. Immediately after `origin/main` and that skill's completion gate, set Notion Status `done` ([`notion-issues.md`](notion-issues.md)).
 

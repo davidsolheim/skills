@@ -2,7 +2,7 @@
 name: issues
 description: >
   Research a multi-item product/code dump in the current repo and file many
-  execution-ready `.WCP/issues/` files in one pass so cheaper models can
+  execution-ready `.wcp/issues/` files in one pass so cheaper models can
   implement each leaf from the ticket alone. Decompose into atomic solve-ready
   leaves that may be independent or blocked on another file. Reuses /issue
   execution-ready quality bar (code map, contracts, step plan, file-by-file,
@@ -20,7 +20,7 @@ Bulk intake skill. The user gives a **multi-item** description (list, residual
 backlog, brain dump, several related/unrelated problems). You investigate the
 repo **once**, decompose into **atomic solve-ready leaves**, decide which
 tickets are connected (or not), then write **multiple** files under
-`.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)) — each a
+`.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)) — each a
 complete **implementation contract** for a cheaper coding model. Do not call Linear. Do not implement
 code. Do not open a PR.
 
@@ -44,7 +44,7 @@ Direction conflicts: [`../issue/references/direction-conflict.md`](../issue/refe
 
 ## Operating contract
 
-- **Many descriptions → many `.WCP/issues/` files** (atomic leaves). Never cram
+- **Many descriptions → many `.wcp/issues/` files** (atomic leaves). Never cram
   unrelated work into one mega-ticket.
 - **Shared research, per-leaf depth**: investigate the repo holistically, then
   still write a **self-contained** execution-ready body on every leaf (cheap
@@ -109,7 +109,7 @@ Follow phases in order. Parallelize reads when possible.
 
 ### Phase 1 — Queue
 
-Same as `/issue`: the board is `.WCP/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Notion uses this repo's origin URL ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Read repo docs for package ownership. Use those package names in titles.
+Same as `/issue`: the board is `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Notion uses this repo's origin URL ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Read repo docs for package ownership. Use those package names in titles.
 
 ### Phase 2 — Board snapshot, duplicate, and direction-conflict scan (batch)
 
@@ -306,7 +306,7 @@ Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-
 
 #### 6A. Leaves in filing order
 
-For each create leaf that passed the gate, write `.WCP/issues/open/<id>-<slug>.md` or `blocked/` when it has a hard dependency. Frontmatter `status` matches the folder. Empty `assignee`, `lease_expires`, and `commit`.
+For each create leaf that passed the gate, write `.wcp/issues/open/<id>-<slug>.md` or `blocked/` when it has a hard dependency. Frontmatter `status` matches the folder. Empty `assignee`, `lease_expires`, and `commit`.
 
 1. Do **not** set assignee or `in-progress`.
 2. On success: record `temp_id → id`. Upsert the Notion row at that status.

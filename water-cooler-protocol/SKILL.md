@@ -2,7 +2,7 @@
 name: water-cooler-protocol
 description: >
   Occupancy leases for many coding agents on one shared local checkout,
-  and the committed work queue in .WCP/issues/.
+  and the committed work queue in .wcp/issues/.
   Load when this repo's AGENTS.md mentions WCP, when WCP_AGENT is set, when
   coordinating parallel agents on local dev, or when the user runs /wcp.
   Write tests and new files directly. Claim a pre-existing file only after
@@ -29,7 +29,7 @@ If `WCP_AGENT` is already set, `wcp name` that id. `name_taken` means pick anoth
 
 ## Start
 
-Read `.WCP/issues/open/`, `.WCP/issues/in-progress/`, and `.WCP/issues/in-review/`. Reclaim expired `in-progress` tickets (Issues, below). Do not reclaim `in-review`. Do not copy tickets, specs, or diffs onto `.WCP/RUN.md`. `arch` on the board stays the session aim, not a copy of every ticket.
+Read `.wcp/issues/open/`, `.wcp/issues/in-progress/`, and `.wcp/issues/in-review/`. Reclaim expired `in-progress` tickets (Issues, below). Do not reclaim `in-review`. Do not copy tickets, specs, or diffs onto `.wcp/RUN.md`. `arch` on the board stays the session aim, not a copy of every ticket.
 
 If those directories are missing and this run needs a queue, create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/`, and one issue whose body is the current `arch`. Do not invent a backlog.
 
@@ -84,26 +84,26 @@ If `write-ok` returns `drift` on a path inside your scope: stop. `wcp look`. Ret
 
 ## Git
 
-Never commit the board or sqlite. The orchestrator is the only one who runs `git commit`. A worker never commits and never stashes. Stashing on a shared checkout hides another writer's uncommitted files. The orchestrator commits only when `wcp look` shows no live source-file lease. If a lease is live, wait. The work commit is the product paths. The next commit is the `.WCP/issues/` update.
+Never commit the board or sqlite. The orchestrator is the only one who runs `git commit`. A worker never commits and never stashes. Stashing on a shared checkout hides another writer's uncommitted files. The orchestrator commits only when `wcp look` shows no live source-file lease. If a lease is live, wait. The work commit is the product paths. The next commit is the `.wcp/issues/` update.
 
 ```
-.WCP/RUN.md
-.WCP/run.sqlite
-.WCP/*.sqlite-wal
-.WCP/*.sqlite-shm
+.wcp/RUN.md
+.wcp/run.sqlite
+.wcp/*.sqlite-wal
+.wcp/*.sqlite-shm
 ```
 
-`wcp init` writes those lines and removes a blanket `.WCP/` ignore. Hooks reject any staged `.WCP/` path outside `.WCP/issues/` (socket, lock, pid, log, mode, barrels). Do not store source in `.WCP/`. Do not push. Do not rewind. `WCP_AGENT` is set: hooks will refuse push.
+`wcp init` writes those lines and removes a blanket `.wcp/` ignore. Hooks reject any staged `.wcp/` path outside `.wcp/issues/` (socket, lock, pid, log, mode, barrels). Do not store source in `.wcp/`. Do not push. Do not rewind. `WCP_AGENT` is set: hooks will refuse push.
 
 Do not `wcp acquire` an issue file. A ticket lease is the frontmatter on that file. It is not a source-file lock.
 
 ## Barrels
 
-If the path matches `.WCP/barrels` (lockfiles, generated clients, root schema): extra-short burst. No thinking on the lease.
+If the path matches `.wcp/barrels` (lockfiles, generated clients, root schema): extra-short burst. No thinking on the lease.
 
 ## Board
 
-`wcp look` before every write. Edit occupancy only through `wcp`. Do not rewrite `.WCP/RUN.md` by hand (the daemon overwrites it). `RUN.md` is occupancy and `arch` only. Do not put specs, ticket status, or diffs on it.
+`wcp look` before every write. Edit occupancy only through `wcp`. Do not rewrite `.wcp/RUN.md` by hand (the daemon overwrites it). `RUN.md` is occupancy and `arch` only. Do not put specs, ticket status, or diffs on it.
 
 ## End
 
@@ -111,12 +111,12 @@ When the work matches the ticket's `acceptance`, release every source-file lease
 
 ## Issues
 
-Committed queue for a solo builder with many agents on one checkout. Do not call Linear or GitHub Issues. Assign, claim, and close work by editing files under `.WCP/issues/`. Do not call Notion during a source-file lease. After the file status is written, the orchestrator or the filing or ship skill updates Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Notion `done` is the ship to `origin/main`, not this close.
+Committed queue for a solo builder with many agents on one checkout. Do not call Linear or GitHub Issues. Assign, claim, and close work by editing files under `.wcp/issues/`. Do not call Notion during a source-file lease. After the file status is written, the orchestrator or the filing or ship skill updates Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Notion `done` is the ship to `origin/main`, not this close.
 
 ### Layout
 
 ```
-.WCP/issues/
+.wcp/issues/
   open/
   in-progress/
   in-review/
@@ -178,7 +178,7 @@ Two agents do not hold the same ticket. They do not hold the same source file. D
 
 When the work matches `acceptance`, the solver records the paths in `files`, releases every source-file lease, and leaves the tree dirty. The solver sets `status: in-review`, clears `lease_expires`, leaves `assignee` as itself, leaves `commit` empty, and moves the file to `in-review/`. The solver does not commit, does not stash, and does not set `done`.
 
-The orchestrator watches `.WCP/issues/in-review/`. For each file there, it launches one reviewer. The reviewer reads that issue and the paths in `files`, and checks security, accessibility, functionality, and aesthetics against `acceptance`.
+The orchestrator watches `.wcp/issues/in-review/`. For each file there, it launches one reviewer. The reviewer reads that issue and the paths in `files`, and checks security, accessibility, functionality, and aesthetics against `acceptance`.
 
 If the check fails, the reviewer fixes the code. A pre-existing file uses the file lease: look, acquire, write-ok, edit, release. The reviewer does not commit and does not stash.
 
@@ -202,7 +202,7 @@ Cancel when the work will not be done. The holder may cancel a ticket they hold.
 4. Re-read. One file, one `reason`. If another writer canceled or reclaimed it, leave their newer `assignee` or `reason` in place.
 5. The orchestrator commits the issue file, and only when `wcp look` shows no live source-file lease. Until then the file update still stands.
 
-Search `.WCP/issues/canceled/` and `status: canceled` before filing the same work again. Read `reason`. Do not open a second ticket for it unless the user says to revive it. Reviving sets `status: open`, clears the lease, and moves the file to `open/`. Leave `reason` so the earlier cancel stays searchable.
+Search `.wcp/issues/canceled/` and `status: canceled` before filing the same work again. Read `reason`. Do not open a second ticket for it unless the user says to revive it. Reviving sets `status: open`, clears the lease, and moves the file to `open/`. Leave `reason` so the earlier cancel stays searchable.
 
 ### Block
 
@@ -214,11 +214,11 @@ Block when the work is still wanted and an agent must not claim it yet. The hold
 4. Re-read. One file, one `reason`. If another writer blocked, canceled, or reclaimed it, leave their newer `assignee` or `reason` in place.
 5. The orchestrator commits the issue file, and only when `wcp look` shows no live source-file lease. Until then the file update still stands.
 
-Do not claim a file in `.WCP/issues/blocked/`. Search that folder and `status: blocked` before filing the same work again. Read `reason`. Unblocking sets `status: open`, clears the lease, and moves the file to `open/`. Leave `reason` so the earlier block stays searchable.
+Do not claim a file in `.wcp/issues/blocked/`. Search that folder and `status: blocked` before filing the same work again. Read `reason`. Unblocking sets `status: open`, clears the lease, and moves the file to `open/`. Leave `reason` so the earlier block stays searchable.
 
 ### Orchestrator
 
-Assign work from `.WCP/issues/open/` only. Skip `blocked/`, `canceled/`, and `in-review/`. Watch `.WCP/issues/in-review/` and launch one reviewer per file, as in Close. No Linear or GitHub Issues calls. Update Notion after the file write ([`../docs/notion-issues.md`](../docs/notion-issues.md)), not during a source-file lease, and do not set Notion `done` here. One ticket per agent unless the user says otherwise. Do not claim a directory. Two agents may share a ticket's files only under that ticket's `scope`, and WCP file rules still hold.
+Assign work from `.wcp/issues/open/` only. Skip `blocked/`, `canceled/`, and `in-review/`. Watch `.wcp/issues/in-review/` and launch one reviewer per file, as in Close. No Linear or GitHub Issues calls. Update Notion after the file write ([`../docs/notion-issues.md`](../docs/notion-issues.md)), not during a source-file lease, and do not set Notion `done` here. One ticket per agent unless the user says otherwise. Do not claim a directory. Two agents may share a ticket's files only under that ticket's `scope`, and WCP file rules still hold.
 
 ### Two clocks
 

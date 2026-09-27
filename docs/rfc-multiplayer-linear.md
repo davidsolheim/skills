@@ -1,6 +1,8 @@
 # RFC: Multiplayer Linear claims (`/solve` + `/prb`)
 
-Status: accepted (David, 2026-08-13) — implement in `/solve` and `/prb` now.
+> Superseded. Claims are ticket leases on `.wcp/issues/` ([`../solve/references/multiplayer-linear.md`](../solve/references/multiplayer-linear.md)). Notion status is [`notion-issues.md`](notion-issues.md). Do not call Linear. The notes below are the 2026-08-13 design this pack replaced.
+
+Status: superseded.
 Companion procedure: [`../solve/references/multiplayer-linear.md`](../solve/references/multiplayer-linear.md)
 
 ## Why

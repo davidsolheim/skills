@@ -3,7 +3,7 @@ name: stat
 description: >
   Use when the user runs /stat, says "stat", "board status", "project status",
   "what's open", "show issues that need to be resolved", "what's left to
-  solve", or wants a read-only briefing of this repo's `.WCP/issues/` queue sorted
+  solve", or wants a read-only briefing of this repo's `.wcp/issues/` queue sorted
   most urgent to least. Also /stat N or area words. Do not use for session
   /status (auth/model/context) or for picking a solve batch (/identify).
 argument-hint: "[N] [area…]"
@@ -11,7 +11,7 @@ argument-hint: "[N] [area…]"
 
 # /stat — Open issues, urgent first
 
-Read **`.WCP/issues/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). List **every issue that still needs
+Read **`.wcp/issues/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). List **every issue that still needs
 resolution** (`open`, `in-progress`, `blocked`). Sort **most urgent → least**. Do not call Linear. Then **stop**.
 
 This skill does **not** implement, claim, tidy, upgrade, or start `/solve` /
@@ -92,13 +92,13 @@ skip `U`.
 
 ## Phase 1 — Queue
 
-The board is `.WCP/issues/` in this checkout. Do not resolve a team or project.
+The board is `.wcp/issues/` in this checkout. Do not resolve a team or project.
 
 ---
 
 ## Phase 2 — Inventory
 
-List `*.md` in `.WCP/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Do not call Linear.
+List `*.md` in `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Do not call Linear.
 
 | Folder | Wait |
 | --- | --- |

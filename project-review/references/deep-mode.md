@@ -19,7 +19,7 @@ Run an **exhaustive** project review using:
 2. A **review guidance package** workers must obey
 3. Parallel **read-only review workers** until coverage is complete
 4. **Local file-first** issue candidates (`issue-candidates/`) cleaned offline
-5. **One** Linear board snapshot early + **one** Linear publish pass at the end from `final/` only
+5. **One** `.wcp/issues/` snapshot early + **one** queue and Notion publish at the end from `final/` only
 
 Deep does **not** stop when “enough high-signal findings exist.” It stops when every inventory unit is terminal **and** the local candidate package is cleaned (then optionally filed).
 
@@ -34,8 +34,8 @@ Deep does **not** stop when “enough high-signal findings exist.” It stops wh
 | `--concurrency M` | Clamp to `1..MAX_CONCURRENCY` |
 | Soft worker timeout | ~45–60 minutes; then kill, mark slice failed, re-queue incomplete units |
 | Worktrees | **Not used** (discovery only; shared workspace) |
-| Linear during discovery | **Forbidden** except Phase D1b snapshot |
-| Linear publish source | `issue-candidates/final/*.md` only |
+| Queue during discovery | **Read once** in Phase D1b. Do not call Linear |
+| Publish source | `issue-candidates/final/*.md` only |
 
 ---
 
@@ -45,13 +45,13 @@ Deep does **not** stop when “enough high-signal findings exist.” It stops wh
 Phase 0–1   Bootstrap + intended state (SKILL.md)
 Phase D0    Full project inventory
 Phase D1    Write review guidance package (scratch dir)
-Phase D1b   ONE Linear board snapshot → board-snapshot.json
+Phase D1b   ONE `.wcp/issues/` read → board-snapshot.json
 Phase D2    User-visible coverage plan (non-blocking)
 Phase D3    Worker loop → local candidate files
 Phase D4    Coverage gate
 Phase D5    Local cleanup (dedupe, board_match, pin, final/)
 Phase D6    Dependency graph on final/ only
-Phase D7    Linear file pass OR --draft stop
+Phase D7    Write `.wcp/issues/` and Notion OR --draft stop
 Phase D8    Handoff
 ```
 
@@ -82,7 +82,7 @@ echo "$scratch_dir"
 | `guidance.md` | Authority for all workers |
 | `inventory.json` | Full review unit list |
 | `coverage.json` | Per-unit status, slice assignment |
-| `board-snapshot.json` | One-shot open Linear issues for offline dedupe |
+| `board-snapshot.json` | One-shot `.wcp/issues/` read for offline dedupe |
 | `state.json` | Run metadata, concurrency, phase, worker task ids |
 | `workers/<slice_id>.md` | Per-worker coverage report |
 | `issue-candidates/**` | Working + final ticket package (see issue-candidates.md) |
@@ -154,16 +154,16 @@ Full procedure: [`review-guidance.md`](review-guidance.md).
 
 ---
 
-## Phase D1b — Board snapshot (one Linear fetch)
+## Phase D1b — Board snapshot (one queue read)
 
-1. Page open/actionable Linear issues for team + project **once**.
-2. Capture: id, identifier, title, state, priority, labels, parent, url, short body excerpt, code-map paths if present.
+1. Read `.wcp/issues/open/`, `in-progress/`, and `blocked/` **once** ([`board-sync.md`](board-sync.md)).
+2. Capture: id, title, status, priority, scope, acceptance, code-map paths if present.
 3. Write `board-snapshot.json` (+ optional `board-snapshot.md`).
-4. **Stop using Linear** until Phase D7.
+4. **Do not re-read the queue** until Phase D7. Do not call Linear.
 
-If Linear fails: set `board_snapshot: null` in state; continue offline; publish may be draft-only.
+If `.wcp/issues/` is missing: set `board_snapshot: null` in state; continue offline.
 
-Workers never call Linear. Orchestrator never re-lists the board per candidate during D3–D5.
+Workers never call Linear or Notion. Orchestrator never re-reads the queue per candidate during D3–D5.
 
 ---
 
@@ -268,7 +268,7 @@ Full rules: [`issue-candidates.md`](issue-candidates.md).
 
 Optional: spawn pin workers over batches of candidate files (read-only + write only under scratch).
 
-`--draft` / Linear unavailable: stop after D5–D6; handoff package path; **not filed**.
+`--draft` / Notion unavailable: stop after D5–D6; handoff package path; **not filed**.
 
 ---
 
@@ -276,45 +276,44 @@ Optional: spawn pin workers over batches of candidate files (read-only + write o
 
 Apply [`dependency-ordering.md`](dependency-ordering.md) to **final/** only.
 
-Record planned `blocked_by` as **candidate ids** in `_merged/index.json`. Map to Linear ids after create.
+Record planned `blocked_by` as **candidate ids** in `_merged/index.json`. Map to issue ids after create.
 
 Filing order: foundations → features → polish/content/a11y.
 
 ---
 
-## Phase D7 — Linear publish pass
+## Phase D7 — Queue publish
 
 Full policy: [`linear-filing.md`](linear-filing.md).
 
-1. Create epic (unless `--no-epic`).
-2. Create leaves **only** from `issue-candidates/final/*.md` in filing order.
-3. Set relations from index (`relatedTo` board matches, `blockedBy` after ids exist).
-4. Write `linear_id` / url back into `_merged/index.json`.
+1. Do not write an epic file.
+2. Write leaves **only** from `issue-candidates/final/*.md` into `.wcp/issues/`, in filing order, then upsert Notion.
+3. A hard dependency is `blocked/` with `reason: blocked by <id>`.
+4. Write `issue_id` back into `_merged/index.json`.
 5. On partial failure: continue remaining finals; handoff lists disk recovery path; **do not delete scratch**.
 6. On **full success** (verified): apply [Scratch directory lifecycle](#scratch-directory-lifecycle-mandatory).
 
 **Never** create from `_inbox` or uncleaned `by-*` dumps.
 
-Do not re-crawl Linear mid-publish. On unexpected duplicate API error: mark candidate, continue.
+Do not re-read `.wcp/issues/` mid-publish. On an unexpected duplicate file: mark the candidate and continue. Do not call Linear.
 
 ### Scratch directory lifecycle (mandatory)
 
 | Outcome | Scratch dir (`project-review-<RUN_ID>`) |
 |---------|----------------------------------------|
-| **All** intended `final/` leaves filed to Linear (create succeeded; ids recorded) | **Delete** entire `SCRATCH_DIR` after verify |
+| **All** intended `final/` leaves filed to `.wcp/issues/` (ids recorded) | **Delete** entire `SCRATCH_DIR` after verify |
 | `--draft` / not filed | **Keep** — path required for later publish |
-| Linear unavailable / auth fail | **Keep** |
+| Notion unavailable | **Keep** the files already written; say which rows failed |
 | Partial file (some finals failed) | **Keep** — remaining `final/` is the re-file source |
 | Discovery only, never reached D7 | **Keep** until filed or user discards |
 
-**Simple rule: filed in Linear → delete temp. Not in Linear → keep temp.**
+**Simple rule: filed into `.wcp/issues/` → delete temp. Not filed → keep temp.**
 
 **Verify before delete (all required):**
 
-1. Every intended publish final has `status: filed` and non-null `linear_id` in the index (or was never in the publish set by design — e.g. filtered before `final/`).
+1. Every intended publish final has `status: filed` and non-null `issue_id` in the index (or was never in the publish set by design — e.g. filtered before `final/`).
 2. Unfiled bodies remaining in `final/` → **do not delete**.
-3. Epic created when required (unless `--no-epic`).
-4. Handoff already has epic + leaf identifiers/URLs (capture **before** deleting).
+3. Handoff already has the leaf ids (capture **before** deleting).
 
 ```bash
 # Only after verify — entire run package, not just final/
@@ -334,7 +333,7 @@ Use [`handoff-template.md`](handoff-template.md) deep sections:
 - Filed epic + leaves (ids/URLs)
 - Duplicates skipped (from offline board_match)
 - Suggested `/solve` commands
-- **Scratch:** absolute path if **kept**; or note `deleted after successful Linear file` if removed
+- **Scratch:** absolute path if **kept**; or note `deleted after successful queue file` if removed
 
 **Stop.** Do not implement or auto-run `/solve` unless user asks.
 
@@ -344,16 +343,16 @@ Use [`handoff-template.md`](handoff-template.md) deep sections:
 
 - Stopping deep early with pending inventory units
 - Single-agent “skim” claiming exhaustive deep coverage
-- Workers calling Linear or filing tickets
-- Re-listing Linear for every candidate during cleanup
-- Creating Linear issues from raw `_inbox` files
+- Workers calling Linear or Notion, or filing tickets
+- Re-reading `.wcp/issues/` for every candidate during cleanup
+- Creating queue files from raw `_inbox` files
 - One mega “fix everything” ticket
 - Using worktrees for review workers
 - Treating coverage as “one ticket per unit” (reviewed with zero findings is success)
 - Flooding final/ with unpinned nits
 - Asking the user to list bugs before inventory/workers
 - **Deleting scratch while any intended final is unfiled** (draft, partial, or failed publish)
-- **Leaving scratch forever after a fully verified Linear publish** (should delete)
+- **Leaving scratch forever after a fully verified queue publish** (should delete)
 
 ---
 
@@ -366,4 +365,4 @@ Use [`handoff-template.md`](handoff-template.md) deep sections:
 | Guidance package | Optional light scratch | Required |
 | Coverage gate | Soft (high-signal done) | Hard 100% terminal |
 | Candidates on disk | Preferred small folder | Required `issue-candidates/` tree |
-| Linear | Snapshot + file from finals preferred; may be lighter | Snapshot once + publish from final/ only |
+| Queue | One `.wcp/issues/` read, then file | Snapshot once + publish from final/ only |

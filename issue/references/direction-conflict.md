@@ -1,6 +1,6 @@
 # Direction-conflict check
 
-Search **non-implemented** `.WCP/issues/` files for a **contradicting direction**
+Search **non-implemented** `.wcp/issues/` files for a **contradicting direction**
 before filing. Do not leave both X and Y implementable. Notion follows
 [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Do not call Linear.
 

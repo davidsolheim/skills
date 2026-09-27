@@ -3,14 +3,14 @@ name: identify
 description: >
   Use when the user runs /identify, says "identify work", "pick a batch",
   "what should we solve", "recommend issues to solve", "choose tickets
-  to work", or wants a human-approved set of `.WCP/issues/` files before /solve.
+  to work", or wants a human-approved set of `.wcp/issues/` files before /solve.
   Also /identify N, /identify TEAM-123, area/theme words, --pick-only, or fast.
 argument-hint: "[N] [TEAM-123] [--pick-only] [fast] [area…]"
 ---
 
 # /identify — Recommend a batch, then `/solve` on approve
 
-Look at **`.WCP/issues/open/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. Pick a **small
+Look at **`.wcp/issues/open/`** ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. Pick a **small
 highest-value mix** of eligible leaves. Upgrade thin members of that set to the
 `/issue` bar. **Stop and wait.**
 
@@ -126,16 +126,15 @@ each thin ticket as not upgraded.
 
 ## Phase 1 — Queue
 
-The board is `.WCP/issues/` in this checkout. Do not resolve a team or project. Reuse that path for every reject/re-propose loop.
+The board is `.wcp/issues/` in this checkout. Do not resolve a team or project. Reuse that path for every reject/re-propose loop.
 
 ---
 
 ## Phase 2 — Inventory and eligibility
 
-1. Read `ELIGIBILITY_MD`. List `.WCP/issues/` files. Do not call Linear.
+1. Read `ELIGIBILITY_MD`. List `.wcp/issues/` files. Do not call Linear.
 2. Apply 2B, 2D, 2E on that union. Identify inventory is **read-only** (no
-   epic rollup writes). `get_issue` / `list_comments` only for 2D/2E needs
-   and for tickets that enter rank / `PROPOSED`.
+   status writes). Read the issue file when a leaf enters rank or `PROPOSED`.
 3. If `AREA_FILTER`: keep leaves whose title, labels, description, or code-map
    paths match (case-insensitive). If the filter matches nothing: **stop** and
    ask whether to re-run unfiltered. Do not silently drop the filter.
@@ -175,8 +174,8 @@ Follow [`references/ranking.md`](references/ranking.md):
 ## Phase 4 — Upgrade thin tickets in `PROPOSED`
 
 Follow [`references/upgrade.md`](references/upgrade.md). Status line first,
-then parallel research / serial Linear save. Tidy-stamp skip when fresh and
-still ready.
+then parallel research and a serial file write. Skip the rewrite when the
+tidy ledger is fresh and the body is still ready.
 
 If an upgrade cannot reach the bar: drop that id, pull the next ranked eligible
 leaf, upgrade that one. Repeat until the batch is ready or `ELIGIBLE` is
@@ -217,8 +216,8 @@ Then wait. Parse the reply with [`references/replies.md`](references/replies.md)
 ## Phase 6 — Reject / rebuild
 
 On **whole-batch reject:** append every `PROPOSED` id to `REJECTED`, clear
-`PROPOSED` / this-round `UPGRADED` display list (Linear upgrades stay), re-run
-Phase 3–5 on `ELIGIBLE` minus `REJECTED`. Refresh Linear states if the board
+`PROPOSED` / this-round `UPGRADED` display list (file upgrades stay), re-run
+Phase 3–5 on `ELIGIBLE` minus `REJECTED`. Re-read those files if the queue
 may have changed. Do not re-upgrade tickets already upgraded this session
 unless someone else edited them.
 
@@ -343,19 +342,21 @@ Omit empty rows.
 
 ---
 
-## Linear hygiene
+## Queue hygiene
 
-| Moment | Linear write? |
-|--------|----------------|
+Do not call Linear.
+
+| Moment | Write? |
+|--------|--------|
 | Inventory / skip / thin S0 | No |
-| Upgrade thin proposed ticket | **Yes** — body (and title only if vague) |
+| Upgrade thin proposed ticket | **Yes** — issue file body (title only if vague), then Notion |
 | Present batch | No |
 | Reject | No |
 | Approve pick-only | No |
-| Approve + solve | Sequential: **Yes** — JIT assign, In Progress, `claimed-by:` on the **next** id only. Parallel pin: nested `/solve` owns claims |
-| Nested `/solve` | Solve owns start-plan/closeout on that leaf |
-| Queue stop (unstarted claims) | **Yes** — `released:` + Backlog/Todo |
-| Parent epic | No claim; solve may comment if it expands |
+| Approve + solve | Sequential: **Yes** — ticket lease on the **next** id only, then Notion `in-progress`. Parallel pin: nested `/solve` owns claims |
+| Nested `/solve` | Solve owns the file move on that leaf. Notion `done` stays with `/prb` or `/yeet` |
+| Queue stop (unstarted claims) | **Yes** — return the file to `open/` and set Notion `open` |
+| Parent shell | No claim |
 
 ---
 

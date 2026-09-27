@@ -1,6 +1,6 @@
 # V1 queue for `/start`
 
-Used by `/start` Phase 4. Write leaves into `.WCP/issues/open/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Do not create a Linear project. Do not call Linear. Ticket quality is **not** forked: use
+Used by `/start` Phase 4. Write leaves into `.wcp/issues/open/` per [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Do not create a Linear project. Do not call Linear. Ticket quality is **not** forked: use
 
 - [`../../issue/references/execution-ready-bar.md`](../../issue/references/execution-ready-bar.md)
 - [`../../issue/references/issue-body-template.md`](../../issue/references/issue-body-template.md)
@@ -16,7 +16,7 @@ Follow [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Title is th
 
 ## Queue
 
-Write each V1 leaf as a file in DEST `.WCP/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under `.WCP/issues/`. There is no epic file.
+Write each V1 leaf as a file in DEST `.wcp/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under `.wcp/issues/`. There is no epic file.
 
 ## What to ticket (V1 only)
 
@@ -72,7 +72,7 @@ Platform / stack on every leaf:
 
 ## Board snapshot
 
-Read `.WCP/issues/` before writing so a second `/start` does not file the same leaf again.
+Read `.wcp/issues/` before writing so a second `/start` does not file the same leaf again.
 
 ## Draft mode
 

@@ -60,12 +60,10 @@ Failed leaf stays In Progress (solve owns it). No zombie claims on 2 and 3.
 
 **Setup:** Project has hundreds of Done issues and a few Backlog leaves.
 
-**Required:** `list_issue_statuses`, then `list_issues` with `team` + `project`
-+ `state` (eligible status names) and slim fields. No unfiltered project list.
-No `description` on the inventory pass.
+**Required:** List `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Do not
+read `done/` or `canceled/` for the inventory. Do not call Linear.
 
-**Fail:** One `list_issues` for the project with no `state`; locally filters
-Done out of a truncated dump.
+**Fail:** Reads `done/` into the inventory, or calls Linear `list_issues`.
 
 ## 8. Workflow in the description
 

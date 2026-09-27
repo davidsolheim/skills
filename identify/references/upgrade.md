@@ -8,13 +8,13 @@ Authority for the quality bar is the **`/issue` skill**, not this file:
 1. Read `$ISSUE_SKILL_MD` (draft / quality / create-gate sections).
 2. Read `$ISSUE_SKILL_DIR/references/` templates if present
    (`issue-body-template.md`, `execution-ready-bar.md`).
-3. Write the **existing** Linear issue. **Do not create** a second issue.
+3. Rewrite the **existing** `.wcp/issues/` file. **Do not create** a second file. After the file write, upsert Notion ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)).
 
 ---
 
 ## Progress (required)
 
-Before Linear writes, show a short status (todo or one message), **not** the
+Before file writes, show a short status (todo or one message), **not** the
 approve prompt:
 
 ```text
@@ -27,7 +27,7 @@ Then upgrade. Then Phase 5 present.
 
 ## Thin vs ready
 
-Treat as **ready** (no Linear write) when the body already has all of:
+Treat as **ready** (no file rewrite) when the body already has all of:
 
 - Code map with paths that exist in **this** workspace
 - Checklist acceptance criteria (pass/fail, not “improve UX”)
@@ -48,14 +48,14 @@ without paths/symbols.
 
 ## Tidy-stamp skip
 
-If `/tidy`’s Linear stamp is fresh (**< 7 days**, parse
+If the local tidy ledger `last_pass` is fresh (**< 7 days**, parse
 `$IDENTIFY_SKILL_DIR/../tidy/references/ledger.md` or
 `$HOME/.grok/skills/tidy/references/ledger.md`) **and** the ready checks still
 pass: **do not rewrite**. Mark **Ready:** `already ready (tidy)`.
 
-If the stamp is fresh but the body still fails ready checks: upgrade anyway.
+If the ledger date is fresh but the body still fails ready checks: upgrade anyway.
 
-Do not require the local tidy ledger; Linear stamp wins.
+The ledger is the cooldown. Do not call Linear.
 
 ---
 
@@ -68,15 +68,15 @@ For each **thin** id in `PROPOSED`:
    ([`../../docs/grok-models.md`](../../docs/grok-models.md)). Do not inherit.
    Read-only on app code. Prompt: `/issue` Phase 3 investigation + draft a full
    `/issue`-bar body for this existing id. Return title + markdown body +
-   whether create-gate passes. No Linear writes from the worker.
-2. Orchestrator **owns** Linear save. Fail-closed: if the gate fails, do **not**
+   whether create-gate passes. No file writes from the worker.
+2. Orchestrator **owns** the file write, then the Notion upsert. Fail-closed: if the gate fails, do **not**
    leave a half-rewritten body; drop from `PROPOSED` and pull the next ranked
    eligible leaf (then upgrade that one).
 
 Ready / tidy-fresh tickets skip spawn.
 
-Keep the original title unless it is vague (“Fix bug”); then retitle in Linear.
-Keep Linear **priority** unless the ticket is Urgent/High in name only and the
+Keep the original title unless it is vague (“Fix bug”); then retitle the file and the Notion Name.
+Keep `priority` unless the ticket is critical or high in name only and the
 body is clearly Low chore — do not silently demote user-facing P1/P2.
 Preserve project, parent, labels unless a label is objectively wrong.
 

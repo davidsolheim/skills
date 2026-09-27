@@ -1,6 +1,6 @@
 # Ticket claim (`/solve` + `/identify`)
 
-The queue is `.WCP/issues/`. Contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Verbs: skill `water-cooler-protocol`, section Issues.
+The queue is `.wcp/issues/`. Contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Verbs: skill `water-cooler-protocol`, section Issues.
 
 Do not call Linear. Do not post `claimed-by` comments.
 
@@ -39,7 +39,7 @@ Claim only the leaf you are about to hand to `/solve`, using the same ticket lea
 
 ## `/prb` and `/yeet`
 
-Do not update an external tracker. The issue file already holds `commit` when `/solve` closed it. Include `.WCP/issues/` in the ship commit.
+Do not update an external tracker. The issue file already holds `commit` when `/solve` closed it. Include `.wcp/issues/` in the ship commit.
 
 ## `/issues` and `/issue`
 

@@ -178,7 +178,7 @@ Do not pass a fake `effort:` field. Do not inherit the parent model.
 ### Worker prompt (required)
 
 ```markdown
-You are a solve **worker** for a single `.WCP/issues/` leaf on a **shared** local `dev` branch. The issue file is the spec. Do not call Linear.
+You are a solve **worker** for a single `.wcp/issues/` leaf on a **shared** local `dev` branch. The issue file is the spec. Do not call Linear.
 
 ## Occupancy (WCP) — hard
 - Name yourself. Prefer the issue id lowercased. `wcp name <id> --json`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. On `name_taken`, pick another id. Do not rename after the token is set.
@@ -199,7 +199,7 @@ You are a solve **worker** for a single `.WCP/issues/` leaf on a **shared** loca
   Do not `git add -A`. Do not `git clean`.
 - Do **not** create branches, worktrees, or check out any other branch
 - Do **not** commit, stash, merge, push, or open a PR. A stash on this shared tree hides another writer's files
-- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.WCP/issues/in-review/`. Do not set `done`
+- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.wcp/issues/in-review/`. Do not set `done`
 - Cheap construction: the issue body + custom-implement-instructions.md.
   **No** bundled `/implement` until-zero-nits
 - Scope: this leaf only
@@ -266,7 +266,7 @@ Wait until every reviewer has exited. Do not commit while one is running.
 ## D6b — Commit on local `dev` (orchestrator)
 
 1. `wcp look`. If any source-file lease is live, wait. Do not commit. Do not stash.
-2. Stage only this wave’s finished product paths. Leave unrelated dirty files unstaged. Leave the issue files for D7. Never secrets / `.env` / `.WCP/RUN.md` / `.WCP/run.sqlite` / sqlite wal/shm. Never `git add -A`.
+2. Stage only this wave’s finished product paths. Leave unrelated dirty files unstaged. Leave the issue files for D7. Never secrets / `.env` / `.wcp/RUN.md` / `.wcp/run.sqlite` / sqlite wal/shm. Never `git add -A`.
 3. Commit the work. `commit` on the issue file cannot name a hash that does not exist yet.
 
 Prefer **one commit per issue** when worker summaries partition the diff
@@ -303,7 +303,7 @@ Failed leaves: leave `in-progress` or set `blocked` with `reason`. Do not take a
 
 After the wave is committed on local `dev`:
 
-1. Re-read `.WCP/issues/` (created-today filter still on when `SCOPE.kind` is `created`).
+1. Re-read `.wcp/issues/` (created-today filter still on when `SCOPE.kind` is `created`).
 2. Newly unblocked in-scope leaves (blocker now `on_dev`) plus occupancy-held
    leaves (primary path now free) enter the next disjoint-path wave on the
    same `dev`. Spawn them the same way (one turn, WCP leases).
@@ -312,7 +312,7 @@ After the wave is committed on local `dev`:
 
 ### Drain gate (`all`, including `/solve today`)
 
-Fresh read of `.WCP/issues/` + scope filter + eligibility. If any implementable
+Fresh read of `.wcp/issues/` + scope filter + eligibility. If any implementable
 **unclaimed** leaf remains **in the active set** (today’s window when created
 scope) → resume D4. Do not Phase 9. `/solve today` may finish while older
 eligible issues still exist — that is correct.

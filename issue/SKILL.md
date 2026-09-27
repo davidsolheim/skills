@@ -3,7 +3,7 @@ name: issue
 description: >
   Investigate a user-described product/code issue in the current repo, gather
   deep file-level context, and write one execution-ready issue under
-  `.WCP/issues/open/` so a cheaper coding model can implement from that file
+  `.wcp/issues/open/` so a cheaper coding model can implement from that file
   alone with only light drift verification. Do not call Linear. Use when the
   user runs /issue, says "file this bug", "log this issue", or describes a
   bug/feature and wants a thorough ticket. Optimized for: Grok researches
@@ -14,7 +14,7 @@ description: >
 # /issue — Investigate and file one execution-ready WCP issue
 
 Rapid-fire intake skill. The user gives **one** short description. You deeply
-investigate the current repo, then write **one** file in `.WCP/issues/open/`
+investigate the current repo, then write **one** file in `.wcp/issues/open/`
 ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)) that is a complete
 **implementation contract** for a cheaper model. Do not call Linear. Do not implement code. Do not
 open a PR.
@@ -30,7 +30,7 @@ Intensity stamp: [`../docs/intensity.md`](../docs/intensity.md) — `/solve` and
 
 ## Operating contract
 
-- **One description → one `.WCP/issues/` file** per invocation unless the user explicitly batches multiple.
+- **One description → one `.wcp/issues/` file** per invocation unless the user explicitly batches multiple.
 - **Speed of interaction, depth of ticket**: keep the user conversation short; put thoroughness in the issue file.
 - **Cheap-model ready**: every filed issue must include code map, contracts, step-by-step plan, file-by-file changes, AC, verification, drift check, Occupancy (WCP), and pre-decided assumptions. Thin tickets fail the create gate.
 - **Do not ask clarifying questions** unless a safety-critical ambiguity would create a wrong ticket. Prefer stating assumptions in the issue body. There is no team or project to resolve.
@@ -60,7 +60,7 @@ Follow phases in order. Parallelize reads when possible.
 
 ### Phase 1 — Queue
 
-The queue is `.WCP/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Notion status for the same file is [`../docs/notion-issues.md`](../docs/notion-issues.md). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing.
+The queue is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Notion status for the same file is [`../docs/notion-issues.md`](../docs/notion-issues.md). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing.
 
 ### Phase 2 — Duplicate / overlap / direction-conflict check
 
@@ -176,7 +176,7 @@ If the gate fails: investigate more, or paste the draft in chat and say what is 
 #### 5B. Write the file
 
 1. Next id per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
-2. Write `.WCP/issues/open/<id>-<slug>.md` with frontmatter `status: open`, empty `assignee`, `lease_expires`, `commit`, and `reason`, plus `priority`, `scope`, `acceptance`, `files: []`, and `created`.
+2. Write `.wcp/issues/open/<id>-<slug>.md` with frontmatter `status: open`, empty `assignee`, `lease_expires`, `commit`, and `reason`, plus `priority`, `scope`, `acceptance`, `files: []`, and `created`.
 3. The body is the execution-ready contract from Phase 4.
 4. Do not assign. Do not set `in-progress`. Do not commit product code. Leave the file in the worktree.
 5. If the write fails, report the error and paste the body.
@@ -293,6 +293,6 @@ When the user sends multiple issues back-to-back:
 If the Notion upsert fails:
 
 1. Say what failed
-2. The `.WCP/issues/` file is still the ticket
+2. The `.wcp/issues/` file is still the ticket
 3. Do not pretend the Notion row exists
 4. Do not call Linear

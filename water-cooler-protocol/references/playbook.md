@@ -1,6 +1,6 @@
 # Conflict and red-test playbook
 
-Verbs are in `../SKILL.md`. This file is the decision table. Ticket claim, renew, reclaim, close, cancel, and block are the Issues section of that skill. Do not `wcp acquire` a file under `.WCP/issues/`.
+Verbs are in `../SKILL.md`. This file is the decision table. Ticket claim, renew, reclaim, close, cancel, and block are the Issues section of that skill. Do not `wcp acquire` a file under `.wcp/issues/`.
 
 ## Name
 

@@ -2,7 +2,7 @@
 name: walk
 description: >
   Walk every front-facing UI surface in the live app as a user, debug broken
-  interactions, and file every bug, idea, and improvement as a solve-ready `.WCP/issues/` file
+  interactions, and file every bug, idea, and improvement as a solve-ready `.wcp/issues/` file
   issues. Use when the user runs /walk, says "walk the UI", "click through the
   app", "walk every screen", "front-facing UI audit", "debug the whole UI into
   Linear", or "file UI issues from a live walkthrough". Prefer this over
@@ -11,7 +11,7 @@ description: >
 argument-hint: "[--url URL] [--draft|--file] [--signed-out|--signed-in] [--no-epic] [--desktop-only|--mobile-only] [surface…]"
 ---
 
-# /walk — Live front-facing UI walk → `.WCP/issues/`
+# /walk — Live front-facing UI walk → `.wcp/issues/`
 
 Do not call Linear. File leaves per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
 
@@ -52,7 +52,7 @@ If they already know the tickets → `/issue` or `/issues`.
 5. **Coverage gate.** Every front-facing unit is `walked`, `blocked_auth`,
    `blocked_flag`, `broken_load`, or `not_front`. Do not stop because “enough
    tickets.” Zero findings on a clean screen is success for that unit.
-6. **Local-first, then Notion.** Candidates on disk; one pass over `.WCP/issues/`; one
+6. **Local-first, then Notion.** Candidates on disk; one pass over `.wcp/issues/`; one
    publish pass. Reuse `/project-review` filing, which writes files and Notion rows.
 7. **Unassigned backlog only.** No In Progress, no assignee, no `/solve` claim.
 8. **No product code changes.** Scratch files only.
@@ -268,7 +268,7 @@ Filing order: foundation → feature/bug → polish/idea/improvement/a11y/conten
 ### Phase 6 — File the queue and Notion (default)
 
 Follow `$REVIEW_SKILL_DIR/references/linear-filing.md` with this **filter
-override**. That file writes `.WCP/issues/` and the Notion row. Do not call Linear.
+override**. That file writes `.wcp/issues/` and the Notion row. Do not call Linear.
 
 | Mode | What to file |
 |------|----------------|
