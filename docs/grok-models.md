@@ -10,7 +10,8 @@ another host.
 
 | Role | `model` | When |
 |------|---------|------|
-| Default | `grok-4.6` | `/solve` implementer, optional `/solve` bug-only reviewer, nested `/solve`, `/issue` upgrades, `/prb` panel, `/prb` fixer, identify nested solve |
+| Default | `grok-4.6` | `/solve` implementer, optional `/solve` bug-only reviewer, nested `/solve`, `/issue` upgrades, identify nested solve |
+| `/prb` | `grok-4.7` | `/prb` review panel and `/prb` fixer |
 | Explore fan-out | `grok-4.5` | Read-only inventory / code-walk workers (`/project-review` deep explore, identify research-only upgrade workers). If the host rejects `grok-4.5`, use `grok-4.6` |
 
 Spawn `subagent_type` (and the matching `~/.grok/roles/` + `~/.grok/agents/` entries) pins **reasoning** because `spawn_subagent` has no `effort` field. Authority: [`intensity.md`](intensity.md).
@@ -22,7 +23,7 @@ Spawn `subagent_type` (and the matching `~/.grok/roles/` + `~/.grok/agents/` ent
 | `prb-reviewer` | medium |
 | `prb-fixer` | medium |
 
-If the host rejects a custom type, use `general-purpose` + `model: grok-4.6` and say so once.
+If the host rejects a custom type, use `general-purpose` plus the row's `model` (`grok-4.7` for `/prb`, `grok-4.6` otherwise) and say so once.
 
 Do **not** omit `model` to inherit the parent. Inheritance picks the host’s
 default (often not Grok).
@@ -32,8 +33,9 @@ on resume.
 
 ## Spawn contract
 
-Every `spawn_subagent` must include `model: grok-4.6` (or `grok-4.5` only for
-the explore-fan-out row). For `/solve` / `/prb` workers also pass the
+Every `spawn_subagent` must include the `model` from the table above
+(`grok-4.7` for `/prb`, `grok-4.6` by default, `grok-4.5` only for the
+explore-fan-out row). For `/solve` / `/prb` workers also pass the
 `subagent_type` from the table above. If a slug is rejected, pick the other
 **Grok** slug. Never fall back off-family.
 

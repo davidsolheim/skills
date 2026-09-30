@@ -2,7 +2,7 @@
 name: prb
 description: >
   Ship session work: fetch origin/main into local main, merge origin/main into
-  local dev, run an intensity-selected Local Code Review Gate on grok-4.6
+  local dev, run an intensity-selected Local Code Review Gate on grok-4.7
   (scratch markdown + one fixer on local dev until clean), then push to
   origin/dev; open a PR from dev into main; babysit
   CI/bot feedback on a 5-minute cadence for up to 15 minutes; auto-merge into
@@ -25,7 +25,7 @@ Ship **this session’s finished work** by:
 
 1. Identifying commits/changes that belong on local **`dev`**
 2. **Refreshing from remote first:** `git fetch origin`, update local **`main`** from **`origin/main`**, then **merge `origin/main` into local `dev`** so `dev` has the latest trunk **before any push**
-3. **Local Code Review Gate (Phase 1.5):** intensity-selected `grok-4.6` panel on `origin/main...dev` ([`../docs/intensity.md`](../docs/intensity.md)); if actionable findings exist, fix them on local `dev` from the merged scratch markdown via `prb-fixer` — **closed loop until clean** (or cycle cap / `--skip-review`). Then **runtime proof** per [`../docs/prove-it-works.md`](../docs/prove-it-works.md) — `--skip-review` skips the panel only, not the proof.
+3. **Local Code Review Gate (Phase 1.5):** intensity-selected `grok-4.7` panel on `origin/main...dev` ([`../docs/intensity.md`](../docs/intensity.md)); if actionable findings exist, fix them on local `dev` from the merged scratch markdown via `prb-fixer` — **closed loop until clean** (or cycle cap / `--skip-review`). Then **runtime proof** per [`../docs/prove-it-works.md`](../docs/prove-it-works.md) — `--skip-review` skips the panel only, not the proof.
 4. **Local compile + ship-set tests (Phase 1.6):** run this project’s build/typecheck and ship-set tests on local `dev` ([`references/local-compile.md`](references/local-compile.md)) so type errors never consume the babysit window. `--skip-review` does **not** skip this.
 5. Pushing **`dev`** to **`origin/dev`** only after step 2 succeeds with a clean merge, step 3 is clean (or explicitly skipped), **and** step 4 passed (or is `n/a` / `--skip-local-compile`)
 6. Opening (or reusing) a PR: **base `main` ← head `dev`**
@@ -42,7 +42,7 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 
 - **Branches (fixed names, lowercase):** integration branch is **`dev`**; trunk is **`main`**. Never use capital-`D` `Dev`.
 - **Always refresh trunk before push (hard rule):** **never** `git push origin dev` until you have (1) `git fetch origin`, (2) updated local **`main`** to match **`origin/main`** (ff-only when possible), and (3) **merged `origin/main` into local `dev`** with conflicts resolved. Pushing a stale `dev` that is missing latest `main` is a skill failure.
-- **Local Code Review Gate before push (hard rule):** **never** `git push origin dev` and **never** open a PR until Phase 1.5 reports **zero actionable findings**, unless the user explicitly passed `--skip-review`. The gate is the intensity-selected `grok-4.6` panel in [`references/local-code-review.md`](references/local-code-review.md) (bands: [`../docs/intensity.md`](../docs/intensity.md); rubric: [`references/review-rubric.md`](references/review-rubric.md)). Orchestrator does not author findings.
+- **Local Code Review Gate before push (hard rule):** **never** `git push origin dev` and **never** open a PR until Phase 1.5 reports **zero actionable findings**, unless the user explicitly passed `--skip-review`. The gate is the intensity-selected `grok-4.7` panel in [`references/local-code-review.md`](references/local-code-review.md) (bands: [`../docs/intensity.md`](../docs/intensity.md); rubric: [`references/review-rubric.md`](references/review-rubric.md)). Orchestrator does not author findings.
 - **Runtime proof before push (hard rule):** after the panel is clean (or skipped), follow [`../docs/prove-it-works.md`](../docs/prove-it-works.md) for in-scope ships. Matrix green is not a pass. `--skip-review` does **not** waive proof.
 - **Local compile + ship-set tests before push (hard rule):** **never** `git push origin dev` until Phase 1.6 has a green compile and ship-set tests on the final local `dev` tree, unless the ship is docs-only (`n/a`) or the user passed `--skip-local-compile`. Procedure: [`references/local-compile.md`](references/local-compile.md). `--skip-review` does **not** skip this. Failure blocks push — do not burn the 15-minute babysit window on a type error `next build` / `$PKG run build` would have shown locally.
 - **Closed-loop fixes on local `dev` only:** when the gate finds issues, merge findings into scratch markdown and spawn **one** `prb-fixer`. Do **not** file new issues or nested `/solve`. Do not push mid-loop. Cap full review→fix→re-review cycles (band default in [`../docs/intensity.md`](../docs/intensity.md), override `--max-fix-cycles N`); if the cap is hit with remaining findings, **stop and report** — do not push. The gate result is the Phase 5 report.
@@ -172,7 +172,7 @@ Follow [`references/local-code-review.md`](references/local-code-review.md) §3�
 1. Compute the ship set (`git log` / three-dot diff / name-only on `origin/main...dev`).
 2. Set `SHIP_INTENSITY` per [`../docs/intensity.md`](../docs/intensity.md) (`max` of stamps in the ship; bump to **critical** if the diff touches auth/billing/schema/migrations). Announce: `Ship intensity: <band> · panel <n> · exhaustive on|off`.
 3. Load root + nested `AGENTS.md` **Code Review Rules** for changed paths.
-4. Spawn the intensity-selected `grok-4.6` panel in one turn ([`references/local-code-review.md`](references/local-code-review.md) §6C) with [`references/review-rubric.md`](references/review-rubric.md) prepended and one overlay from [`references/reviewer-prompts.md`](references/reviewer-prompts.md). `subagent_type: prb-reviewer` (high via the role). Do **not** pass a fake `effort:` field. Same full prompt on exhaustive and babysit passes — never a stub.
+4. Spawn the intensity-selected `grok-4.7` panel in one turn ([`references/local-code-review.md`](references/local-code-review.md) §6C) with [`references/review-rubric.md`](references/review-rubric.md) prepended and one overlay from [`references/reviewer-prompts.md`](references/reviewer-prompts.md). `subagent_type: prb-reviewer` (high via the role). Do **not** pass a fake `effort:` field. Same full prompt on exhaustive and babysit passes — never a stub.
 5. Merge JSON: dedupe, drop nits/speculation/pre-existing, cite rules when they apply. Actionable = every P0/P1/P2 ([`references/review-rubric.md`](references/review-rubric.md)). Do not demote always-actionable classes to nits.
 6. **Exhaustive:** default **on** when `SHIP_INTENSITY` is not **light**. If the first panel is clean and exhaustive is on, run **one** more panel pass with the same full rubric + overlay. `--exhaustive-review` / `--no-exhaustive` override.
 
@@ -194,7 +194,7 @@ while actionable findings remain:
     Phase 5 report
   cycle += 1
 
-  Spawn one prb-fixer (model grok-4.6) with the merged cycle markdown.
+  Spawn one prb-fixer (model grok-4.7) with the merged cycle markdown.
   Fixer writes sibling …-fixes.md and releases every source-file lease.
   Orchestrator commits the product diff on local dev only when `wcp look`
   shows no live source-file lease (never stage scratch, never stash), then
@@ -327,7 +327,7 @@ gh pr create --base main --head dev \
 ## Notes
 - Head: `dev` → Base: `main`
 - Opened by `/prb`
-- Local Code Review Gate: clean (intensity-selected grok-4.6 panel) | skipped (--skip-review)
+- Local Code Review Gate: clean (intensity-selected grok-4.7 panel) | skipped (--skip-review)
 EOF
 )"
 ```
@@ -527,7 +527,7 @@ If Notion fails: list those ids under **Notion (not updated)** in Phase 5. Do no
 ```markdown
 ** /prb complete**
 **Repo:** owner/repo
-**Review:** ship intensity <band> · panel clean after N cycles (roles…, grok-4.6) | local fixed M findings from scratch | skipped (--skip-review) | blocked at cycle cap (remaining …) | blocked (fixer/thoroughness|security|challenge agent failed)
+**Review:** ship intensity <band> · panel clean after N cycles (roles…, grok-4.7) | local fixed M findings from scratch | skipped (--skip-review) | blocked at cycle cap (remaining …) | blocked (fixer/thoroughness|security|challenge agent failed)
 **Runtime proof:** driven `<path>` → `<observed>` | n/a (out of scope) | blocked (unproven)
 **Local compile:** `$LOCAL_COMPILE_CMD` ok | n/a | skipped (--skip-local-compile) | blocked (<reason>)
 **Ship-set tests:** `$LOCAL_TEST_CMD` ok | n/a | skipped | blocked (<reason>)
@@ -566,7 +566,7 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 - **Never invent** migrate commands or Doppler production config names; follow the project under the current git root
 - **Never** `db:push` / schema push to production by default; never print `DATABASE_URL` or Doppler secrets; never auto-seed CMS/content as part of `/prb`
 - Do not file new issues for gate findings; all closed-loop fixes land on local `dev` only
-- **Never skip the intensity-selected `grok-4.6` panel** in Phase 1.5 (unless `--skip-review`); orchestrator does not substitute its own review. Do not run a 4-agent panel on a light ship, and do not skip security or challenge on a non-light ship.
+- **Never skip the intensity-selected `grok-4.7` panel** in Phase 1.5 (unless `--skip-review`); orchestrator does not substitute its own review. Do not run a 4-agent panel on a light ship, and do not skip security or challenge on a non-light ship.
 - **Never skip runtime proof** on an in-scope ship ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)); `--skip-review` is not a waiver
 - **Never push if Phase 1.6 compile or ship-set tests failed** (unless `n/a` or `--skip-local-compile`); `--skip-review` is not a waiver. Re-run Phase 1.6 after babysit fixes before re-pushing
 - **Never push if thoroughness, security, or challenge failed** to return valid JSON
@@ -580,7 +580,7 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 - Pushing `dev` or opening a PR without a clean Local Code Review Gate (unless `--skip-review`)
 - Skipping re-review after fixer commits
 - Orchestrator-authored findings instead of the intensity-selected panel
-- Reviewing Phase 1.5 on a model other than `grok-4.6` (or omitting `model` so Cursor/Claude inherit)
+- Reviewing Phase 1.5 on a model other than `grok-4.7` (or omitting `model` so Cursor/Claude inherit)
 - Treating nits as ship-blockers — or treating P0/P1/P2 findings as optional nits
 - Demoting an always-actionable-class finding to a nit (“operator footgun”, “not the default path”)
 - Compressing exhaustive or babysit prompts (stub “hunt for NEW” / `git show` only)
@@ -619,4 +619,4 @@ If Phase 1.5 or Phase 1.6 stopped the ship before push, still emit this report w
 | `/solve` | Cheap construction onto **local** `dev`; **not** the `/prb` closed loop |
 | `/review` | Optional local/branch/PR review tooling; **not** the `/prb` ship gate (Phase 1.5 is local-only and does not post GitHub PENDING reviews) |
 | `/pr-babysit` | Watches arbitrary PR numbers; does not define the push-`dev`/open-`main` flow |
-| `/prb` | End-to-end: session → **intensity-selected grok-4.6 review gate + scratch fixer** → **local compile + ship-set tests** → `origin/dev` → Notion dev SHA → PR into `main` → timed babysit → **project production migrate when needed** → merge → **Notion Status done** |
+| `/prb` | End-to-end: session → **intensity-selected grok-4.7 review gate + scratch fixer** → **local compile + ship-set tests** → `origin/dev` → Notion dev SHA → PR into `main` → timed babysit → **project production migrate when needed** → merge → **Notion Status done** |

@@ -1,6 +1,6 @@
 # /prb — Local Code Review Gate + Closed-Loop Fix Cycle
 
-When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.6` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings live in scratch markdown. A `prb-fixer` applies them on local `dev`. The gate re-runs until clean (or the cycle cap). The Phase 5 report is the gate record. Notion updates happen after `origin/dev` and `origin/main` ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)).
+When `/prb` has finished Phase 1 (local `dev` contains latest `origin/main` and the session ship set), **run this gate before any push to `origin/dev` and before opening a PR**. The gate is an **intensity-selected review panel** on `grok-4.7` (bands: [`../../docs/intensity.md`](../../docs/intensity.md)), merged through [`review-rubric.md`](review-rubric.md). Findings live in scratch markdown. A `prb-fixer` applies them on local `dev`. The gate re-runs until clean (or the cycle cap). The Phase 5 report is the gate record. Notion updates happen after `origin/dev` and `origin/main` ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)).
 
 Authority for the ship-level flow remains [`../SKILL.md`](../SKILL.md). This file is the detailed procedure for **Phase 1.5**. Rubric and specialist prompts are not duplicated here.
 
@@ -160,7 +160,7 @@ Do not spawn roles the band does not call for. Do not skip security or challenge
 Shared spawn args:
 
 - `subagent_type`: `prb-reviewer` (fallback `general-purpose` if the host rejects the type; say so once)
-- `model`: `grok-4.6` (required for this gate; never omit; [`../../docs/grok-models.md`](../../docs/grok-models.md))
+- `model`: `grok-4.7` (required for this gate; never omit; [`../../docs/grok-models.md`](../../docs/grok-models.md))
 - `background`: `true`
 - `description`: `[<tag>] prb local gate c${C} r${R}`
 - Do **not** pass `capability_mode`
@@ -187,7 +187,7 @@ Write the merged gate artifact:
 - Repo: <owner/repo>
 - dev SHA: <sha>
 - origin/main SHA: <sha>
-- Panel: <roles spawned> · grok-4.6 · ship intensity: <band>
+- Panel: <roles spawned> · grok-4.7 · ship intensity: <band>
 - Exhaustive: yes|no · panel pass: r/R
 - Agents ok: <list> · failed: <list or none>
 - Correctness verdict: pass | fail
@@ -266,7 +266,7 @@ loop:
   cycle += 1
 
   # One fixer, whole actionable list
-  spawn prb-fixer (model grok-4.6) with merged c${C}.md as the contract
+  spawn prb-fixer (model grok-4.7) with merged c${C}.md as the contract
   fixer writes sibling prb-review-${RUN_ID}-c${C}-fixes.md
   orchestrator:
     - confirm product diff is on local dev and the fixer has released its leases
@@ -315,7 +315,7 @@ If two findings touch the same files, one fixer still does both. Spawn a second 
 
 | Step | Parallelism |
 |------|-------------|
-| Review | Intensity-selected `grok-4.6` `prb-reviewer` agents in parallel, then orchestrator merge |
+| Review | Intensity-selected `grok-4.7` `prb-reviewer` agents in parallel, then orchestrator merge |
 | Fix | **One** `prb-fixer` (high via the role) |
 | Re-review | Full panel again, only after the cycle’s fixer finished or failed |
 
@@ -378,7 +378,7 @@ Findings fixed: M
 - Orchestrator writing findings instead of spawning the panel
 - Spawning a 4-agent panel on a light ship, or skipping security on a critical ship
 - Passing a fake `effort:` field on `spawn_subagent`
-- Using any model other than `grok-4.6` for these reviewers (including inherit-parent / Claude / GPT / Composer)
+- Using any model other than `grok-4.7` for these reviewers (including inherit-parent / Claude / GPT / Composer)
 - Treating the panel as a nit hunt — or treating P0/P1/P2 as optional
 - Demoting an always-actionable-class finding to a nit (“operator footgun”, “not the default path”)
 - Running three sequential single-reviewer passes instead of the intensity-selected panel
