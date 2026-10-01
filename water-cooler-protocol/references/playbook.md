@@ -27,8 +27,8 @@ Verbs are in `../SKILL.md`. This file is the decision table. Ticket claim, renew
 
 On `conflict`:
 
-1. Same symbol or same intent, lease live → retarget to another file from `arch`.
-2. Same intent, lease idle (`expired`) → `overtake --test <your-test>` only to finish their burst.
+1. Same symbol or same intent, seat live → retarget to another file from `arch`. A research gap inside the file is not idle.
+2. Same intent, seat takeable (no write and no heartbeat for 5 minutes, or a dead pid) → `overtake --test <your-test>` only to finish that work. Inherit `doing` and `scope`. Do not revert hunks.
 3. No overlap → pick another path from `arch`. Re-read disk before a later acquire. Do not rewind their hunks.
 
 ## write-ok

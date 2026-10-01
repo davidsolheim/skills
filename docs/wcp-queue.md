@@ -11,17 +11,19 @@ Claim, renew, reclaim, close, cancel, and block are the player skill `water-cool
 ## Layout
 
 ```
-.wcp/issues/open/
-.wcp/issues/in-progress/
-.wcp/issues/in-review/
-.wcp/issues/done/
-.wcp/issues/canceled/
-.wcp/issues/blocked/
+.wcp/issues/open/20261001T1202Z-0123-rotate-refresh-token.md
+.wcp/issues/in-progress/20261001T1202Z-0123-rotate-refresh-token.md
+.wcp/issues/in-review/20261001T1202Z-0123-rotate-refresh-token.md
+.wcp/issues/blocked/20261001T1202Z-0123-rotate-refresh-token.md
+.wcp/issues/done/2026/10/01/20261001T1202Z-0123-rotate-refresh-token.md
+.wcp/issues/canceled/2026/10/01/20261001T1202Z-0123-rotate-refresh-token.md
 ```
 
-On a checkout that still has only `.WCP/`, those same folders are `.WCP/issues/`.
+On a checkout that still has only `.WCP/`, those same paths are under `.WCP/issues/`.
 
-`status` in the file is the source of truth. The folder matches it. Update `status`, then move the file.
+`open/`, `in-progress/`, `in-review/`, and `blocked/` stay flat. A new `done/` or `canceled/` file goes under `YYYY/MM/DD` from `created`. Walk every `*.md` under the status directory, including a day tree and any older flat file.
+
+`status` in the file is the source of truth. The folder matches it. Update `status`, then move the file. Keep the stamped filename.
 
 ## Frontmatter
 
@@ -37,16 +39,20 @@ scope:
 acceptance:
 files: []
 commit:
+pr:
 reason:
-created: 2026-09-24T18:04:00Z
+created: 2026-10-01T12:02:00Z
+session: 2026-10-01T12:00:00Z
+notion_page_id:
+notion_url:
 ---
 ```
 
-The body is the spec. `/issue` and `/issues` put the execution-ready contract in the body. `acceptance` is the short done line. `scope` is what the ticket may change. `created` is ISO-8601 UTC.
+The body is the spec. `/issue` and `/issues` put the execution-ready contract in the body. `acceptance` is the short done line. `scope` is what the ticket may change. `created` is the UTC time this file was filed. `session` is the UTC time the session opened, shared by the files from that sitting. `pr` is the pull request URL, empty until the ship knows it.
 
 ## Ids
 
-Scan every `*.md` under `.wcp/issues/`. The next id is one greater than the highest numeric `id`, zero-padded to 4 digits. Filename: `0123-short-slug.md`.
+Scan every `*.md` under `.wcp/issues/`. The next id is one greater than the highest numeric `id`, zero-padded to 4 digits. Filename: `YYYYMMDDThhmmZ-0123-short-slug.md`, from `created`. The example for `2026-10-01T12:02:00Z` is `20261001T1202Z-0123-short-slug.md`.
 
 A pin such as `0123` or `TEAM-123` is the issue whose `id` or filename contains that number. Notion uses that same id.
 
@@ -88,17 +94,17 @@ Area scope: title or body contains the query. There are no milestones or labels.
 
 1. Search `open/`, `in-progress/`, and `blocked/` before creating. An existing match is not filed again.
 2. An older open ticket that contradicts this one: cancel it with `reason` naming the new id. Do not cancel a live `in-progress` lease.
-3. Write the new file in `open/` with `status: open`, empty `assignee`, `lease_expires`, `commit`, and `reason`.
-4. A hard dependency: write the blocker in `open/` first. Write the dependent in `blocked/` with `reason: blocked by <id>`.
+3. Write the new file in flat `open/` with `status: open`, empty `assignee`, `lease_expires`, `commit`, `pr`, and `reason`. Set `created` to now UTC and `session` to the session open time. Use the stamped filename.
+4. A hard dependency: write the blocker in `open/` first. Write the dependent in flat `blocked/` with `reason: blocked by <id>`.
 5. Do not assign and do not set `in-progress` while filing.
 6. These skills do not commit product code. Leave the new issue file in the worktree so the next queue commit includes it.
-7. Upsert the Notion row for that file ([`notion-issues.md`](notion-issues.md)).
+7. After the file is written, upsert the Notion row ([`notion-issues.md`](notion-issues.md)). If Notion fails, the file stands. Do not stop filing.
 
 ## Claim and close
 
 `/solve` and `/identify` claim with the player skill ticket lease. One ticket per agent. Re-read after the write. If `assignee` is not you, stop.
 
-The solver does not commit and does not stash. When acceptance is met, the solver moves the file to `in-review/` (player skill, Close). The orchestrator launches one reviewer per file in that directory. The reviewer checks security, accessibility, functionality, and aesthetics, fixes failures under a file lease, and sets `done`. The orchestrator commits only after that reviewer has exited and `wcp look` shows no live source-file lease, then writes the hash into `commit`. After each of those file moves, the orchestrator updates Notion. That update does not set Notion `done`.
+The solver does not commit and does not stash. When acceptance is met, the solver moves the file to flat `in-review/` (player skill, Close), keeping the stamped filename. The orchestrator launches one reviewer per file in that directory. The reviewer checks security, accessibility, functionality, and aesthetics, fixes failures under a file lease, and sets `done`, moving the file to `done/YYYY/MM/DD/` from `created`. The orchestrator commits only after that reviewer has exited and `wcp look` shows no live source-file lease, then writes the hash into `commit`. After each of those file moves, the orchestrator updates Notion. If Notion fails, the file stands. That update does not set Notion `done`.
 
 On failure before review, leave the ticket `in-progress` if you still hold the lease, or `blocked` with `reason` when a human has to answer. The reviewer is the one who sets `done`.
 
@@ -106,7 +112,7 @@ On failure before review, leave the ticket `in-progress` if you still hold the l
 
 `/prb` and `/yeet` are the human export. They commit only when `wcp look` shows no live source-file lease. They do not stash another writer's files. Commit `.wcp/issues/` with the work. A done issue whose `commit` is in the ship stays `done`.
 
-Immediately after `origin/dev` is pushed, update Notion with the dev SHA and the PR URL. Immediately after `origin/main` and that skill's completion gate, set Notion Status `done` ([`notion-issues.md`](notion-issues.md)).
+When the ship knows the pull request URL, write it into `pr` on the issue file. Immediately after `origin/dev` is pushed, update Notion with the dev SHA and the PR URL. Immediately after `origin/main` and that skill's completion gate, set Notion Status `done` ([`notion-issues.md`](notion-issues.md)). If Notion fails, `pr` and `commit` on the file are the record. A later resync copies them.
 
 ## Stat and tidy
 

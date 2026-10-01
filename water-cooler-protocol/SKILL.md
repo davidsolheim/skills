@@ -13,7 +13,7 @@ description: >
 
 You are one writer among others on this checkout. Changed files are other workers, not corruption.
 
-Spec: if this repo contains `PROTOCOL.md` for WCP, that file is the protocol. Commands below are the verbs.
+Spec: if this repo contains `PROTOCOL.md` for WCP, that file is the protocol. Commands below are the verbs. Skill wiring for init, ids, solve waves, ticket occupancy, and the ship push: [`../docs/wcp.md`](../docs/wcp.md).
 
 ## Identity
 
@@ -25,13 +25,13 @@ export WCP_AGENT=<agent>
 export WCP_NAME_TOKEN=<token>
 ```
 
-If `WCP_AGENT` is already set, `wcp name` that id. `name_taken` means pick another id and export the new pair. Once `WCP_NAME_TOKEN` is set, that is your name for the run. Do not take a second id. Do not call `wcp set-arch` or `wcp stop`.
+If `WCP_AGENT` is already set, `wcp name` that id. `name_taken` means pick a different id and export the new pair. Once `WCP_NAME_TOKEN` is set, that is your name for the run. Do not take a second id. Do not call `wcp set-arch` or `wcp stop`.
 
 ## Start
 
 Read `.wcp/issues/open/`, `.wcp/issues/in-progress/`, and `.wcp/issues/in-review/`. If the checkout has a `.WCP/` directory and no `.wcp/` directory, the queue is `.WCP/issues/` even when that issues folder does not exist yet. Create it there. Do not create `.wcp/` while `.WCP/` is the live directory. If both directories exist, do not start `wcp` and do not pick one. Stop any daemon. Do not rename one folder onto the other. Do not rename it during a run. Reclaim expired `in-progress` tickets (Issues, below). Do not reclaim `in-review`. Do not copy tickets, specs, or diffs onto `.wcp/RUN.md`. `arch` on the board stays the session aim, not a copy of every ticket.
 
-If those directories are missing and this run needs a queue, create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/`, and one issue whose body is the current `arch`. Do not invent a backlog.
+If those directories are missing and this run needs a queue, create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/`. File one stamped issue for this session. File another file when the session contains a separate change. Do not invent a backlog.
 
 ## Turn
 
@@ -44,17 +44,20 @@ wcp look --json
 # 2. New file (not in the tree when the run started): write it. Stop. No acquire.
 # 3. File that already existed:
 wcp acquire --path <existing-file> --test <test-file> --doing "<burst>" --scope "<symbol>" --json
+# research in this file, including between hunks
+wcp reup --json
 wcp write-ok --path <existing-file> --json
 # re-read that file from disk, edit, flush
+# wcp reup while you stay in the file
 wcp release --json
 # run YOUR tests only
 ```
 
 A claim is only for a file that was already in the tree. Write a test file directly. Write a new file directly. You are the only writer on a path you are creating.
 
-Lease is a burst on that existing file. Release the instant bytes are on disk — before tests, thinking, or waiting. Holding a lease through the test runner is a protocol break. If you must write that existing file again, acquire again.
+The seat means you are in that file, including research between hunks. The next hunk may still be in an unflushed buffer. Heartbeat with `wcp reup` while you stay. It refreshes `expires_at` by the takeover window (300 seconds). It does not require a write. Release when you leave the file. Holding the seat through tests, or through work on a different file, is a protocol break. One live source path per agent. One agent per path. If you must enter that file again, acquire again.
 
-`wcp reup` only while still flushing this burst (TTL about to expire mid-write).
+Do not edit `.wcp/RUN.md`. Call `wcp`. `wcp look` is the observer view. It stays cheap and does not hash the tree.
 
 ## Tests
 
@@ -70,9 +73,9 @@ Before any claim, write or append the test. The comment names the file you will 
 
 On `conflict`, read `existing.doing` / `existing.scope`:
 
-1. Same symbol or same intent → retarget. Do not overtake a live burst.
-2. `expired` or dead pid → `wcp overtake --path <file> --test <test-file>` only to **finish** that work. Your test must name the path. Inherit intent. Do not revert hunks. Do not swap designs.
-3. Else pick another path from `arch`. Do not busy-loop `look`.
+1. Same symbol or same intent → retarget. Do not overtake a live seat.
+2. The seat is takeable — no write and no heartbeat for 5 minutes, or the recorded pid is dead → `wcp overtake --path <file> --test <test-file>` only to **finish** that work. Your test must name the path. Inherit `doing` and `scope`. Set `from_agent`. Do not revert hunks. Do not swap designs.
+3. Else pick another path from `arch`. Do not busy-loop `look`. A research gap inside the file is not a reason to overtake.
 
 `test_file` means write the test and do not claim it. `new_file` means write the file and do not claim it. `no_test` means the test naming this path is not on disk yet.
 
@@ -103,31 +106,33 @@ If the path matches `.wcp/barrels` (lockfiles, generated clients, root schema): 
 
 ## Board
 
-`wcp look` before every write. Edit occupancy only through `wcp`. Do not rewrite `.wcp/RUN.md` by hand (the daemon overwrites it). `RUN.md` is occupancy and `arch` only. Do not put specs, ticket status, or diffs on it.
+`wcp look` before every write. Edit occupancy only through `wcp`. Do not rewrite `.wcp/RUN.md` by hand (the daemon overwrites it). `RUN.md` is occupancy and `arch` only. Do not put specs, ticket status, or diffs on it. `look` does not reap and does not hash the tree. A human may poll it every 5 seconds on an active checkout. Five minutes is how long a quiet seat is protected, not how long the seat stays invisible.
 
 ## End
 
-When the work matches the ticket's `acceptance`, release every source-file lease, move the ticket to `in-review/`, and stop. The orchestrator launches one reviewer for that file. The reviewer sets `done`. A worker does not commit. An idle ticket lease is a protocol violation, the same as an idle file line.
+When the work matches the ticket's `acceptance`, release every source-file lease, move the ticket to `in-review/`, and stop. The orchestrator launches one reviewer for that file. The reviewer sets `done`. A worker does not commit. An idle ticket lease is a protocol violation. A source seat held through tests or across files is the same kind of violation.
 
 ## Issues
 
-Committed queue for a solo builder with many agents on one checkout. Do not call Linear or GitHub Issues. Assign, claim, and close work by editing files under `.wcp/issues/`. Do not call Notion during a source-file lease. After the file status is written, the orchestrator or the filing or ship skill updates Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Notion `done` is the ship to `origin/main`, not this close.
+Committed queue for a solo builder with many agents on one checkout. The issue file is the record. Write it before the work and before any Notion call. Do not call Linear or GitHub Issues. Assign, claim, and close work by editing files under `.wcp/issues/`. Do not call Notion during a source-file lease. After the file is written, the orchestrator or the filing or ship skill may copy it to Notion (`../docs/notion-issues.md`). If that copy fails, the file stands. Do not stop the work. Notion `done` is the ship to `origin/main`, not this close.
+
+Every session task files at least one issue. One change that can be claimed, reviewed, and shipped on its own is one file. Two such changes are two files. They share `session`. There is no parent issue and no session directory.
 
 ### Layout
 
 ```
 .wcp/issues/
-  open/
-  in-progress/
-  in-review/
-  done/
-  canceled/
-  blocked/
+  open/20261001T1202Z-0123-rotate-refresh-token.md
+  in-progress/20261001T1202Z-0123-rotate-refresh-token.md
+  in-review/20261001T1202Z-0123-rotate-refresh-token.md
+  blocked/20261001T1202Z-0123-rotate-refresh-token.md
+  done/2026/10/01/20261001T1202Z-0123-rotate-refresh-token.md
+  canceled/2026/10/01/20261001T1202Z-0123-rotate-refresh-token.md
 ```
 
-One markdown file per issue. Put a stable id in the filename so a status move does not depend on the title: `0123-rotate-refresh-token.md`.
+`open/`, `in-progress/`, `in-review/`, and `blocked/` stay flat. A new `done/` or `canceled/` file goes under `YYYY/MM/DD` from `created`. Walk every `*.md` under the status directory, including a day tree and any older flat file.
 
-`status` inside the file is the source of truth. The folder is a projection. Update `status`, then move the file. `git mv` once the file is tracked.
+The filename is `YYYYMMDDThhmmZ-<id>-<slug>.md`. The example above is `20261001T1202Z-0123-rotate-refresh-token.md` for `created: 2026-10-01T12:02:00Z`. A status move keeps that filename. `status` inside the file is the source of truth. The folder is a projection. Update `status`, then `git mv` the file once it is tracked.
 
 ### Frontmatter
 
@@ -143,11 +148,20 @@ scope:             # what this ticket is allowed to change
 acceptance:        # short done definition
 files: []          # paths touched while solving
 commit:            # work-commit hash, empty until the orchestrator writes it
+pr:                # pull request URL, empty until the ship knows it
 reason:            # why it was canceled or blocked; empty unless status is canceled or blocked
+created: 2026-10-01T12:02:00Z
+session: 2026-10-01T12:00:00Z
+notion_page_id:    # filled when a Notion copy succeeds; empty until then
+notion_url:
 ---
 ```
 
 The body under the frontmatter is the spec. Keep it short enough to work from.
+
+### Notion resync
+
+Copy the file to Notion only after the file write, and only outside a source-file lease. A failed copy does not change the file. A later resync walks `open/`, `in-progress/`, `in-review/`, and `blocked/` whole, and walks `done/` and `canceled/` by day. Upsert by issue id. Running it twice is safe. There is no sync cursor and no daemon. Fill `notion_page_id` and `notion_url` when a copy succeeds. Write `pr` on the file when the ship knows the pull request URL.
 
 ### Ticket lease
 
@@ -155,12 +169,12 @@ Claim an open ticket, or an expired `in-progress` ticket:
 
 1. Read the file. If `status` is `in-progress` and `lease_expires` is still in the future, it is held. Pick another.
 2. Set `assignee` to your agent id, `status: in-progress`, and `lease_expires` to now + 10 minutes, ISO-8601 UTC (shape `2026-09-24T18:04:00Z`).
-3. Write the file, then move it to `in-progress/`.
+3. Write the file, then move it to `in-progress/` keeping the stamped filename.
 4. Re-read the file at its new path. If `assignee` is not you, stop. Do not write your id back in.
 
 Renew while you hold it and you are still working: before `lease_expires`, set it to now + 10 minutes again. That edit does not take a source-file lease.
 
-Reclaim when `lease_expires` is past and the assignee is not renewing. The orchestrator does this at the start of a run. Clear `assignee` and `lease_expires`, set `status: open`, move the file to `open/`. Then re-read. If `assignee` is set and `lease_expires` is in the future, that claim stands. Do not clear it again.
+Reclaim when `lease_expires` is past and the assignee is not renewing. The orchestrator does this at the start of a run. Clear `assignee` and `lease_expires`, set `status: open`, move the file to `open/` keeping the stamped filename. Then re-read. If `assignee` is set and `lease_expires` is in the future, that claim stands. Do not clear it again.
 
 Reclaim and claim are idempotent. Only one agent is `assignee`. If two writes race, the last writer re-reads and leaves a single assignee.
 
@@ -168,7 +182,7 @@ Reclaim and claim are idempotent. Only one agent is `assignee`. If two writes ra
 
 The orchestrator, or you if no one is assigned, picks one file in `open/`. Skip `blocked/`, `canceled/`, and `in-review/`. One ticket per agent unless the user says otherwise. Do not claim a directory. Ticket claim is not a file claim.
 
-Use the body as the spec. Implement with the file leases above. Tests first, then a short source lease. Drop the file lease before tests, thinking, or waiting.
+Use the body as the spec. Implement with the file seats above. Tests first, then a source seat. Heartbeat with `wcp reup` while you are in the file, including research between hunks. Release before tests or before work on a different file. The takeover window is 300 seconds.
 
 Append each touched path to `files` when it lands. Do not put the diff on `RUN.md`.
 
@@ -176,18 +190,18 @@ Two agents do not hold the same ticket. They do not hold the same source file. D
 
 ### Close
 
-When the work matches `acceptance`, the solver records the paths in `files`, releases every source-file lease, and leaves the tree dirty. The solver sets `status: in-review`, clears `lease_expires`, leaves `assignee` as itself, leaves `commit` empty, and moves the file to `in-review/`. The solver does not commit, does not stash, and does not set `done`.
+When the work matches `acceptance`, the solver records the paths in `files`, releases every source-file lease, and leaves the tree dirty. The solver sets `status: in-review`, clears `lease_expires`, leaves `assignee` as itself, leaves `commit` and `pr` empty, and moves the file to `in-review/` keeping the stamped filename. The solver does not commit, does not stash, and does not set `done`.
 
 The orchestrator watches `.wcp/issues/in-review/`. For each file there, it launches one reviewer. The reviewer reads that issue and the paths in `files`, and checks security, accessibility, functionality, and aesthetics against `acceptance`.
 
 If the check fails, the reviewer fixes the code. A pre-existing file uses the file lease: look, acquire, write-ok, edit, release. The reviewer does not commit and does not stash.
 
-When the check passes, the reviewer sets `status: done`, clears `assignee` and `lease_expires`, and moves the file to `done/`. `commit` stays empty until a work commit exists.
+When the check passes, the reviewer sets `status: done`, clears `assignee` and `lease_expires`, and moves the file to `done/YYYY/MM/DD/` from `created`, keeping the stamped filename. `commit` stays empty until a work commit exists. `pr` stays empty until the ship knows the pull request URL.
 
 The orchestrator does not commit while a reviewer is still running. After that reviewer has exited, and `wcp look` shows no live source-file lease:
 
 1. Commit the work. `files` already lists the paths. `commit` cannot name a hash that does not exist yet.
-2. Write that hash into `commit` on the done file.
+2. Write that hash into `commit` on the done file. When the ship knows the pull request URL, write it into `pr` as well.
 3. Commit that issue-file update. `wcp look` is still empty.
 
 The reviewer does not commit. A solver does not commit. The orchestrator is the only one who commits.
@@ -198,7 +212,7 @@ Cancel when the work will not be done. The holder may cancel a ticket they hold.
 
 1. Write `reason`. A canceled ticket with an empty `reason` is not canceled.
 2. Set `status: canceled`. Clear `assignee` and `lease_expires`. Leave `commit` empty unless a work hash already exists. Keep `files` if paths already landed.
-3. Move the file to `canceled/`. Do not delete it. Do not set `done`.
+3. Move the file to `canceled/YYYY/MM/DD/` from `created`, keeping the stamped filename. Do not delete it. Do not set `done`.
 4. Re-read. One file, one `reason`. If another writer canceled or reclaimed it, leave their newer `assignee` or `reason` in place.
 5. The orchestrator commits the issue file, and only when `wcp look` shows no live source-file lease. Until then the file update still stands.
 
@@ -210,7 +224,7 @@ Block when the work is still wanted and an agent must not claim it yet. The hold
 
 1. Write `reason`. A blocked ticket with an empty `reason` is not blocked.
 2. Set `status: blocked`. Clear `assignee` and `lease_expires`. Leave `commit` empty unless a work hash already exists. Keep `files` if paths already landed.
-3. Move the file to `blocked/`. Do not delete it. Do not set `done`. Do not set `canceled`.
+3. Move the file to `blocked/` keeping the stamped filename. Do not delete it. Do not set `done`. Do not set `canceled`.
 4. Re-read. One file, one `reason`. If another writer blocked, canceled, or reclaimed it, leave their newer `assignee` or `reason` in place.
 5. The orchestrator commits the issue file, and only when `wcp look` shows no live source-file lease. Until then the file update still stands.
 
@@ -218,11 +232,11 @@ Do not claim a file in `.wcp/issues/blocked/`. Search that folder and `status: b
 
 ### Orchestrator
 
-Assign work from `.wcp/issues/open/` only. Skip `blocked/`, `canceled/`, and `in-review/`. Watch `.wcp/issues/in-review/` and launch one reviewer per file, as in Close. No Linear or GitHub Issues calls. Update Notion after the file write ([`../docs/notion-issues.md`](../docs/notion-issues.md)), not during a source-file lease, and do not set Notion `done` here. One ticket per agent unless the user says otherwise. Do not claim a directory. Two agents may share a ticket's files only under that ticket's `scope`, and WCP file rules still hold.
+Assign work from `.wcp/issues/open/` only. Skip `blocked/`, `canceled/`, and `in-review/`. Watch `.wcp/issues/in-review/` and launch one reviewer per file, as in Close. No Linear or GitHub Issues calls. After the file write, copy it to Notion (`../docs/notion-issues.md`) outside a source-file lease. If Notion fails, the file stands. Do not set Notion `done` here. One ticket per agent unless the user says otherwise. Do not claim a directory. Two agents may share a ticket's files only under that ticket's `scope`, and WCP file rules still hold.
 
 ### Two clocks
 
 Do not collapse them.
 
-- File overtake is the floor rule in Conflict. A source-file lease is idle when it is `expired` or the pid is dead (default TTL 60 seconds). `overtake` inherits `doing` and `scope`. That clock is not the ticket lease.
-- Ticket reclaim is 10 minutes on `lease_expires`.
+- File takeover is 5 minutes of no write and no heartbeat, or a dead pid (default TTL 300 seconds). `overtake` inherits `doing` and `scope`. That clock is not the ticket lease.
+- Ticket reclaim is 10 minutes on `lease_expires`. Ticket leases do not acquire the issue file.

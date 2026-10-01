@@ -15,12 +15,13 @@ Do not fork the verbs here.
 
 ## What occupancy is
 
-A lease is an edit burst on **one pre-existing path**. One agent per path.
-One live path per agent. Write the test first; do not claim the test file.
-Write a new file directly; do not claim it. Claim only a file that was already
-in the tree when the run started, and only after a test names that path.
-Release the instant bytes are on disk — before tests, thinking, or waiting.
-Drift is other workers. Never rewind the tree.
+A lease is a seat on **one pre-existing path**, including research between hunks.
+One agent per path. One live path per agent. Write the test first; do not claim
+the test file. Write a new file directly; do not claim it. Claim only a file
+that was already in the tree when the run started, and only after a test names
+that path. Heartbeat with `wcp reup` while you stay in the file. It does not
+require a write. Release when you leave the file. Do not hold the seat through
+tests or across files. Drift is other workers. Never rewind the tree.
 
 A ticket that must not be claimed yet moves to `.wcp/issues/blocked/` with `reason` set. Sharing a source file does not block a ticket. File overlap waits for the next wave.
 
@@ -33,7 +34,7 @@ A ticket that must not be claimed yet moves to `.wcp/issues/blocked/` with `reas
 | `/prb` fixer | Same player verbs on local `dev`. |
 | `/issue` `/issues` `/project-review` `/walk` `/tidy` `/identify` `/stat` | The local queue is `.wcp/issues/` ([`wcp-queue.md`](wcp-queue.md)). Notion status is [`notion-issues.md`](notion-issues.md). Fill **Occupancy (WCP)** on each leaf. Do not call Linear. |
 | `/prb` `/yeet` push | Human export to `origin/dev`. `wcp look` before commit and before push. Unset `WCP_AGENT` and `WCP_NAME_TOKEN` before `git push`. |
-| Any other builder on this checkout (`/human-copy`, `/vercel-flags`, `/start`, TypeSafe, composition refactors, `/implement`, `/check-work` fixes) | Same player turn as an implementer. Release before tests or the next thought. Do not commit and do not stash. The session that owns the checkout commits when `wcp look` shows no live source-file lease. |
+| Any other builder on this checkout (`/human-copy`, `/vercel-flags`, `/start`, TypeSafe, composition refactors, `/implement`, `/check-work` fixes) | Same player turn as an implementer. Heartbeat while you are in the file. Release before tests or work on another file. Do not commit and do not stash. The session that owns the checkout commits when `wcp look` shows no live source-file lease. |
 | `/execute-plan` | Implementers stay in their own worktrees. Do not put those worktrees on the shared checkout's board. Orchestrator edits on the shared tree use the player turn. |
 
 Worktree `/solve` (`worktree` / `--worktree`) is a different isolation. WCP is
@@ -69,14 +70,15 @@ Workers never `set-arch` or `stop`.
 Then read `.wcp/issues/open/` and `.wcp/issues/in-progress/`. Reclaim expired
 tickets (player skill, Issues). Do not copy the backlog onto `RUN.md`. If the
 queue directories are missing and this run needs a queue, create `open/`,
-`in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that queue folder, and one issue from `arch` only. Do not create `.wcp/` while `.WCP/` is the live directory.
+`in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that queue folder, and one stamped issue for the session. File another when the session has a separate change. Do not create `.wcp/` while `.WCP/` is the live directory.
 Search `.wcp/issues/canceled/` and `.wcp/issues/blocked/` before filing the same work again. Cancel and block in
 the issue file with `reason` set (player skill, Cancel and Block). Do not claim a blocked ticket.
 
 Assign WCP work from `.wcp/issues/open/` only. One ticket per agent unless the user
 says otherwise. Do not claim a directory. A ticket lease is not a source-file
-lease. Do not call Linear or GitHub Issues. After an issue file changes
-status, update Notion ([`notion-issues.md`](notion-issues.md)). Do not call
+lease. Do not call Linear or GitHub Issues. The issue file is the record.
+After it changes, copy it to Notion ([`notion-issues.md`](notion-issues.md)).
+If that copy fails, the file stands. Do not call
 Notion during a source-file lease. Skill filing, solving,
 status, tidy, and ship all use this queue ([`wcp-queue.md`](wcp-queue.md)).
 
@@ -109,8 +111,11 @@ wcp look --json
 # // WCP <id>: <existing-path> <what it proves> (<arch>)
 # new file: write it, no acquire
 wcp acquire --path <existing-file> --test <test-file> --doing "<burst>" --scope "<symbol>" --json
+# research in this file, including between hunks
+wcp reup --json
 wcp write-ok --path <existing-file> --json
 # re-read that file from disk, edit, flush
+# wcp reup while you stay in the file
 wcp release --json
 # run YOUR tests only
 ```

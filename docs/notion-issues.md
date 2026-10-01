@@ -2,7 +2,7 @@
 
 External status for `/issue`, `/issues`, `/solve`, `/identify`, `/stat`, `/tidy`, `/project-review`, `/walk`, `/start`, `/prb`, and `/yeet`.
 
-The local queue stays `.wcp/issues/` ([`wcp-queue.md`](wcp-queue.md)). Claim, lease, and review stay in those files. This file is the only Notion procedure. Do not call Linear.
+The local queue stays `.wcp/issues/` ([`wcp-queue.md`](wcp-queue.md)). The issue file is the record. Claim, lease, and review stay in those files. Write the file first. This file is the only Notion procedure, and it runs after that write. If Notion fails, the file stands. Do not stop the git work. A later resync copies whatever this procedure missed. Do not call Linear.
 
 One issues database per git repo. The database title is the repo slug. The database is identified by the origin URL.
 
@@ -79,7 +79,11 @@ Do not put tokens, connection strings, or secret values in any property or page 
 
 `done` on Notion means the work is on `origin/main` and that ship skill's completion gate passed. A reviewer setting the local file to `done` does not set Notion to `done`.
 
-The skill that writes the issue file updates the row in the same turn, after the file write. Do not call Notion during a source-file lease. A worker does not call Notion. The orchestrator, the filing skill, or the ship skill does.
+The skill that writes the issue file updates the row in the same turn, after the file write. Do not call Notion during a source-file lease. A worker does not call Notion. The orchestrator, the filing skill, or the ship skill does. A failed update does not roll back the file and does not block the next step. Fill `notion_page_id` and `notion_url` on the file when the row write succeeds.
+
+## Resync
+
+Walk `open/`, `in-progress/`, `in-review/`, and `blocked/` whole. Walk `done/` and `canceled/` by the `YYYY/MM/DD` day folders, and include any older flat file still in those status directories. Upsert each file by its issue id using the status table above. Read `pr` from the file into **PR**. Read `commit` when choosing Dev SHA or Main SHA from git. Running the walk twice is safe. There is no sync cursor and no daemon. Do this when Notion was down, or when a file has an empty `notion_page_id` after a failed copy.
 
 Do not move a Notion status backward from `done` except when the user says to reopen that issue.
 
@@ -99,6 +103,6 @@ Skip `canceled`.
 | Skill | Completion gate |
 | --- | --- |
 | `/prb` | The PR merged to `origin/main`. `--no-merge` does not set `done`. |
-| `/yeet` | The production build of the merge SHA is Ready. Error or timeout does not set `done`. |
+| `/yeet` | The production build of the merge SHA is Ready. Error or timeout does not set `done`. A later review-fix merge updates Main SHA. It does not delay this gate. |
 
-If Notion fails, finish the git ship and list the ids whose status was not written. Do not call Linear to replace that write.
+If Notion fails, finish the git ship. Write `pr` on each shipped issue file. Leave `notion_page_id` empty when the row was not written. The next resync copies those files. Do not call Linear to replace that write.
