@@ -8,7 +8,7 @@ when they pass the create gate.
 
 ## Kinds
 
-| Kind | When | Linear-ish type | Default priority |
+| Kind | When | Queue class | Default priority |
 |------|------|-----------------|------------------|
 | **bug** | Something is wrong or broken relative to what this UI already promises | Bug | P0–P1 if a primary path; else P1–P2 |
 | **improvement** | It works, but worse than a sibling pattern, design system, or obvious UX | Enhancement / polish | P1 high-visibility; else P2 / Low |
@@ -44,7 +44,7 @@ Split compounds: dead submit + unrelated footer 404 = two leaves.
 
 ---
 
-## Drop (not a Linear leaf)
+## Drop (not a queue leaf)
 
 Drop and optionally mention in handoff **Coverage notes**, not as tickets:
 
@@ -90,8 +90,8 @@ If you cannot pre-decide without a human product call, put that under Risks and
 | **P1** | High-traffic broken secondary, ignored 500 on save, unusable mobile primary nav, missing empty state on a core list |
 | **P2** | Consistency vs sibling, copy, a11y on secondary, most ideas |
 
-Linear map: P0 core → `1`; other P0 / visible P1 → `2`; remaining P1 / solid P2
-→ `3`; ideas and minor improvements → `4`.
+Priority map: P0 core → `critical`; other P0 / visible P1 → `high`; remaining P1 / solid P2
+→ `normal`; ideas and minor improvements → `low`.
 
 ---
 

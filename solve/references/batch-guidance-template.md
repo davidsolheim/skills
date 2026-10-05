@@ -1,7 +1,7 @@
 # Solve batch guidance — {{PROJECT}} — {{RUN_ID}}
 
 > **Hard contract for every implementer in this batch.** Read this entire document before coding.
-> When this file and an older Linear ticket disagree on **platform / stack / architectural direction**, **this file wins**.
+> When this file and an older issue file disagree on **platform / stack / architectural direction**, **this file wins**.
 > Path on disk: `{{GUIDANCE_MD_ABS}}`
 > Graph: `{{GRAPH_JSON_ABS}}` · Inventory: `{{INVENTORY_JSON_ABS}}`
 
@@ -11,7 +11,7 @@
 |-------|--------|
 | Run id | `{{RUN_ID}}` |
 | Mode | {{MODE}} <!-- sequential \| fast --> |
-| Team / project | {{TEAM}} / {{PROJECT}} |
+| Queue | `.wcp/issues/` |
 | Count mode | {{COUNT_MODE}} |
 | Effort | {{EFFORT}} |
 | Repo root | {{REPO_ROOT}} |
@@ -75,7 +75,7 @@ If confidence is **low**, the orchestrator must **stop and ask the user** before
 
 ## Skip / cancel / re-scope
 
-| Issue | Action | Reason | Linear note |
+| Issue | Action | Reason | File note |
 |-------|--------|--------|-------------|
 {{SKIP_RESCOPE_TABLE}}
 
@@ -135,7 +135,7 @@ Paths that must not be edited by two concurrent workers (fast mode). Sequential 
 5. [ ] Apply selective override only inside listed scope  
 6. [ ] Smallest change meeting **current** (possibly re-scoped) AC  
 7. [ ] Summary lists supersession/rescope compliance  
-8. [ ] Do **not** merge `dev`, push, PR, or set Linear Done (orchestrator owns those)
+8. [ ] Do **not** merge `dev`, push, PR, or set file `done` (orchestrator owns those)
 
 ---
 

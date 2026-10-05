@@ -1,6 +1,6 @@
 # Batch plan format (`/issues`)
 
-Internal + user-facing plan before Linear create. Keep the user table short;
+Internal + user-facing plan before the file write. Keep the user table short;
 keep the machine fields complete.
 
 ---
@@ -15,9 +15,9 @@ keep the machine fields complete.
 | L1 | Add … | 2 | foundation | app | — | create |
 | L2 | Fix … | 2 | feature | app | blockedBy L1 | create |
 | L3 | Align … | 3 | polish | app | related L2 | create |
-| L4 | Old … | 3 | feature | app | dup 0199 | skip |
+| L4 | Old … | 3 | feature | app | dup INV-199 | skip |
 | L5 | Old modal … | 3 | feature | app | contradicted by L1 | drop-contradicted |
-| L6 | Settings page … | 2 | feature | app | retire 0040 | create + retire 0040 |
+| L6 | Settings page … | 2 | feature | app | retire TW-40 | create + retire TW-40 |
 ```
 
 Priority column: `1` Urgent … `4` Low (or High/Medium labels consistently).
@@ -35,9 +35,9 @@ class: foundation|feature|polish|content|a11y|chore
 package: app|services|agents|…
 connectivity: independent|related|blocked|epic-child
 blocked_by: [L1]
-related: [L3, 0210]
-duplicate_of: null | 0199
-contradicts: [] | [0040, L4]
+related: [L3, INV-210]
+duplicate_of: null | INV-199
+contradicts: [] | [INV-40, L4]
 supersedes: [] | [{ mode, ids, scope, board_action }]
 user_fragment: "quoted bullet"
 primary_paths: [… from investigation]
@@ -72,5 +72,5 @@ When `--max N`:
 | Mode | After plan |
 |------|------------|
 | `--plan-only` | Stop; no bodies required |
-| `--draft` | Write full bodies for create rows; no Linear |
+| `--draft` | Write full bodies for create rows; writes no issue files |
 | default | File create rows; skip dups; drop contradicted intra-batch leaves; retire unstarted board contradictions after create; report deferred/failed |

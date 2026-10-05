@@ -19,7 +19,7 @@ Parse the user’s follow-up once. Prefer the **most specific** match below.
 
 Issue tokens (`TEAM-123`) and 1-based positions (`1`, `2`, `3`) both count.
 
-Reject never un-upgrades Linear bodies.
+Reject never un-upgrades issue-file bodies.
 
 If nothing remains after reject: say the eligible board is exhausted for this
 session and **stop**.

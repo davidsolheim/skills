@@ -2,7 +2,7 @@
 
 Canonical layout and lifecycle for **local** issue candidates under `/project-review`.
 
-Parent: [`deep-mode.md`](deep-mode.md) · Filing: [`linear-filing.md`](linear-filing.md) · Board: [`board-sync.md`](board-sync.md)
+Parent: [`deep-mode.md`](deep-mode.md) · Filing: [`notion-filing.md`](notion-filing.md) · Board: [`board-sync.md`](board-sync.md)
 
 ---
 
@@ -13,12 +13,12 @@ Workers invent → write local candidate files
      ↓
 Orchestrator merges / dedupes / quality-gates on disk
      ↓
---draft stops here  OR  write `.wcp/issues/` and Notion from final/
+--draft stops here  OR  write `.wcp/issues/` then Notion from final/
 ```
 
-`.wcp/issues/` plus Notion is the **publish** step, not the working set.
+The queue files are the **publish** step, not the working set.
 
-- **Do not** call Linear or Notion while inventing or merging candidates.
+- **Do not** re-list `.wcp/issues/` while inventing or merging candidates.
 - **Do not** create tickets from raw worker dumps.
 - Deduplication uses the **board snapshot file** + local file comparison.
 
@@ -96,6 +96,7 @@ retire_after_file: false
 class: foundation | feature | polish | content | a11y
 blocked_by_candidates: []
 issue_id: null
+notion_url: null
 slice_id: web-dashboard
 ---
 ```
@@ -105,7 +106,7 @@ slice_id: web-dashboard
 | id, thin body | Worker |
 | status transitions, duplicate_of, board_match, contradicts_board | Orchestrator (D5) |
 | full template sections | Orchestrator / pin workers |
-| issue_id | Orchestrator (D7) |
+| issue_id / notion_url | Orchestrator (D7) |
 
 ---
 
@@ -180,12 +181,12 @@ Keep the strongest write-up (clearest AC + best pin). Set others `status: duplic
 
 ### 3. Board match (offline only)
 
-Against `board-snapshot.json` **only** — do **not** re-read `.wcp/issues/`.
+Against `board-snapshot.json` **only** — do **not** re-list `.wcp/issues/`.
 
 | Confidence | Action |
 |------------|--------|
-| High same surface + same problem | `status: duplicate`, `board_match: TEAM-123` — **not** in final/ |
-| Same area, different problem | `related_board: [TEAM-123]`; keep for file; later `relatedTo` |
+| High same surface + same problem | `status: duplicate`, `board_match: 0123` — **not** in final/ |
+| Same area, different problem | `related_board: [0123]`; keep for file; note related id in the body |
 | Finding is canonical; unstarted board ticket is the abandoned direction | keep; `contradicts_board` + `retire_after_file: true`; retire at D7 |
 | Explicit user ticket is canonical; finding is the opposite | `status: drop-contradicted` — **not** in final/; do not retire the user ticket |
 | Vague open umbrella vs atomic leaf | Prefer keep atomic if umbrella unimplementable; else skip if umbrella owns it; note in handoff |
@@ -223,15 +224,15 @@ Every `final/*.md` must pass the Phase 5 checklist in SKILL.md. Failures leave s
 
 ### 8. Dependency plan
 
-Set `blocked_by_candidates` on index entries (candidate ids). Used in D6/D7 after issue ids exist.
+Set `blocked_by_candidates` on index entries (candidate ids). Used in D6/D7 after queue ids exist.
 
 ---
 
 ## Phase D7 — Publish
 
 1. Walk `final/*.md` only (filter by filing flags: P0/P1 only if `--p0-p1-only`).
-2. Write each `.wcp/issues/` file and upsert Notion; set `issue_id` and `status: filed` in the index.
-3. Apply `blocked by <id>` from `blocked_by_candidates` (map candidate → issue_id).
+2. Write `.wcp/issues/` files; set `issue_id`, `notion_url`, `status: filed` in index. Then upsert Notion.
+3. Map `blocked_by_candidates` to queue ids; write dependents in `blocked/` with `reason: blocked by <id>`.
 4. Retire `retire_after_file` ids (direction-conflict.md). Workers never do this.
 5. **Scratch lifecycle** (see below).
 
@@ -245,12 +246,12 @@ The whole `$SCRATCH_DIR` (`…/project-review-<RUN_ID>/`), not only `issue-candi
 
 | Condition | Action |
 |-----------|--------|
-| Intended publish set is **in `.wcp/issues/`** (every published final has `issue_id`; verified) | **Delete** `$SCRATCH_DIR` |
-| Not filed (`--draft`, Notion failure, partial file, never published) | **Keep** `$SCRATCH_DIR` |
+| Intended publish set is **in `.wcp/issues/`** (every published final has `issue_id`; Notion upsert attempted) | **Delete** `$SCRATCH_DIR` |
+| File write unfinished (`--draft`, partial file, never published) | **Keep** `$SCRATCH_DIR` |
 
 **Filed → delete. Not filed → keep.**
 
-Record issue ids in the handoff **before** any delete. Do not delete the parent `grok-$(id -u)/` directory.
+Record queue ids/URLs in the handoff **before** any delete. Do not delete the parent `grok-$(id -u)/` directory.
 
 ---
 
@@ -263,7 +264,7 @@ Stop after D5/D6. Handoff points at:
 - Drops/duplicates summary
 - Absolute scratch path (**must keep** — nothing in `.wcp/issues/` yet)
 
-No queue write. **Do not delete** scratch.
+`--draft` writes local candidates only. It does not write issue files and does not upsert Notion. **Do not delete** scratch.
 
 ---
 
@@ -276,14 +277,14 @@ $SCRATCH_DIR/issue-candidates/final/
 $SCRATCH_DIR/issue-candidates/_merged/index.json
 ```
 
-without full by-route fan-out. Still: **clean locally → then file**. Prefer one board snapshot over per-ticket queue reads. Same scratch rule: delete after a verified queue publish; keep if draft or partial.
+without full by-route fan-out. Still: **clean locally → then file**. Prefer one board snapshot over per-ticket queue search. Same scratch rule: delete after verified full file write and Notion attempt; keep if draft/partial.
 
 ---
 
 ## Anti-patterns
 
 - Filing from `_inbox` or uncleaned drafts
-- Re-reading `.wcp/issues/` for each candidate during cleanup
+- Re-listing `.wcp/issues/` for each candidate during cleanup
 - One giant `candidates.md` that workers fight over
 - Deleting raw inbox before index records paths (keep until run completes)
 - Publishing without board_match pass when snapshot exists
@@ -291,4 +292,4 @@ without full by-route fan-out. Still: **clean locally → then file**. Prefer on
 - Retiring a user ticket because the review invented the opposite
 - Equating “unit reviewed” with “must emit a candidate”
 - **Deleting `$SCRATCH_DIR` while any intended `final/` is unfiled**
-- **Leaving `$SCRATCH_DIR` after a fully verified queue publish** (delete the run dir)
+- **Leaving `$SCRATCH_DIR` after a fully verified file + Notion upsert** (delete the run dir)

@@ -1,4 +1,4 @@
-# Issue body template (`/issues` leaves)
+# Issue body (`/issues` leaves)
 
 Canonical: [`../../issue/references/issue-body-template.md`](../../issue/references/issue-body-template.md)
 

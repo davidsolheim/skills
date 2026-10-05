@@ -16,7 +16,7 @@ or guess which files to touch — the ticket is **not ready**.
 ## North star
 
 > A competent junior engineer (or cheap coding agent) who has **never seen this
-> repo before** can complete the ticket using **only** the Linear description +
+> repo before** can complete the ticket using **only** the issue file +
 > a light drift check of listed paths — without product discovery, architecture
 > redesign, or open-ended investigation.
 
@@ -27,7 +27,6 @@ or guess which files to touch — the ticket is **not ready**.
 | Layer | Minimum bar |
 |-------|-------------|
 | **Where** | Real paths that exist now; primary package/app; symbol names; ~line ranges |
-| **Occupancy** | Primary write path + symbol; sibling overlap ([`../../docs/wcp.md`](../../docs/wcp.md)). N/A if no application writes |
 | **What today** | Current behavior with code evidence (not “it seems broken”) |
 | **What done looks like** | Checklist AC that a stranger can pass/fail without asking you |
 | **How** | Ordered step-by-step plan + file-by-file change list (not only a hypothesis) |
@@ -77,7 +76,7 @@ Optional but preferred when cheap:
 - Prop/type signatures for components/APIs being edited  
 - Example request/response or UI state shapes  
 
-Do **not** dump multi-hundred-line files into Linear. Excerpt only what the
+Do **not** dump multi-hundred-line files into the issue file. Excerpt only what the
 implementer would otherwise re-hunt.
 
 ---

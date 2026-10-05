@@ -33,7 +33,7 @@ Then:
 
 | Action | Identify does |
 |--------|----------------|
-| `skip` (full obsolete / abandoned stack, no remaining product value) | Remove from `ELIGIBLE`. No Linear write. |
+| `skip` (full obsolete / abandoned stack, no remaining product value) | Remove from `ELIGIBLE`. No issue-file write. |
 | `promote` (open migration / canonical foundation) | Band 0 — sort before features that would be rewritten. |
 | `rescope` (outcome still needed on canonical stack) | Keep in `ELIGIBLE`. Note “re-scope on solve”. Do not rewrite AC here unless the ticket is in `PROPOSED` and upgrade would anyway. |
 | `normal` | Band 1. |
@@ -55,7 +55,7 @@ migration.
 
 ---
 
-## Linear
+## Queue writes
 
-No comments, status, or Cancel from thin S0. `/solve` S0 / `/tidy` own those
-writes. Mention skipped obsolete ids under “Not in this batch”.
+No comments, status, or `canceled` from thin S0. `/solve` S0 / `/tidy` own those
+writes. Mention skipped obsolete ids under “Not in this batch”. Do not call Linear.

@@ -96,7 +96,7 @@ New leaves are `open` and unassigned. Do not set `in-progress` or `done`. `/solv
 
 | Failure | Action |
 |---------|--------|
-| Notion auth error | Stop filing; **keep** full scratch package; handoff **not filed** with absolute path |
+| Notion auth error | Files already written stand; say which rows failed; do not call Linear. **Keep** scratch if any intended final was not written to `.wcp/issues/` |
 | Database mismatch | Fix the slug or origin URL; retry once |
 | Single leaf fails | Continue others; report failed path; **keep** scratch (partial) |
 | Blocked `reason` missing | Leaves still valid; note the missing reason in the handoff; **keep** scratch if the dependency plan was material |

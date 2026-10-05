@@ -2,12 +2,12 @@
 name: solve
 description: >
   Use when the user runs /solve, /solve N, /solve all, /solve today, /solve
-  <milestone or area>, says "solve the next issue", "pick up the next ticket",
+  <area>, says "solve the next issue", "pick up the next ticket",
   "solve design related issues", "issues created today", "same dev branch",
   "ignore each other's work", "verify after they are done", Water Cooler
   Protocol, WCP, a /goal to finish today's .wcp/issues ASAP with many
   subagents, or wants open WCP issues completed onto local dev.
-argument-hint: "[N|all|today] [seq] [worktree] [--concurrency N] [--effort N] [ISSUE-ID] [milestone|area|today…] [extra constraints…]"
+argument-hint: "[N|all|today] [seq] [worktree] [--concurrency N] [--effort N] [ISSUE-ID] [area|today…] [extra constraints…]"
 ---
 
 # /solve — Next unblocked WCP issue(s) → local `dev`
@@ -47,10 +47,10 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
   - **Default**: `1` — `/solve` with no count **and no scope** solves a single issue.
   - **Integer `N`**: `/solve N` solves up to **N** eligible issues in parallel (up to `min(N, 32)` workers unless `--concurrency` or `seq`). Inside a scope, `N` is a cap on that cluster.
   - **`all`**: **drain** — keep going until **no** eligible unblocked implementable leaves remain **in the active set** (whole project, or `SCOPE` if set). See [Drain contract](#drain-contract-solve-all--non-negotiable). No soft cap. Mandatory re-read of `.wcp/issues/` before exit. Independent leaves run in parallel.
-  - **Scope** (milestone / label / area remainder, or **created today**): resolve per [`references/eligibility.md`](references/eligibility.md) **Scope filter**. A resolved `SCOPE` with no bare `N` sets count mode to **`all` for that cluster only** — drain in parallel among independent in-scope leaves. Do not pick outside `SCOPE`. `/solve today` = created-today window, not a project-wide `/solve all`.
+  - **Scope** (created-today, then title/body area, then the issue id): resolve per [`references/eligibility.md`](references/eligibility.md) **Scope filter**. A resolved `SCOPE` with no bare `N` sets count mode to **`all` for that cluster only** — drain in parallel among independent in-scope leaves. Do not pick outside `SCOPE`. `/solve today` = created-today window, not a project-wide `/solve all`.
 - **Parallelism**: automatic whenever more than one implementable leaf is in play (`N ≥ 2`, `all`, scoped drain, **today**). Default protocol: [Shared-dev](#shared-dev--same-branch-parallel) + [`references/shared-dev.md`](references/shared-dev.md) (same local `dev`, **WCP exclusive file leases**, orchestrator verifies then commits; cap **32**, default = all ready disjoint paths). `worktree` / `--worktree` is the only way onto [Fast mode](#fast-mode--parallel-orchestrator). `seq` / `--sequential` disables parallelism. `fast` / `--fast` is a no-op.
 - **Occupancy (WCP)**: every implementer load of `water-cooler-protocol` + [`../docs/wcp.md`](../docs/wcp.md). Orchestrator starts the run and does not assign ids. Workers `wcp name` themselves, then write tests and new files with no claim. They `look` / `acquire --test` / `write-ok` / `release` only for a file that already existed. File overlap waits for the next wave or retargets. A ticket in `blocked/` is a queue status, not a file lease. Never rewind sibling edits. Never push while `WCP_AGENT` is set.
-- **Selection (sequential / single issue)**: when batch guidance is active and `seq` was passed, follow **`execution_order`**. When guidance is inactive (`/solve` / `/solve 1` without supersession pressure), lowest issue **number** (e.g. `issue-123` before `issue-140`). Re-validate eligibility after each closeout; refresh guidance when the remaining set changes.
+- **Selection (sequential / single issue)**: when batch guidance is active and `seq` was passed, follow **`execution_order`**. When guidance is inactive (`/solve` / `/solve 1` without supersession pressure), rank by frontmatter `priority` (critical, high, normal, low), then user-facing impact, then identifier. Re-validate eligibility after each closeout; refresh guidance when the remaining set changes.
 - **Selection (parallel — default for batches)**: full eligible inventory + **shared batch guidance**; launch the **disjoint-path** ready set up to `CONCURRENCY`; refill after combined commits (see shared-dev.md + batch-guidance.md).
 - **No epics.** Implement the leaf file. A packaging-only body is skipped in favor of the ids it lists ([`references/eligibility.md`](references/eligibility.md)).
 - **Must be unblocked** ([`references/eligibility.md`](references/eligibility.md)).
@@ -70,7 +70,7 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
   4. **Sequential (`seq` / `/solve 1`):** short-lived issue branch off `dev`. The implementer leaves the tree dirty. The orchestrator verifies, commits only when `wcp look` shows no live source-file lease, then merges into local `dev`.
   5. **Worktree opt-in only:** [`references/fast-mode.md`](references/fast-mode.md) — do not use unless the user passed `worktree`.
 - **Do not** `git push`, open a PR, or deploy unless the user explicitly requests it in this session.
-- **Closeout**: the solver moves the file to `in-review/`. The orchestrator launches one `solve-reviewer` per file there. That reviewer checks security, accessibility, functionality, and aesthetics, fixes failures, and sets `done`. The orchestrator then writes `commit` after it commits, and only when `wcp look` is empty ([`references/multiplayer-linear.md`](references/multiplayer-linear.md)).
+- **Closeout**: the solver moves the file to `in-review/`. The orchestrator launches one `solve-reviewer` per file there. That reviewer checks security, accessibility, functionality, and aesthetics, fixes failures, and sets `done`. The orchestrator then writes `commit` after it commits, and only when `wcp look` is empty ([`references/multiplayer.md`](references/multiplayer.md)). After each file move, update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not set Notion `done` from `/solve`.
 - **Secrets**: never commit `.env`, print Doppler values, tokens, or connection strings.
 - **Do not call Linear.** The queue is files. After a file status write, update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Notion during a source-file lease. Do not set Notion `done` here.
 - **Scope discipline**: satisfy the issue’s acceptance criteria; file follow-ups (e.g. via `/issue`) instead of expanding scope.
@@ -94,13 +94,12 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
 /solve 1 TW-123 also add a unit test for the edge case
 /solve --effort 2 TW-123 also add a unit test for the edge case
 /solve design related issues
-/solve milestone Design
 /solve 2 design
 /solve all design
 /solve 5 seq
 ```
 
-The `/goal` (or plain) text “finish all Linear issues created today ASAP, many subagents, same local `dev`, ignore each other, verify after” is **`/solve today`**. Do not wait for the user to retype `/solve today`.
+The `/goal` (or plain) text “finish all issues created today ASAP, many subagents, same local `dev`, ignore each other, verify after” is **`/solve today`**. Do not wait for the user to retype `/solve today`.
 
 ### Args
 
@@ -115,7 +114,7 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 | `--concurrency M` | Max simultaneous workers. Shared-dev: 1–32 (default **all ready**, cap 32; integer `N` → `min(N, 32)`). Worktree opt-in: 1–8. Ignored (warn once) under `seq`. |
 | `--effort N` | Hidden inner-review override (0–5), **capped at 1 reviewer**. Default: auto from [`../docs/intensity.md`](../docs/intensity.md). Not Grok reasoning and not bundled `/implement --effort`. |
 | `TEAM-123` | Prefer this issue for the **first** slot if unblocked (still validate). If `SCOPE` is set, the id must be in scope. Parallel: include in inventory when eligible. Sequential (`seq`): later slots re-select inside the active set. |
-| other text | **Scope first** (created-today before milestone/label/area), then extra implementer constraints. Resolve leftover tokens as **created today**, then a Linear **milestone**, then **label**, then title/label/id **area** ([`references/eligibility.md`](references/eligibility.md) Scope filter). A hit drains that cluster (`all` unless `N` was given). If it is clearly extra constraints and matches no cluster, keep default count **1**. |
+| other text | **Scope first** (created-today, then title/body area words, then the issue id), then extra implementer constraints. Resolve leftover tokens as **created today**, then title/body **area**, then the issue id ([`references/eligibility.md`](references/eligibility.md) Scope filter). A hit drains that cluster (`all` unless `N` was given). If it is clearly extra constraints and matches no cluster, keep default count **1**. |
 
 ### Parsing order
 
@@ -125,14 +124,14 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 4. Detect `fast` / `--fast` (case-insensitive) → ignore (compat no-op).
 5. Detect `worktree` / `--worktree` (case-insensitive) → **`WORKTREE_MODE = true`** (opt-in only).
 6. Detect **today** from remaining tokens **or the full user message** (case-insensitive):
-   - `today` / `created-today` / `created today` / `issues created today` / a `/goal` to finish **today’s** Linear issues → **`TODAY_MODE`**. Phase 1.5 sets `SCOPE.kind = created`.
+   - `today` / `created-today` / `created today` / `issues created today` / a `/goal` to finish **today’s** issues → **`TODAY_MODE`**. Phase 1.5 sets `SCOPE.kind = created`.
 7. Extract count mode from the remaining tokens:
    - Literal `all` (case-insensitive) → count mode **`all`**.
    - Literal `today` already consumed in step 6; do **not** treat it as a count integer.
    - A bare positive integer token (e.g. `1`, `11`) that is **not** part of `--effort` / `--concurrency` → count mode **`N`**.
    - If neither is present → count mode **unset** (default **`1`** unless Phase 1.5 sets `SCOPE`, including today).
 8. Treat a `TEAM-\d+` token as preferred issue id (first issue / inventory pin).
-9. Remainder = `REST` (scope query and/or extra constraints). Resolve `SCOPE` in **Phase 1.5** after team/project exist. Then:
+9. Remainder = `REST` (scope query and/or extra constraints). Resolve `SCOPE` in **Phase 1.5** from `.wcp/issues/` files. Then:
    - `SCOPE` set + count unset → **`all`** (this scope).
    - `SCOPE` set + count `N` / `all` → keep that count **inside** the scope.
    - `SCOPE` unset + count unset → **`1`**.
@@ -143,7 +142,7 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
     - else if count is `all` or integer `N ≥ 2` or `TODAY_MODE` (including after Phase 1.5 implicit `all`) → **`SHARED_DEV = true`**, `FAST_MODE = false`
     - else both false (single issue)
 
-**Disambiguation:** `--effort 3` never sets the solve count to 3. `--concurrency 3` never sets the solve count to 3. `/solve 3` means three issues in shared-dev parallel (inner-review per stamp, width up to 3). `/solve all --concurrency 5` drains the active set with **width** 5 (not a cap of 5 issues). `/solve all` means **unlimited until drained** — never treat `--effort` or concurrency **32** as “solve only thirty-two tickets.” `/solve today` means **created today**, shared-dev, drain that window — not project-wide `all`, not a milestone named Today. `/solve design related issues` is a **scoped drain**, not extra constraints and not a project-wide `all`. `fast` does not change behavior. `worktree` is the only way to get worktrees.
+**Disambiguation:** `--effort 3` never sets the solve count to 3. `--concurrency 3` never sets the solve count to 3. `/solve 3` means three issues in shared-dev parallel (inner-review per stamp, width up to 3). `/solve all --concurrency 5` drains the active set with **width** 5 (not a cap of 5 issues). `/solve all` means **unlimited until drained** — never treat `--effort` or concurrency **32** as “solve only thirty-two tickets.” `/solve today` means **created today**, shared-dev, drain that window — not project-wide `all`, not an area named Today. `/solve design related issues` is a **scoped drain**, not extra constraints and not a project-wide `all`. `fast` does not change behavior. `worktree` is the only way to get worktrees.
 
 ### Concurrency defaults
 
@@ -158,7 +157,7 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 
 ## Trigger phrases
 
-`/solve`, `/solve N`, `/solve all`, `/solve today`, `/solve design related issues`, `/solve the Design milestone`, `solve the next issue`, `solve the next N issues`, `solve all open issues`, `solve <milestone or area> related issues`, `issues created today`, `tickets created today`, `same dev branch`, `ignore each other's work`, `verify after they are done`, `/goal` to finish today’s Linear issues ASAP, `parallel solve`, `pick up the next ticket`, `work the next unblocked Linear issue`, `next lowest Linear issue`, `complete the next open ticket onto dev`
+`/solve`, `/solve N`, `/solve all`, `/solve today`, `/solve design related issues`, `solve the next issue`, `solve the next N issues`, `solve all open issues`, `solve <area> related issues`, `issues created today`, `tickets created today`, `same dev branch`, `ignore each other's work`, `verify after they are done`, `/goal` to finish today’s issues ASAP, `parallel solve`, `pick up the next ticket`, `work the next unblocked issue`, `next lowest issue`, `complete the next open ticket onto dev`
 
 ---
 
@@ -203,8 +202,8 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
    - `IMPLEMENT_SKILL_MD` = optional, **not used** for the construction loop (standalone `/implement` is a different skill). Do not fail `/solve` if it is missing.
    - Worker spawn types: `solve-implementer` (required), `solve-reviewer` (heavy/critical only). Authority: [`../docs/grok-models.md`](../docs/grok-models.md) + [`../docs/intensity.md`](../docs/intensity.md).
 8. **Branch on mode after Phase 1 + 1.5 (+ S0 when required):**
-   - Always run Phase 1 (the queue).
-   - Always run [Phase 1.5 — Scope](#phase-15--scope-milestone--group--area) when `REST` is non-empty, `TODAY_MODE` is set, or to confirm `SCOPE` is unset.
+   - Always run Phase 1 (the `.wcp/issues/` queue).
+   - Always run [Phase 1.5 — Scope](#phase-15--scope-today--area) when `REST` is non-empty, `TODAY_MODE` is set, or to confirm `SCOPE` is unset.
    - If `GUIDANCE_REQUIRED`: run [Phase S0 — Batch guidance](#phase-s0--batch-guidance-multi-issue) before any claim.
    - If `SHARED_DEV`: follow [Shared-dev](#shared-dev--same-branch-parallel) + [`references/shared-dev.md`](references/shared-dev.md). **Do not** use worktrees. **Do not** run the sequential batch loop or fast-mode.md.
    - Else if `FAST_MODE`: follow [Fast mode](#fast-mode--parallel-orchestrator) + [`references/fast-mode.md`](references/fast-mode.md) (Phases F1–F6), using the S0 package as the architecture/guidance authority. **Do not** run the sequential batch loop below.
@@ -214,11 +213,11 @@ The `/goal` (or plain) text “finish all Linear issues created today ASAP, many
 
 ## Phase 1 — Queue
 
-The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). If the checkout has `.WCP/` and no `.wcp/`, the board is `.WCP/issues/`. Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that folder if a run needs a queue and they are missing. Do not create `.wcp/` beside `.WCP/`. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`.
+The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). If the checkout has `.WCP/` and no `.wcp/`, the board is `.WCP/issues/`. Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that folder if a run needs a queue and they are missing. Do not create `.wcp/` beside `.WCP/`. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`. After a status write, update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
 
 ---
 
-## Phase 1.5 — Scope (today / milestone / group / area)
+## Phase 1.5 — Scope (today / area)
 
 When `REST` is non-empty **or** `TODAY_MODE` is set, resolve `SCOPE` using
 **Scope filter** in [`references/eligibility.md`](references/eligibility.md)
@@ -226,11 +225,11 @@ When `REST` is non-empty **or** `TODAY_MODE` is set, resolve `SCOPE` using
 
 - Created today (`/solve today`, “issues created today”, `/goal` today’s
   issues ASAP): `SCOPE.kind = created`, date = session Today’s date. Mention
-  the window once. Drain that window (shared-dev unless `seq`). **Not** a
-  milestone named Today.
-- Unique milestone or label (e.g. `/solve design related issues` → project
-  milestone **Design**): set `SCOPE`, mention the match once, then drain that
-  cluster unless a bare `N` was given.
+  the window once. Drain that window (shared-dev unless `seq`). **Not** an
+  area named Today.
+- Unique title/body area (e.g. `/solve design related issues` → files whose
+  title or body contain **design**): set `SCOPE`, mention the match once, then drain that
+  cluster unless a bare `N` was given. There is no milestone or label lookup.
 - Several matches: ask **once**; do not guess.
 - No match + cluster phrasing: stop and ask; do not drain the whole project.
 - No match + constraint phrasing: no `SCOPE`; extra constraints only.
@@ -256,7 +255,7 @@ only (created-today = that calendar date only).
 ### S0 summary
 
 ```text
-1. Inventory eligible leaves (epic expand, blocked filter) + repo architecture truth
+1. Inventory eligible leaves (packaging-only skip, blocked filter) + repo architecture truth
 2. Tag each leaf: platforms, class (migration|foundation|feature|ops|docs), explicit supersedes
 3. Detect direction conflicts (e.g. ClickHouse/Convex tickets vs Neon migration)
 4. Resolve canonical vs abandoned platforms (repo truth + newer explicit direction)
@@ -280,7 +279,7 @@ If open tickets include “build X on ClickHouse” and “migrate to Neon / Cli
 | Prior ticket state | Superseding open ticket |
 |--------------------|-------------------------|
 | **Done** | Implement superseder only; override code in scope; do not reopen Done |
-| **Open**, fully obsolete | Skip implement; comment + prefer Cancel/Duplicate when high confidence |
+| **Open**, fully obsolete | Skip implement; cancel the file with `reason` when high confidence |
 | **Open**, outcome still needed on new stack | Re-scope in guidance; implement rewritten AC |
 
 After S0, sequential Phase 2 **selects the next leaf from `execution_order`**, not pure ascending number (still re-validate eligibility each slot). Fast mode uses the same package for waves and skips. Shared-dev uses it for skip/rescope; launch is the disjoint-path ready set (WCP).
@@ -320,7 +319,7 @@ If `SHARED_DEV` is false and `FAST_MODE` is true (`worktree` opt-in), use worktr
 ```text
 Phase 0–1  Bootstrap + queue (above)
 Phase S0   Batch guidance (required) — guidance.md + graph.json + inventory
-Phase F1   Align inventory with S0 (epic expand, blocked filter, skip obsolete)
+Phase F1   Align inventory with S0 (leaves only, blocked filter, skip obsolete)
 Phase F2   Ensure package complete: shared contracts, waves, conflict zones, supersession
 Phase F3   Report waves/concurrency + direction/skips to user (non-blocking)
 Phase F4   CAS-claim → spawn ALL ready workers in one turn (worktrees) →
@@ -334,14 +333,14 @@ Phase 9    Batch summary (remaining worktrees: 0)
 ### Fast rules (non-negotiable)
 
 1. **Guidance first** — no worker starts until `guidance.md` (or equivalent architecture package with supersession/order sections) and `graph.json` exist with shared contracts, tech intersections, waves, conflict zones, **and** platform/supersession decisions.
-2. **Workers never merge `dev`/`main`, never open a PR, never commit.** Orchestrator owns the claim and the merge to local `dev`. The reviewer sets the file `done`. Notion stays `in-review`. See [`references/fast-mode.md`](references/fast-mode.md).
+2. **Workers never merge `dev`/`main`, never open a PR, never call Notion.** Orchestrator owns the claim, merge to local `dev`, and the Notion update. See [`references/fast-mode.md`](references/fast-mode.md).
 3. **Hard deps must be merged to local `dev`** before a dependent worker starts (not merely implemented in another worktree).
 4. **Max parallelism** — launch every **ready** leaf up to `CONCURRENCY` (default 8, hard max 8). Live worktrees ≤ `CONCURRENCY`.
 5. **Spawn in one turn** — emit every `spawn_subagent` for the current ready set in the **same** orchestrator message (`isolation: "worktree"`, `background: true`). Do **not** wait for worker A before spawning worker B. Then wait with `get_command_or_subagent_output` on the live ids.
 6. **Cleanup mandatory** — after each successful merge (and on failure): `kill` worker if needed → `grok worktree rm --force` → delete local issue branch. End of run: **0** leftover solve-fast worktrees for this `RUN_ID`. See cleanup contract in fast-mode.md.
 7. **Failure policy** — cascade-skip dependents of a failed issue; **continue** independent issues.
 8. **No separate Grok CLI processes** in v1 — use `spawn_subagent` + `isolation: "worktree"`.
-9. **Eligibility / epics / Linear comment policy** — same as Phase 2 / Linear issue management (no spam on skips).
+9. **Eligibility / packaging-only parents** — same as Phase 2. Do not comment on ordinary skips. The file is the record.
 10. **`all` drain** — F6 refill + end-of-run re-read of `.wcp/issues/` until no eligible leaves remain. Do not Phase 9 while implementable leaves remain.
 11. **Quality is not optional** — per-issue intensity inner-review, issue AC, and [`../docs/prove-it-works.md`](../docs/prove-it-works.md) still apply. Parallelism never skips proof or S0.
 
@@ -381,7 +380,7 @@ while true:
     # tentative empty — in all mode still run drain gate below before Phase 9
     break
   ATTEMPTED += 1
-  claim → git hygiene → implement → verify → merge dev → in-review, then reviewer sets done (Phases 3–8)
+  claim → git hygiene → implement → verify → merge dev → in-review, then reviewer sets the file done (Phases 3–8)
   if that issue succeeded:
     append to SOLVED
     continue to next issue   # all mode: always continue; N mode: until len(SOLVED) >= N
@@ -390,7 +389,7 @@ while true:
     if SOLVE_COUNT_MODE is integer N:
       stop the batch   # hard-stop on failure for finite batches
     else:  # all mode
-      cascade-skip dependents of the failed issue (guidance graph / blockedBy)
+      cascade-skip dependents of the failed issue (guidance graph / `blocked/` reason)
       continue to next independent eligible issue   # do NOT hard-stop the whole drain
 ```
 
@@ -400,7 +399,7 @@ while true:
 |-----------|----------|
 | `len(SOLVED) >= N` (**integer mode only**) | Stop; then Phase 9 (no drain gate required beyond count) |
 | No eligible issues after Phase 2 | Tentative drain → run [Drain gate](#drain-gate-before-phase-9) in `all` mode |
-| Implement hard-fail / unrecoverable verify / dev merge fail | **Integer `N`:** stop batch. **`all`:** leave issue In Progress/Blocked; record FAILED; cascade-skip dependents; **continue** with next independent eligible leaf |
+| Implement hard-fail / unrecoverable verify / dev merge fail | **Integer `N`:** stop batch. **`all`:** leave the file `in-progress` or `blocked`; record FAILED; cascade-skip dependents; **continue** with next independent eligible leaf |
 | User aborts / stalemate escalation needs human input | Stop batch; wait for user |
 | `all` mode + still eligible after success **or** after an independent failure | **Continue** immediately — never self-limit to 5 or any other soft K |
 
@@ -410,9 +409,9 @@ Do **not** stop for: “solved five already,” long context, finished first wav
 
 ### Multi-issue rules
 
-- **One issue at a time** — finish Phases 2–8 (including merge to local `dev` and Linear **In Review**) before selecting the next.
+- **One issue at a time** — finish Phases 2–8 (including merge to local `dev` and file `in-review/`) before selecting the next.
 - **Guidance order when S0 ran** — walk `execution_order` (skip already solved/skipped/failed); re-validate eligibility each slot. Pure lowest-number selection only when S0 did not run.
-- **Refresh guidance** after success (and after failures that may unblock others) if Linear gains new eligible leaves or supersession edges; re-rank **remaining** only. In `all` mode, **refill** is required — initial inventory is not a fixed closed set.
+- **Refresh guidance** after success (and after failures that may unblock others) if `.wcp/issues/` gains new eligible leaves or supersession edges; re-rank **remaining** only. In `all` mode, **refill** is required — initial inventory is not a fixed closed set.
 - **Preferred `TEAM-123`** applies only to the **first** selection in the batch when it remains eligible and not skipped; subsequent selections follow guidance order (or lowest number if no guidance).
 - **Git**: each issue gets its own short-lived branch off the updated `dev` (which already contains prior solves from this batch).
 - **Progress**: keep a short running tally visible (e.g. todo or interim note): `Solved k/N` or `Solved k (all mode — still draining)` + skipped/failed counts. Never frame interim progress as final completion while `all` still has eligible leaves.
@@ -424,10 +423,10 @@ Do **not** stop for: “solved five already,” long context, finished first wav
 **Required when `SOLVE_COUNT_MODE = all`.** Also recommended after multi-issue `N` if you claim the board is empty.
 
 ```text
-1. Re-read `.wcp/issues/` per eligibility.md. Do not call Linear.
+1. Re-read `.wcp/issues/` per eligibility.md (do not call Linear)
 2. Filter: **scope** (`issue_in_scope` when `SCOPE` is set), eligible states (2B),
    not blocked (2D; out-of-scope blockers stay blocked — do not implement them),
-   expand epics (2E), not guidance-skip, not already in SOLVED/FAILED this run
+   skip packaging-only parents (2E), not guidance-skip, not already in SOLVED/FAILED this run
    (unless FAILED leaf is still wrongly open and independents remain —
    independents still count as remaining work)
 3. If any implementable leaf remains **in the active set**:
@@ -461,18 +460,18 @@ order; never pick outside it; never refill from outside it.
 
 1. Walk `execution_order` from `graph.json` / `guidance.md`.
 2. Skip ids already in `SOLVED` or guidance skip/cancel set.
-3. For each candidate, re-check eligibility (2B), blocked (2D), epic expansion (2E).
+3. For each candidate, re-check eligibility (2B), blocked (2D), parents (2E).
 4. Pick the first remaining implementable leaf.
 5. If order is empty but eligible issues remain outside the list, **refill S0** (or fall back to lowest number with a warning in the run log).
 
 **When S0 did not run** (single-issue default):
 
-Parse the id: `(\d+)` from frontmatter or the filename. Sort **ascending** among
-candidates already filtered by `SCOPE` (if set). Walk in that order; for each,
-apply blocker check, then **epic expansion (2E)**, until a **leaf** implementable
-issue remains.
+Rank by frontmatter `priority` (critical, high, normal, low), then user-facing
+impact, then identifier. Walk in that order among candidates already filtered
+by `SCOPE` (if set); for each, apply blocker check, then **parents (2E)**, until
+a **leaf** implementable issue remains.
 
-If the user named an issue id in the same turn **and this is the first selection of the batch**, start from that issue (still require unblocked; not guidance-skipped; still expand if it is an epic/parent). On later batch slots with guidance, follow `execution_order`; without guidance, use lowest unblocked number.
+If the user named an issue id in the same turn **and this is the first selection of the batch**, start from that issue (still require unblocked; not guidance-skipped; still skip a packaging-only body in favor of listed ids). On later batch slots with guidance, follow `execution_order`; without guidance, rank remaining by frontmatter `priority` (critical, high, normal, low), then user-facing impact, then identifier.
 
 ### 2D. Blocked definition
 
@@ -480,13 +479,11 @@ Canonical: [`references/eligibility.md`](references/eligibility.md) (Blocked).
 
 ### 2E. Epic / parent expansion
 
-Canonical: [`references/eligibility.md`](references/eligibility.md) (Epic / parent expansion). `/solve` **does** rollup-Done when all children are terminal (Done/Canceled/Duplicate — **In Review is not terminal**). After a leaf closeout the leaf is In Review, so **do not** rollup the epic in Phase 8.
-
-When starting a child from an epic: note in the **leaf** start comment `via epic TEAM-100`.
+Canonical: [`references/eligibility.md`](references/eligibility.md) (Parents). There is no epic. Implement the leaf file. A packaging-only body is skipped in favor of the ids it lists. Do not set a packaging parent `done` in place of the leaves. File `in-review` is not a terminal child.
 
 ### 2F. Inspect before claiming
 
-For the **resolved leaf** issue (after epic expansion), load full issue: description, acceptance criteria, code map, drift check, comments, relations, labels, and **parent epic id/title** when expanded.
+For the **resolved leaf** issue, load the issue file: title, body, acceptance, scope, `files`, `priority`, and `reason` when blocked.
 
 **Intensity (required before implement):** follow [`../docs/intensity.md`](../docs/intensity.md). Set `ISSUE_INTENSITY` + `INNER_REVIEW` (`none` | `bugs-only`) for this leaf:
 
@@ -502,11 +499,11 @@ For the **resolved leaf** issue (after epic expansion), load full issue: descrip
 
 End the batch loop (do not invent work). Report in Phase 9:
 
-- Team/project used
-- `SCOPE` if set (created today / milestone/label/area) and that the rest of the board was ignored
+- Queue path (`.wcp/issues/` or `.WCP/issues/`)
+- `SCOPE` if set (created today / area) and that the rest of the board was ignored
 - How many already solved this run (if any)
 - Guidance path (if S0 ran), execution order, and supersession skips
-- Candidates considered and why skipped (blocked / in progress other / wrong state / epic with no eligible children / abandoned platform / out of scope / blocked by out-of-scope)
+- Candidates considered and why skipped (blocked / in progress other / wrong state / packaging-only / abandoned platform / out of scope / blocked by out-of-scope)
 
 If this is the first selection and nothing is eligible → stop the whole `/solve` with that report. Note when the board is “drained of implementable work” but still has open tickets only because they were **guidance-skipped** as obsolete.
 
@@ -516,11 +513,11 @@ If this is the first selection and nothing is eligible → stop the whole `/solv
 
 Only for the leaf we are about to implement:
 
-1. Follow [`references/multiplayer-linear.md`](references/multiplayer-linear.md). If every remaining leaf is held by someone else under a live lease, do not take those.
+1. Follow [`references/multiplayer.md`](references/multiplayer.md). If every remaining leaf is held by someone else under a live lease, do not take those.
 2. Claim: `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes UTC, move to `in-progress/`.
 3. Re-read. If `assignee` is not you, abort and pick another.
-4. Set the Notion row to `in-progress` ([`../docs/notion-issues.md`](../docs/notion-issues.md)). If Notion fails, the file claim still stands.
-5. When S0 cancels an obsolete open ticket, cancel that file with `reason` (player skill) and set that Notion row to `canceled`. Do not cancel a live lease. Do not rewrite tickets you only scanned.
+4. When S0 cancels an obsolete open ticket, cancel that file with `reason` (player skill) and set that Notion row to `canceled`. Do not cancel a live lease. Do not rewrite tickets you only scanned.
+5. After the claim write, set the Notion row to `in-progress`.
 
 ---
 
@@ -568,11 +565,10 @@ Rules:
 Construct a single description string for the implementer:
 
 ```markdown
-## Linear issue
+## Issue
 - Id: <TEAM-123>
 - Title: <title>
-- URL: <url>
-- Parent epic (if expanded): <TEAM-100 — title> or none
+- File: <.wcp/issues/…>
 - Intensity: <band> · inner-review none|bugs-only · <why> · proof on|n/a
 - Description / acceptance criteria:
 <full issue body>
@@ -603,8 +599,8 @@ Construct a single description string for the implementer:
 
 ## Solve delivery constraints (hard)
 - Work only on the current git branch: <issue-branch>
-- Scope is this leaf issue only — do not implement the full parent epic
-- Do not push, open PRs, merge to dev/main, or update Linear state
+- Scope is this leaf issue only — do not implement listed sibling ids
+- Do not push, open PRs, merge to dev/main, or set file `done`. Do not call Linear.
 - Do not discard unrelated dirty files
 - When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.wcp/issues/in-review/`. Do not set `done`. Do not commit. Do not stash.
 - Smallest complete change meeting **current** (possibly re-scoped) acceptance criteria
@@ -640,7 +636,7 @@ Wait for completion. If it fails (subagent hard-fail, unrecoverable):
 2. Prompt: read the diff + summary file. Flag **bugs** only (correctness / security / regression this change introduced). Nits go under `## Notes` and must not be `Status: open` bugs. Write `bugs.md`.
 3. If `bugs.md` has open bugs: resume the implementer once to fix those bugs only. Re-run the reviewer **once**. Remaining nits do **not** block. Do not loop to zero nits.
 
-**Orchestrator rule:** while construction is active, you **must not** use `write` / `search_replace` / shell to modify application source for the issue. Only the implementer (and the optional reviewer, notes-only) touch product files. You may still run read-only tools and git status. Do not call Notion during a source-file lease.
+**Orchestrator rule:** while construction is active, you **must not** use `write` / `search_replace` / shell to modify application source for the issue. Only the implementer (and the optional reviewer, notes-only) touch product files. You may still run read-only tools, Notion status updates that follow the file, and git status/diff inspection.
 
 Long batches: if the parent context is approaching **180k** tokens, `/compact keep the current issue, files in play, failing tests` before the next leaf.
 
@@ -666,7 +662,7 @@ Order:
 
 Matrix green is **necessary, not sufficient** for in-scope work. “Not performed” is a **fail**.
 
-Fix failures **by resuming the `solve-implementer`** (spawn/resume; not by editing yourself), then re-verify. Do not merge to `dev` or In Review if required checks **or** in-scope runtime proof fail.
+Fix failures **by resuming the `solve-implementer`** (spawn/resume; not by editing yourself), then re-verify. Do not merge to `dev` or move the file to `in-review/` if required checks **or** in-scope runtime proof fail.
 
 ### Hand off
 
@@ -721,6 +717,7 @@ Then, only when `wcp look` shows no live source-file lease:
 2. Write that hash into `commit` on the done file.
 3. If a `blocked/` ticket names this id in `reason`, unblock it to `open/` and leave `reason`.
 4. Commit the issue-file update. `wcp look` is still empty.
+5. Update Notion to `in-review` for that id. Do not set Notion `done`. `/prb` and `/yeet` do that after `origin/main`.
 
 If verification failed before review: leave the ticket `in-progress` if you still hold the lease, or `blocked` with `reason` when a human has to answer. The reviewer is the one who sets `done`. In `all` mode the drain continues with other eligible leaves.
 
@@ -731,9 +728,8 @@ If verification failed before review: leave the ticket `in-progress` if you stil
 ### Single issue (`SOLVE_COUNT_MODE = 1` and one attempt)
 
 ```markdown
-**Solved:** [TEAM-123](url) — <title>
-**Via epic:** [TEAM-100](url) — <epic title>   <!-- omit if not expanded -->
-**Queue:** file `done` on local `dev`; Notion `in-review` until `/prb` or `/yeet`
+**Solved:** TEAM-123 — <title>
+**Notion:** in-review until `/prb` or `/yeet` sets done
 **Branch:** `<issue-branch>` → merged into local `dev`
 **Main:** dev updated from latest `main` before work
 **Implement:** intensity <band> · inner-review none|bugs-only · cheap construction
@@ -749,21 +745,21 @@ If verification failed before review: leave the ticket `in-progress` if you stil
 ```markdown
 **Batch:** solved K of target <N|all> · attempted A · failed F · skipped S
 **Mode:** /solve <N|all> · inner-review per issue
-**Team/project:** <resolved>
-**Scope:** <milestone Name | label X | area "…" | none>
+**Queue:** `.wcp/issues/`
+**Scope:** <area "…" | created today | none>
 **Guidance:** `<abs path to guidance.md>` · canonical: … · abandoned: …
 **Order:** TEAM-… → TEAM-… (migrations/foundations first when relevant)
 **Drain (all only):** verified — no eligible unblocked implementable leaves remain [in this scope]
 
 ### Solved
-1. [TEAM-123](url) — <title> · branch `…` → local `dev` · matrix + runtime proof pass
-2. [TEAM-124](url) — …
+1. TEAM-123 — <title> · branch `…` → local `dev` · matrix + runtime proof pass
+2. TEAM-124 — …
 
 ### Skipped (superseded / abandoned platform)
-- [TEAM-67](url) — reason (Canceled/Duplicate/left open per policy)
+- TEAM-67 — reason (canceled file / left `open` per policy)
 
 ### Failed (if any)
-- [TEAM-125](url) — reason (left In Progress/Blocked; dependents cascade-skipped; other independents continued in all mode)
+- TEAM-125 — reason (left `in-progress`/`blocked`; dependents cascade-skipped; other independents continued in all mode)
   <!-- integer N only may say "batch halted" -->
 
 ### Remaining
@@ -789,21 +785,21 @@ A today-scope run may leave older tickets open — that is not a today-drain fai
 ```markdown
 **Batch:** solved K of target <N|all> · attempted A · failed F · skipped S
 **Mode:** /solve <N|all> · concurrency C · run <RUN_ID>
-**Team/project:** <resolved>
-**Scope:** <milestone Name | label X | area "…" | none>
+**Queue:** `.wcp/issues/`
+**Scope:** <area "…" | created today | none>
 **Guidance:** `<abs path to guidance.md>` · canonical: … · abandoned: …
 **Waves:** W · max parallelism used: P
 **Cleanup:** worktrees removed K · branches deleted K · remaining solve worktrees: 0
 **Drain (all only):** verified — no eligible unblocked implementable leaves remain
 
 ### Solved
-1. [TEAM-123](url) — <title> · merged → local `dev` · matrix + runtime proof pass
+1. TEAM-123 — <title> · merged → local `dev` · matrix + runtime proof pass
 
 ### Skipped (superseded / abandoned platform)
-- [TEAM-67](url) — reason
+- TEAM-67 — reason
 
 ### Failed
-- [TEAM-125](url) — reason (left In Progress; dependents skipped: …)
+- TEAM-125 — reason (left `in-progress`; dependents skipped: …)
 
 ### Remaining
 - Implementable eligible still open: **none** (required for all after drain gate)
@@ -829,32 +825,30 @@ Canonical table: [`references/eligibility.md`](references/eligibility.md) (Block
 | Phase 3 claim | `in-progress/`, `assignee` = this agent, `lease_expires` = now + 10 minutes |
 | While implementing | renew the ticket lease if it would expire; do not hold a source-file lease through tests |
 | Solver finished | `in-review/`, `lease_expires` cleared, `commit` empty |
-| Reviewer passed | `done/`, lease cleared. Orchestrator fills `commit` after the work commit |
+| Reviewer passed | `done/`, lease cleared. Orchestrator fills `commit` after the work commit. Notion stays `in-review` until `/prb` or `/yeet` |
 | Failure, still ours | stay `in-progress`, or `blocked` with `reason` when a human must answer |
 | Blocker now `done` or `canceled` | dependent moves to `open/`; `reason` stays |
 
-Workers do not close tickets. The orchestrator does. Do not call Linear. Notion follows the file: claim is `in-progress`, after review is `in-review`. Do not set Notion `done`.
+Workers do not close tickets. The orchestrator does. Do not call Linear. Notion follows the file: claim is `in-progress`, after review is `in-review`. Do not set Notion `done`. The orchestrator updates Notion after the file write and does not set Notion `done`.
 
 ---
 
 ## Anti-patterns
 
-- Picking by priority or “interesting” instead of guidance order / lowest unblocked number
+- Picking by “interesting” instead of guidance order / `priority` then impact then identifier
 - **Implementing obsolete stack work** (e.g. ClickHouse/Convex features) before an open migration that establishes the canonical platform (e.g. Neon)
 - Ignoring batch guidance and implementing pure ascending issue numbers across platform conflicts
 - Reopening **Done** tickets instead of letting a newer ticket selectively override their code
 - Canceling open tickets on **low-confidence** platform inference (escalate instead)
-- **Implementing an epic/parent** that still has eligible children instead of expanding to the lowest eligible child
-- Marking the **parent epic Done** when open/non-terminal children remain
-- Leaving an epic open forever when **all** children are already terminal (must rollup Done)
+- **Implementing a packaging-only parent** instead of the listed leaf ids
+- Setting a packaging parent `done` while listed children remain open
 - Commenting on every skipped candidate during selection (noise)
-- Skipping Phase 3 start or Phase 8 completion comments on a claimed leaf
-- Posting a Linear comment without `list_comments` first (duplicate closeouts / claims)
+- Calling Linear for claim, close, or status
 - Treating `/solve` as unlimited when the user did not pass `all` **and** did not name a scope (default is **1**)
 - Treating `/solve all` as a soft batch of ~5 (or any fixed K) instead of a full drain
 - Treating `/solve design related issues` (or other cluster remainder) as implementer constraints or as a **project-wide** drain
 - Picking a leaf **outside** `SCOPE` because it is lower-numbered or unblocks the cluster
-- Implementing an **out-of-scope** `blockedBy` target in order to continue a scoped drain
+- Implementing an **out-of-scope** blocker named in `reason: blocked by <id>` in order to continue a scoped drain
 - Confusing `--effort N` or `--concurrency N` (or auto-dialed inner-review / concurrency **8**) with solve count `N`
 - Running a multi-issue `/solve` one leaf at a time without `seq`
 - Spawning ready workers one-after-another (wait for A, then spawn B) instead of one parallel turn
@@ -863,7 +857,7 @@ Workers do not close tickets. The orchestrator does. Do not call Linear. Notion 
 - Implementing a thin stub instead of `/issue`-upgrading the contract
 - Ignoring a valid `## Intensity` stamp and re-guessing lighter
 - Emitting Phase 9 for `all` while eligible unblocked leaves still exist (“re-run to continue”)
-- Skipping the **drain gate** Linear re-query in `all` mode
+- Skipping the **drain gate** re-read of `.wcp/issues/` in `all` mode
 - Freezing on the initial S0 inventory in `all` mode without refill after merges/closeouts
 - Pre-queuing without S0 analysis when multi-issue guidance is required
 - Starting the next issue before the current one is merged to local `dev` and closed out (**sequential**; fast: do not start dependents before hard deps are merged to `dev`)
@@ -877,25 +871,25 @@ Workers do not close tickets. The orchestrator does. Do not call Linear. Notion 
 - Pushing `dev` or opening PRs without being asked
 - Implementing on `main` directly
 - Letting `dev` fall behind `main`
-- Marking **Done** from `/solve` (Done is `/prb` after `main`; exception: epic rollup when all children terminal)
-- Treating Linear **In Review** as proof the work is on `dev` (skip without the on-dev check)
-- Skipping a leaf because its `blockedBy` is In Review but not **Done** / not on `main` — In Review **on local `dev`** unblocks dependents
-- Leaving a stale In Review (not on local `dev`) unworked
-- Marking In Review without verification or without merge to local `dev`
+- Setting Notion **done** from `/solve` (Notion `done` is `/prb` / `/yeet` after `origin/main`). The reviewer may set the **file** `done`.
+- Treating file `in-review` as proof the work is on `dev` (skip without the on-dev check)
+- Skipping a leaf because its blocker is `in-review` but not `done` and not on local `dev` — a blocker with `commit` on local `dev` unblocks dependents
+- Leaving a stale `in-review` file (not on local `dev`) unworked
+- Moving the file to `in-review/` without verification or without merge to local `dev`
 - Treating typecheck/tests/build as proof for user-visible, auth, billing, API, schema, or shared-helper changes ([`../docs/prove-it-works.md`](../docs/prove-it-works.md))
-- Writing “browser smoke not performed” and still In Review
-- Starting a second `/solve all` drain on a project that already has foreign live `claimed-by:` comments
+- Writing “browser smoke not performed” and still moving the file to `in-review/`
+- Starting a second `/solve all` drain on a project that already has foreign live ticket leases
 - Coding a leaf after a failed claim re-read (CAS miss)
 - Committing unrelated dirty files or secrets
 - Expanding into a rewrite when the ticket asked for a narrow fix (unless guidance re-scope requires platform rewrite)
-- Silently skipping Linear updates on issues we claimed or completed
+- Silently skipping the Notion status update on an issue this run claimed or finished
 - **Fast:** starting workers before guidance.md + graph.json exist
-- **Fast:** worker merges to `dev`, opens a PR, or sets Linear Done
+- **Fast:** worker merges to `dev`, opens a PR, or sets file `done`
 - **Fast:** leaving worktrees or issue branches after merge/fail (cleanup is mandatory)
 - **Fast:** using only `git worktree remove` for tool-created worktrees — use `grok worktree rm --force`
 - **Fast:** exceeding concurrency 8 or spawning separate `grok` CLI processes (v1)
 - **Fast:** starting a dependent while its hard dep is only done in a worktree, not yet on local `dev`
-- Treating `/solve today` as a project-wide `/solve all` or as a milestone named Today
+- Treating `/solve today` as a project-wide `/solve all` or as an area named Today
 - Using worktrees / issue branches / stash-to-merge for a parallel `/solve` unless the user passed `worktree`
 - Verifying (or merging) worker A before spawning or waiting for worker B in shared-dev
 - Worker commit or stash on the shared tree
@@ -918,11 +912,11 @@ Workers do not close tickets. The orchestrator does. Do not call Linear. Notion 
 |-------|------------|
 | `/issue` | Files thorough tickets only |
 | `/implement` | Standalone implement→review until-zero-nits; **not** used by `/solve` |
-| `/solve` | Selects Linear issue(s) + **cheap construction** onto **local `dev`**; count via `/solve [N\|all\|today]` (default 1); remainder can **scope** a milestone/label/area or **created-today** drain; batches run **shared-dev** parallel (worktrees only if `worktree`). Deep review is `/prb`. |
-| `/start` | Greenfield scaffold + onboard docs + new Linear project; nested `/solve all` with `cwd` = new repo and `SELECTION_PIN` = V1 leaves |
+| `/solve` | Selects `.wcp/issues/` file(s) + **cheap construction** onto **local `dev`**; count via `/solve [N\|all\|today]` (default 1); remainder can **scope** created-today or title/body area; batches run **shared-dev** parallel (worktrees only if `worktree`). Deep review is `/prb`. |
+| `/start` | Greenfield scaffold + onboard docs + a Notion issues database; nested `/solve all` with `cwd` = new repo and `SELECTION_PIN` = V1 leaves |
 | `/stat` | Read-only full open board, urgent → least; does not implement |
 | `/identify` | Human-approved 2–4 leaf batch; upgrades; JIT-claims; nested `/solve` with `SELECTION_PIN` + shared `RUN_ID` (parallel when the pin is overlap-free) |
-| `/execute-plan` | Parallel worktree implement from a design-doc PR DAG (not Linear pick/closeout) |
+| `/execute-plan` | Parallel worktree implement from a design-doc PR DAG (not `/solve` pick/closeout) |
 | `/prb` `/yeet` | Ship local `dev`. `/solve` does not push |
 
 ---
@@ -982,5 +976,5 @@ Worktree orchestration (opt-in `worktree` only) lives in:
 - **`solve-implementer` type rejected**: fall back to `general-purpose` + `model: grok-4.6` once; do not stop.
 - **Batch guidance / fast package fails**: stop before claim/workers; report inventory/graph/direction problems; do not spawn parallel implementers or implement obsolete stack work.
 - **Fast worktree cleanup fails**: retry `grok worktree rm --force` once; include leftover paths in Phase 9; do not pretend remaining worktrees is 0.
-- **Shared-dev combined verify fails**: resume the implementer(s) for the failing leaf paths; do not In Review; do not edit app source in the parent.
+- **Shared-dev combined verify fails**: resume the implementer(s) for the failing leaf paths; do not move the file to `in-review/`; do not edit app source in the parent.
 - **Push requested later**: user may run a separate ship step; this skill’s default remains local-only.

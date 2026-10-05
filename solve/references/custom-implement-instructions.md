@@ -5,7 +5,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 
 ## Always apply
 
-1. **Scope**: satisfy only the **current** Linear issue’s acceptance criteria. No drive-by refactors, no unrelated cleanup.
+1. **Scope**: satisfy only the **current** issue file’s acceptance criteria. No drive-by refactors, no unrelated cleanup.
 2. **Supersession / selective override** (when the orchestrator or issue body declares it):
    - The **current issue is authoritative** for its override scope. Prefer its AC over older Done/open issues it supersedes.
    - You **may and should** change, replace, or delete code that previously satisfied a superseded ticket **inside the listed override scope**.
@@ -13,7 +13,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
    - Do **not** re-assert discarded earlier AC as requirements for this change.
    - In the implement summary, list: supersedes ids, override scope, and what was changed/removed vs left alone.
 3. **Patterns**: match existing route, UI, Neon/runtime, and test conventions in the repo **unless** the current issue’s supersession notes explicitly replace that pattern. Prefer existing helpers over new abstractions when not superseding.
-4. **Repo rules**: follow root `AGENTS.md` / `CLAUDE.md` / `README.md` for this workspace (Linear tracking, package manager, validation matrix, no reintroducing removed systems).
+4. **Repo rules**: follow root `AGENTS.md` / `CLAUDE.md` / `README.md` for this workspace (`.wcp/issues/` tracking, package manager, validation matrix, no reintroducing removed systems).
 5. **Secrets**: never commit `.env`, print Doppler/tokens/connection strings, or log secrets.
 6. **Git while implementing**: stay on the branch the orchestrator assigned. **Shared-dev (default parallel):** stay on local `dev`; do not create branches, worktrees, stash, reset, or restore sibling files; do not commit. **Sequential and worktree:** stay on the issue branch; do not switch to `main`; do not commit and do not stash. Never push or open PRs.
 6b. **Occupancy (WCP)**: load skill `water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md). Name yourself with `wcp name <id>` (prefer the issue id lowercased) and export `WCP_AGENT` and `WCP_NAME_TOKEN`. Write the test first (`// WCP <id>: <existing-path> …`) and do not claim the test file. Write a new file with no claim. For a file that already existed: look → acquire --test → write-ok → re-read disk → edit → release. Never rewind sibling edits. Never hold a lease through tests.
@@ -46,7 +46,7 @@ Edit this file to change how implementation behaves under `/solve`. They do **no
 - Preserving earlier-ticket behavior that this issue explicitly supersedes
 - Pushing or creating PRs
 - Discarding unrelated user work (`git reset --hard`, force-checkout over dirty unrelated files)
-- Marking Linear Done (orchestrator owns Linear closeout)
+- Setting file `done` or Notion `done` (reviewer sets file `done`; orchestrator writes `commit`; `/prb` sets Notion `done`)
 - Merging into `dev` or committing on `dev` (orchestrator owns commit after verify)
 - Claiming construction complete without runtime proof when the change is in-scope ([`../../docs/prove-it-works.md`](../../docs/prove-it-works.md))
 - Running bundled `/implement` until-zero-nits, or treating `/prb` nits as construction blockers
@@ -66,9 +66,9 @@ If the user passes free-text after `/solve` (other than `--effort N`, `--concurr
 When the orchestrator provides a **batch guidance** path (`guidance.md` from `/solve all`, `/solve N` with `N≥2`, or any parallel `/solve` — sometimes still named `architecture.md`):
 
 1. **Read that file fully** before coding. Treat **canonical/abandoned platforms**, **Shared contracts**, **Supersession**, **execution order notes**, **Tech intersections**, and **Conflict zones** as hard constraints.
-2. If the original Linear ticket and the guidance disagree on **platform/stack**, **guidance wins**. Implement re-scoped AC when `action=rescope`.
+2. If the original issue file and the guidance disagree on **platform/stack**, **guidance wins**. Implement re-scoped AC when `action=rescope`.
 3. Do **not** invent parallel APIs, schemas, env keys, or patterns that conflict with the guidance or with other issues listed there.
 4. Do **not** add dependencies on **abandoned platforms** (e.g. ClickHouse client work when canonical is Neon).
-5. Stay on the assigned branch. Shared-dev: stay on `dev`, WCP leases, do **not** commit. Do **not** merge to `dev`/`main`, push, open PRs, or update Linear state (orchestrator owns those).
+5. Stay on the assigned branch. Shared-dev: stay on `dev`, WCP leases, do **not** commit. Do **not** merge to `dev`/`main`, push, open PRs, or set file `done`. Do not call Linear.
 6. Prefer the smallest change that meets this leaf’s **current** (possibly re-scoped) acceptance criteria while remaining compatible with shared contracts.
 7. Document supersession/rescope compliance in the implement summary.

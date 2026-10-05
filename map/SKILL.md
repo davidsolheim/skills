@@ -45,7 +45,7 @@ This skill is **read-only on the app repo**. It writes the Maps vault and
    Later projects add a comparison row and update the default recipe if better.
 6. **`all` is sequential.** Full pipeline per root, then the next. Catalog
    updates after each project so the next one can match.
-7. **No browser, no screenshots, no Linear, no app commits, no other vaults.**
+7. **No browser, no screenshots, no issue filing, no app commits, no other vaults.**
 8. **Stack.** Every project Index has a ranked vendor table (most
    load-bearing first: “if this vanished, is the product dead?”). **Where**
    is code paths and env **names**, not only `package.json`. Vendors are not

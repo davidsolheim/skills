@@ -42,7 +42,7 @@ Intensity stamp: [`../docs/intensity.md`](../docs/intensity.md) — `/solve` and
 
 ## Trigger phrases
 
-`/issue`, `create a Linear issue`, `file this bug`, `log this issue`, `ticket this`, `create a ticket for…`
+`/issue`, `create an issue`, `file this bug`, `log this issue`, `ticket this`, `create a ticket for…`
 
 ---
 
@@ -128,7 +128,7 @@ Use the full structure in [references/issue-body-template.md](references/issue-b
 
 1. **Implementer contract** — scope lock; follow the plan; drift-then-implement
 2. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
-3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Do not key off ticket length or Linear priority alone.
+3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Intensity does not come from a priority number. Do not key off ticket length.
 4. **Summary** — 2–4 sentences, product + technical
 5. **User report** — quoted or paraphrased original description
 5. **Current behavior** — what the code/UI does today (with path/symbol evidence)
@@ -224,9 +224,9 @@ Then stop and wait for the next description. Do not start implementing.
 
 When the user sends multiple issues back-to-back:
 
-1. Reuse resolved team/project unless they change repos or say otherwise.
+1. Reuse this checkout’s queue unless they change repos or say otherwise.
 2. Still run full investigation + duplicate/direction-conflict check + create gate per item (do not copy-paste shallow tickets).
-3. Do not batch multiple unrelated problems into one Linear issue unless the user asks.
+3. Do not batch multiple unrelated problems into one issue file unless the user asks.
 4. Keep each user-facing confirmation to a few lines so the loop stays fast.
 5. If volume is high and items are multi-bullet, suggest `/issues` for shared research.
 
@@ -259,21 +259,21 @@ When the user sends multiple issues back-to-back:
 
 - Filing "investigate X" with no code map or plan
 - Filing product prose without file-by-file changes (cheap models will invent scope)
-- Asking the user for team/project when `AGENTS.md` or `.linear-project` already says
+- Asking the user for a tracker team or project; there is none to resolve
 - Creating a second issue for an obvious duplicate
 - Filing Y while leaving unstarted X implementable when X and Y contradict
 - Treating `## Supersedes` / `relatedTo` / a chat mention as the retire step
 - Skipping the conflict search because this is “not a stack migration”
 - Asking “does Y replace X?” when the user just stated Y
 - Canceling In Progress (foreign claim) or In Review without asking
-- Dumping raw command transcripts or whole files into Linear
+- Dumping raw command transcripts or whole files into the issue file
 - Implementing the fix under this skill
 - Blocking on perfect root cause when a solid scope + file map + plan is enough to start
 - Mega-tickets that should have been `/issues` splits
 - “See related ticket for context” as a substitute for a self-contained body
 - Filing without `## Intensity` / `Band:`
 - Filing without `## Occupancy (WCP)` (or explicit N/A)
-- Classifying intensity from ticket length or Linear priority alone
+- Classifying intensity from ticket length or a priority number alone
 
 ---
 

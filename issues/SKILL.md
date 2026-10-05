@@ -85,7 +85,7 @@ Parse args from the user message; ignore unknown tokens after logging them.
 ## Trigger phrases
 
 `/issues`, `file these issues`, `break this into tickets`, `ticket this list`,
-`create multiple Linear issues`, `file a backlog`, `turn this dump into Linear`,
+`create multiple issues`, `file a backlog`, `turn this dump into issues`,
 `residual tickets for…`
 
 ---
@@ -109,7 +109,7 @@ Follow phases in order. Parallelize reads when possible.
 
 ### Phase 1 — Queue
 
-Same as `/issue`: the board is `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Notion uses this repo's origin URL ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Read repo docs for package ownership. Use those package names in titles.
+Same as `/issue`: the board is `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Search `open/`, `in-progress/`, and `blocked/` once for the whole dump. Notion uses this repo's origin URL ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
 
 ### Phase 2 — Board snapshot, duplicate, and direction-conflict scan (batch)
 
@@ -226,9 +226,9 @@ table before filing (unless `--draft` / `--plan-only` stop earlier):
 |---|-------|---|-------|-------|--------|
 | L1 | … | 2 | foundation | — | create |
 | L2 | … | 3 | feature | blockedBy L1 | create |
-| L3 | … | 3 | feature | dup 0199 | skip |
+| L3 | … | 3 | feature | dup INV-199 | skip |
 | L4 | Old modal … | 3 | feature | contradicted by L1 | drop-contradicted |
-| L5 | Settings page … | 2 | feature | retire 0040 | create + retire 0040 |
+| L5 | Settings page … | 2 | feature | retire TW-40 | create + retire TW-40 |
 ```
 
 If `--plan-only`: stop here.  
@@ -241,43 +241,40 @@ Each **create** leaf uses the body structure in
 [`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md)
 (same bar as `/issue`, plus batch metadata):
 
-1. Implementer contract (this leaf only; honor blockedBy)
-2. Occupancy (WCP) — primary write path + symbol; sibling overlap
-3. Intensity stamp (`## Intensity` — Band + Why + Proof; [`../docs/intensity.md`](../docs/intensity.md))
-4. Summary
-5. User report (quote the specific bullet/fragment)
-6. Current behavior + evidence
-6. Expected behavior
-7. Suspected root cause / scope
-8. Code map (real paths + symbols)
-9. Relevant contracts
-10. Code anchors + pattern to mirror
-11. Step-by-step implementation plan
-12. File-by-file changes
-13. Do not touch / out of scope
-14. Acceptance criteria (checklist)
-15. Test plan
-16. Verification (real package commands)
-17. Drift check
-18. Risks / blockers
-19. Platform / stack
-20. Related / blockedBy / parent
-21. Supersedes (if any)
-22. Batch metadata (`temp_id`, `class`, batch name)
-23. Assumptions / pre-decided
+1. Implementer contract (this leaf only; honor blockedBy)  
+2. Occupancy (WCP) — primary write path + symbol; sibling overlap  
+3. Intensity stamp (`## Intensity` — Band + Why + Proof; [`../docs/intensity.md`](../docs/intensity.md))  
+4. Summary  
+5. User report (quote the specific bullet/fragment)  
+6. Current behavior + evidence  
+6. Expected behavior  
+7. Suspected root cause / scope  
+8. Code map (real paths + symbols)  
+9. Relevant contracts  
+10. Code anchors + pattern to mirror  
+11. Step-by-step implementation plan  
+12. File-by-file changes  
+13. Do not touch / out of scope  
+14. Acceptance criteria (checklist)  
+15. Test plan  
+16. Verification (real package commands)  
+17. Drift check  
+18. Risks / blockers  
+19. Platform / stack  
+20. Related / blockedBy / parent  
+21. Supersedes (if any)  
+22. Batch metadata (`temp_id`, `class`, batch name)  
+23. Assumptions / pre-decided  
 
 **Self-contained rule:** do not write “see L1 for the schema” without also
-summarizing the schema fields L2 needs. A cheaper model may only receive L2.
+summarizing the schema fields L2 needs. A Cursor Auto run may only receive L2.
 
 **Titles:** problem-focused, area prefix when helpful  
 `[Agents] Cost page double-counts kickoff reservations`  
 No trailing period; no “Fix bug”.
 
-**Labels:** only existing team labels that clearly fit; omit if unsure.
-
-**Epic body** (when creating): short packaging note from
-[references/epic-body-template.md](references/epic-body-template.md).  
-Never put the only AC on the epic.
+**Initiative name:** when creating a cluster, put the name in each leaf body.
+There is no epic file. Never put the only AC on a parent.
 
 ### Phase 5B — Per-leaf create gate (fail closed)
 
@@ -302,7 +299,7 @@ Failed leaves: keep full draft in the reply (or `--draft` mode), mark action
 
 ### Phase 6 — Write the files
 
-Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-queue.md) and [`../docs/notion-issues.md`](../docs/notion-issues.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason: blocked by <id>` after the blocker file exists. Do not create an epic file. Do not assign. Do not call Linear.
+Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-queue.md). Independent leaves go in `open/`. A hard dependency goes in `blocked/` with `reason: blocked by <id>` after the blocker file exists. Do not create an epic file. Do not assign. Do not call Linear.
 
 #### 6A. Leaves in filing order
 
@@ -319,7 +316,8 @@ For each create leaf that passed the gate, write `.wcp/issues/open/<id>-<slug>.m
 
 After ids exist for created leaves. Follow
 [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md)
-**Retire**. Do not retire if that leaf’s create failed. Do not cancel a live lease or an `in-review` file.
+**Retire**. Do not retire if that leaf’s create failed. Do not cancel live
+foreign claims or In Review.
 
 ### Phase 7 — Reply to the user
 
@@ -327,18 +325,17 @@ After ids exist for created leaves. Follow
 **Filed:** N created · K skipped (duplicate) · C drop-contradicted · T thin (not filed) · F failed · D deferred (--max)
 **Notion:** <database url> · rows written N | failed ids
 **Exec-ready:** each created leaf has plan + file map + AC + verify + drift
-**Retired:** [0040](path) — contradicted L1 (canceled)   # omit if none
-**Conflict — needs you:** [0055](path) — in-progress / foreign lease   # omit if none
+**Retired:** 0040 — contradicted L1 (canceled)   # omit if none
+**Conflict — needs you:** 0055 — in-progress / live lease   # omit if none
 
 | ID | Title | P | Links |
 |----|-------|---|-------|
-| [0001](path) | … | high | blocked by 0000 |
-| [0002](path) | … | normal | related 0001 |
+| 0001 | … | high | blocked by 0000 |
+| 0002 | … | normal | related 0001 |
 | — | … | normal | **skipped** duplicate of 0199 |
-| — | … | Medium | **thin** — missing <…>; draft in thread |
+| — | … | normal | **thin** — missing <…>; draft in thread |
 
-**Focus packages:** `app`, …
-**Handoff:** a cheaper model or `/solve` can execute created leaves from the issue file alone.
+**Handoff:** `/solve` can execute the created files.
 ```
 
 If `--draft`:
@@ -358,7 +355,7 @@ Then stop. Do not implement.
 
 ## Quality checklist (before create)
 
-- [ ] Team resolved; project set when identifiable  
+- [ ] Notion rows upserted, or the failures are in the reply  
 - [ ] Batch duplicate + direction-conflict scan done (actionable issues)
 - [ ] Unstarted contradicted board issues retired after create (or needs-you)
 - [ ] Intra-batch X vs Y dropped the contradicted leaf  
@@ -376,7 +373,7 @@ Then stop. Do not implement.
 - [ ] Drift-check anchors included (≥3)  
 - [ ] Assumptions / pre-decided filled when bullets were thin  
 - [ ] No secrets  
-- [ ] Epic has no sole implementable AC (children do)  
+- [ ] No parent epic file; each leaf carries its own AC  
 - [ ] Monorepo package ownership correct per leaf  
 
 ---
@@ -385,7 +382,7 @@ Then stop. Do not implement.
 
 - One mega-issue for a multi-bullet dump  
 - Filing “investigate X” with no code map or plan  
-- Epic-only ticket with all AC on the parent  
+- A parent epic file with all AC on the parent  
 - Leaf bodies that say “see epic / see L1” instead of copying needed contracts  
 - `blockedBy` webs so dense nothing is `/solve`-eligible  
 - Creating duplicates of open board issues  
@@ -393,7 +390,7 @@ Then stop. Do not implement.
 - Filing both leftover X and new Y from the same dump  
 - Treating `## Supersedes` / `relatedTo` / chat as the retire step  
 - Skipping the conflict search because this is “not a stack migration”  
-- Asking team/project when docs already say  
+- Asking for a tracker team or project; there is none to resolve  
 - Implementing fixes under this skill  
 - Inventing findings the user never mentioned (that’s `/project-review`)  
 - Mixing app vs services ownership in one leaf  
@@ -422,6 +419,6 @@ Then stop. Do not implement.
 | `/start` | New repo from next-starter-template; Notion issues database for that repo; then nested `/solve` |
 | `/project-review` | Agent-invented audit → many tickets |
 | `/walk` | Live front-facing UI walk → many tickets |
-| `/solve` | Implements filed leaves; expands epics |
+| `/solve` | Implements filed leaves |
 | `/prb` | Ships code on `dev` → PR → main |
 | Cursor Auto / cheap model | Intended **consumer** of tickets this skill files |

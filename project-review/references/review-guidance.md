@@ -14,7 +14,7 @@ Schema: [`inventory.schema.json`](inventory.schema.json)
 Deep review is multi-agent and long-running. Workers need a single **authority document** so they:
 
 1. Review the same intended state and quality bar
-2. Know where to write candidates (never Linear)
+2. Know where to write candidates (never Linear; never `.wcp/issues/` from the worker)
 3. Apply the same lenses and signal filter
 4. Mark coverage even when findings are zero
 
@@ -27,7 +27,7 @@ Without a package, workers invent inconsistent tickets and the orchestrator cann
 | Mode | Required? |
 |------|-----------|
 | **Deep** | **Yes** — before any review worker |
-| **Fast** | Optional light package; still prefer writing candidates to disk before Linear create |
+| **Fast** | Optional light package; still prefer writing candidates to disk before queue create |
 
 ---
 
@@ -40,7 +40,7 @@ Created in deep-mode Phase D1. Absolute paths:
 | `guidance.md` | Human authority for every worker |
 | `inventory.json` | All review units |
 | `coverage.json` | Unit status + slice assignment |
-| `board-snapshot.json` | Offline Linear open-issue keys (Phase D1b) |
+| `board-snapshot.json` | Offline `.wcp/issues/` open-issue keys (Phase D1b) |
 | `state.json` | Run metadata |
 | `issue-candidates/**` | Candidate lifecycle (see issue-candidates.md) |
 | `workers/` | Worker coverage reports |
@@ -138,8 +138,7 @@ Must include:
   "coverage_json": "/abs/.../coverage.json",
   "board_snapshot_json": "/abs/.../board-snapshot.json",
   "issue_candidates_dir": "/abs/.../issue-candidates",
-  "team": "...",
-  "project": "...",
+  "origin_url": "...",
   "live_url": null,
   "scope_only": false,
   "file_mode": "file",

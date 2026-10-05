@@ -1,6 +1,6 @@
 # Decomposition & connectivity (`/issues`)
 
-Turn a multi-item dump into atomic Linear leaves and decide how (or whether)
+Turn a multi-item dump into atomic `.wcp` leaves and decide how (or whether)
 they connect.
 
 ---
@@ -57,13 +57,13 @@ Fail the test → split or rewrite. Depth bar:
 ### Independent (default)
 
 - Different domains/packages or no shared hard dependency  
-- **Linear:** no parent, no `blockedBy`  
+- No parent epic file, no `blockedBy`  
 - Soft “same initiative” is **not** enough for an epic if items do not share delivery
 
 ### Soft related
 
 - Same surface; either can ship alone  
-- **Linear:** `relatedTo` after create  
+- Name the other id in the body after the file write  
 - Example: two independent bugs on the same settings page
 
 ### Hard blocked (`blockedBy`)
@@ -79,13 +79,13 @@ Prefer soft ordering (file A first) when B could still ship a degraded path.
 
 ### Epic cluster
 
-Create a parent when **all** of:
+There is no parent epic file. Name a shared initiative in each leaf body when **all** of:
 
 1. ≥2 leaves will be filed  
 2. They share one named initiative from the user dump  
 3. Not a random residual grab-bag  
 
-Examples that **deserve** an epic:
+Examples that **deserve** a shared name:
 
 - “Student success residual” with 4 related student CRM leaves  
 - “Product categories cutover” foundation + UI + backfill  
@@ -95,7 +95,7 @@ Examples that **do not**:
 - “Random leftover bugs” across app and services  
 - Two docs chores + one billing bug  
 
-`--no-epic` forces flat. `--epic "Title"` forces one parent for all creates.
+`--no-epic` is already the file rule. `--epic "Title"` is a shared name in each leaf body, not a parent epic file.
 
 ---
 
@@ -109,7 +109,7 @@ Examples that **do not**:
 - Prefer splits whose primary paths **differ**, so two `/solve` workers can
   hold leases at once.
 - Sharing a file is occupancy (next wave), not a reason to merge tickets.
-- Mint Linear `blockedBy` only when B’s AC is impossible until A lands.
+- A hard dependency is `blocked/` plus `reason: blocked by <id>`. Mint `blockedBy` only when B’s AC is impossible until A lands.
 - Keep lockfiles / generated clients / root schema off most leaves. A leaf
   that must write a barrel says so under Occupancy.
 
@@ -121,7 +121,7 @@ explicit integration with AC on both sides.
 | Package | Typical leaf prefix |
 |---------|---------------------|
 | `app/` | app / dashboard / CRM routes |
-| `services/` | Services |
+| `services/` | Gateway Match |
 | `agents/` | Agents / Eve / company-research |
 
 Respect package `AGENTS.md` language (e.g. do not brand app as “CRM”).
@@ -153,14 +153,14 @@ and human scan order match the graph.
 
 ## 9. Temp id graph sketch
 
-Before file:
+Before the file write:
 
 ```text
-EPIC Student success residual (optional)
+Initiative: Student success residual (name in each leaf; no epic file)
   L1 foundation  P2  Verify data model residual
   L2 feature     P2  Coach My View residual     related L1
   L3 feature     P1  Engagement automation      blockedBy: (none if parallel)
   L4 chore       P3  Docs cleanup               independent
 ```
 
-After create, replace `L#` with the issue id in `reason` and in the leaf body. There is no epic file.
+After the file write, replace `L#` with the new ids in relations.

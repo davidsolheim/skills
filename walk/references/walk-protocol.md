@@ -1,7 +1,7 @@
 # Walk protocol
 
 How to inventory, drive, and debug front-facing UI. Findings go to local
-candidate files. Linear happens only after the coverage gate.
+candidate files. Queue files and Notion happen only after the coverage gate.
 
 ---
 
@@ -100,7 +100,7 @@ A surface with no findings is still `walked`. Do not invent fake tickets.
 - If login UI exists and this environment already has a session or a documented
   test sign-in that does **not** require the user to paste a password, walk
   signed-in chrome.
-- Never put credentials in Linear. Never ask the user to “open localhost and
+- Never put credentials in issue files or Notion. Never ask the user to “open localhost and
   log in for me” as a substitute for walking public pages.
 - OAuth popups: complete them if the tool can; otherwise `blocked_auth` those
   post-login routes.
@@ -147,7 +147,7 @@ Minimum:
 Optional screenshot path: `screenshots/walk-$RUN_ID/<slug>.png` (workspace,
 never `/tmp` for evidence you will cite).
 
-Do not paste full HAR or 200-line console dumps into Linear. One error line +
+Do not paste full HAR or 200-line console dumps into issue files or Notion. One error line +
 request path is enough.
 
 ---

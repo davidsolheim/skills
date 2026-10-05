@@ -10,7 +10,7 @@ If `SHARED_DEV` is true (the default for batches), **stop** and follow
 
 Parent skill: [`../SKILL.md`](../SKILL.md)
 Batch guidance: [`batch-guidance.md`](batch-guidance.md)
-Claims: [`multiplayer-linear.md`](multiplayer-linear.md)
+Claims / file status: [`multiplayer.md`](multiplayer.md)
 Git baseline: [`git-dev-workflow.md`](git-dev-workflow.md)
 
 ---
@@ -28,7 +28,7 @@ or double-claiming.
    Move the file to `in-review/` after that merge. No PR unless the user asked.
 5. Next wave **rebases on the new local `dev`**. `/prb` still owns `main`.
 
-The claim is the ticket lease in `.wcp/issues/` ([`multiplayer-linear.md`](multiplayer-linear.md)). Do not call Linear. Git branches are backup + merge
+The issue file is the claim board (WCP ticket lease). Git branches are backup + merge
 surface — **never named after an agent**.
 
 Quality is unchanged from sequential: S0, hard-dep/conflict serialization,
@@ -57,7 +57,7 @@ runtime proof, per-issue inner review, drain gate, CAS.
 | `/solve 5` | up to **5 issues** | up to `min(5, 8)` |
 | `/solve all` | **all** eligible in the active set (no soft cap) | `DEFAULT_CONCURRENCY` (8) |
 | `/solve all --concurrency 5` | **all** eligible in the active set | 5 |
-| `/solve <scope>` | **all** in `SCOPE` (milestone/label/area) | `DEFAULT_CONCURRENCY` (8) |
+| `/solve <scope>` | **all** in `SCOPE` (created-today / area) | `DEFAULT_CONCURRENCY` (8) |
 | any + `seq` | same count | 1 (sequential loop; this file unused) |
 
 Default concurrency **8** and inner-review yes/no are **not** issue counts.
@@ -69,7 +69,8 @@ per issue (or `--effort`, capped at 1). `fast` / `--fast` is a no-op.
 ## Branch rules
 
 - **Do not** name branches after the bot/CLI (`grok-3`, `codex`, `cursor`).
-- Issue branch is always `solve/<RUN_ID>/<ISSUE>` with the queue id (`0123`).
+- Issue branch is always `solve/<RUN_ID>/<ISSUE>` with the issue identifier
+  (as on the file, e.g. `0123` or `TEAM-123`).
 - Never force-push `dev` or `main`.
 - Do **not** `git push` or open a PR unless the user asked. Worktree HEAD is
   enough for the orchestrator to merge to local `dev`.
@@ -99,8 +100,8 @@ mkdir -p "$scratch_dir/workers" && chmod 700 "${TMPDIR:-/tmp}/grok-$(id -u)" "$s
 7. Trackers: `SOLVED`, `FAILED`, `SKIPPED`, `WORKTREES_CLEANED`,
    `BRANCHES_DELETED`, `in_progress`.
 
-If `.wcp/issues/in-progress/` already has a **foreign live lease**: **do not drain**
-those files. Report and stop, or work around with `/solve N` on unclaimed leaves only.
+If `in-progress/` already has **foreign live ticket leases**: **do not drain**
+those. Report and stop, or work around with `/solve N` on unclaimed leaves only.
 
 ---
 
@@ -108,16 +109,15 @@ those files. Report and stop, or work around with `/solve N` on unclaimed leaves
 
 Pre-scan via **Phase S0 / batch-guidance.md**:
 
-1. List `.wcp/issues/` per [`eligibility.md`](eligibility.md). Do not call Linear.
+1. Inventory in [`eligibility.md`](eligibility.md). Do not call Linear.
 2. If `SCOPE` is set, keep `issue_in_scope` only (Scope filter in the same file).
-3. Eligibility (2B), blocked (2D), epic expand (2E) → **leaves** only.
+3. Eligibility (2B), blocked (2D), parents (2E) → **leaves** only.
    Canonical: [`eligibility.md`](eligibility.md). Out-of-scope blockers stay skipped.
 4. Tag platforms, class, supersedes; skip full-obsolete.
-5. Order by `order_rank` (migrations first; lowest number is tie-break).
+5. Order by `order_rank` (migrations first; then frontmatter `priority`, then identifier).
 6. Integer `N`: inventory all for guidance; implement until `N` successful
    **merges to local `dev`**.
-7. Do **not** write Notion for ordinary scan skips. When canceling a
-   full-obsolete file, set `canceled` with `reason` and upsert Notion.
+7. Do **not** comment ordinary scan skips. Cancel a full-obsolete file with `reason` when high confidence.
 
 After each wave lands on local `dev`, **re-read** `.wcp/issues/`, patch guidance,
 append waves. Do not freeze F1.
@@ -151,10 +151,10 @@ direction confidence is not blocking **low**.
 
 ```text
 Parallel plan: K implementable · S skipped · W waves · concurrency C · run <RUN_ID>
-Wave 0: 0123 (migration)
-Wave 1: 0080, 0091 (independent)
-Skip: 0067 (abandoned platform)
-Delivery: worktrees → orchestrator merge to local dev → in-review
+Wave 0: TEAM-123 (migration)
+Wave 1: TEAM-80, TEAM-91 (independent)
+Skip: TEAM-67 (abandoned platform)
+Delivery: worktrees → orchestrator merge to local dev → file in-review
 main/prod: /prb (not this run)
 ```
 
@@ -166,15 +166,14 @@ Proceed unless direction confidence is low or the user asked for dry-run.
 
 ### Claim (orchestrator only, CAS)
 
-Before spawn, follow [`multiplayer-linear.md`](multiplayer-linear.md):
+Before spawn, follow [`multiplayer.md`](multiplayer.md):
 
-1. Confirm the file is unclaimed (not a foreign live lease).
-2. Claim it: `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
-3. Re-read. If `assignee` is not you, abort this leaf.
-4. Upsert Notion `in-progress` after the file write. Do not set Notion `done`.
-5. Graph status `claimed` → `implementing`.
+1. Confirm unclaimed (`open/` or expired `in-progress/`).
+2. Set `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
+3. **Re-read immediately.** If `assignee` is not this run, abort this leaf.
+4. Graph status `claimed` → `implementing`.
 
-Workers **must not** move the issue file and must not call Notion.
+Workers **must not** set file `done`. Do not call Linear.
 
 ### Branch + worktree
 
@@ -200,7 +199,7 @@ implementer, not as a second project-wide swarm.
 ### Worker prompt (required)
 
 ```markdown
-You are a solve **worker** for a single `.wcp/issues/` leaf. Do not call Linear.
+You are a solve **worker** for a single `.wcp/issues/` leaf.
 
 ## Hard constraints
 - Read guidance fully: <GUIDANCE_MD>
@@ -230,7 +229,7 @@ while work remains:
           are **merged to local `dev`**, under concurrency budget
   launch ALL ready workers in one turn until CONCURRENCY
   on worker success → status ready_to_merge
-  on worker fail → cleanup local WT; leave the file `in-progress` or `blocked` with `reason`;
+  on worker fail → cleanup local WT; leave file `in-progress`/`blocked`;
                    cascade-skip dependents; continue independents
   when the current wave’s launched issues are all ready_to_merge or failed → F5
 ```
@@ -256,7 +255,7 @@ git checkout dev
 for ISSUE in $MERGE_ORDER; do
   git merge --no-ff solve/<RUN_ID>/$ISSUE \
     -m "Merge solve/<RUN_ID>/$ISSUE into dev"
-  # conflict: abort that merge, mark ISSUE failed, leave the file blocked with reason, continue others
+  # conflict: abort that merge, mark ISSUE failed, continue others
 done
 ```
 
@@ -265,22 +264,22 @@ If a worktree isolation branch is not in the main repo yet, fetch it first
 [`git-dev-workflow.md`](git-dev-workflow.md).
 
 Re-verify on `dev` if the merge was not a clean ff of an already-verified
-issue branch (conflict resolution, stacked merges). Do not In Review a leaf
+issue branch (conflict resolution, stacked merges). Do not move a leaf to `in-review/`
 whose post-merge `dev` failed required checks or in-scope runtime proof.
 
 If **every** merge in the wave conflicts, stop the wave, report, do not
 pretend `dev` moved.
 
-### Queue closeout (after local `dev` has the leaf)
+### File closeout (after local `dev` has the leaf)
 
 For each issue that landed:
 
-1. Write the local `dev` SHA into `commit` only after the reviewer sets `done`. Until then the solver move is `in-review`.
-2. Move the file to `.wcp/issues/in-review/`. Upsert Notion `in-review`. **Never** set Notion `done`.
-3. There is no epic file.
+1. Solver: `status: in-review`, clear `lease_expires`, move to `in-review/`.
+2. Orchestrator launches one reviewer. Reviewer sets file `done`. Do not set Notion `done`.
+3. After reviewers exit and `wcp look` is empty, commit and write `commit`.
 
-Issues that failed the merge stay `in-progress` or `blocked` with `reason`.
-Do not steal a foreign live lease.
+Issues that failed merge stay `in-progress`/`blocked` with `reason`.
+Do not steal foreign leases.
 
 ### Cleanup (mandatory after wave merge or fail)
 
@@ -300,7 +299,7 @@ Do not remove unrelated user worktrees.
 After a wave is on local `dev`:
 
 1. Next wave base is current `dev`.
-2. Re-read `.wcp/issues/`. Patch guidance + graph. Do not call Linear.
+2. Re-read `.wcp/issues/`. Patch guidance + graph.
 3. Continue until integer `N` met, `all` drain gate passes, or nothing eligible remains.
 
 If `SELECTION_PIN` is set (Identify), **do not** append leaves outside the pin.
@@ -309,7 +308,7 @@ See [`eligibility.md`](eligibility.md) (Selection pin). If `SCOPE` is set,
 
 ### Drain gate (`all` only)
 
-Fresh `.wcp/issues/` read + scope filter + eligibility. If any implementable
+Fresh `.wcp/issues/` inventory + scope filter + eligibility. If any implementable
 **unclaimed** leaf remains **in the active set** → resume F4. Do not Phase 9.
 Scoped runs may finish while the rest of the project still has eligible leaves.
 
@@ -325,14 +324,14 @@ Scoped runs may finish while the rest of the project still has eligible leaves.
 **Delivery:** worktrees → local `dev`
 **local `dev`:** <sha>
 **Cleanup:** worktrees 0 remaining
-**Scope:** <milestone Name | label X | area "…" | none>
+**Scope:** <area "…" | created today | none>
 **Drain (all):** verified — no eligible unblocked unclaimed leaves [in this scope]
 
-### Solved (in-review on local `dev`)
-1. 0123 — local `dev` <sha>
+### Solved (file `in-review` / `done` on local `dev`)
+1. TEAM-123 — local `dev` <sha>
 
 ### Failed
-- 0125 — reason
+- [TEAM-125](url) — reason
 
 **main/prod:** not shipped — run `/prb` when ready
 ```
@@ -348,10 +347,10 @@ Scoped runs may finish while the rest of the project still has eligible leaves.
 - Naming branches after a bot/CLI
 - Starting workers before guidance.md + graph.json
 - Treating “non-overlapping” as a guarantee (skip rebase when `dev` moved)
-- Worker merging `dev` or `main`, opening a PR, or setting Notion `done`
+- Worker merging `dev` or `main`, opening a PR, or setting file `done`
 - Merging a dependent wave before hard deps are on **local `dev`**
 - `gh pr merge` to **main** (or to `dev` unless the user asked)
-- Marking Notion **done** from `/solve`
+- Setting Notion **done** from `/solve`
 - Treating worker typecheck/tests as runtime proof for in-scope UI/auth/billing/API/schema/shared-helper leaves
 - Hard-stopping the whole run when one independent leaf fails
 - Stopping `/solve all` after ~5 or after wave 0 without refill + drain gate
@@ -374,6 +373,6 @@ Scoped runs may finish while the rest of the project still has eligible leaves.
 | Parallelism | None | Up to concurrency (default 8) |
 | Durability | Local issue branch | Worktree + local issue branch |
 | Merge owner | Same session | Orchestrator merge into local `dev` |
-| Queue | `in-review/` after local `dev` | `in-review/` after wave merge to local `dev` |
+| File status | `in-review` after local `dev` | `in-review` after wave merge to local `dev` |
 | `main` | `/prb` | `/prb` |
 | Failure (`all`) | Continue independents | Cascade-skip deps; continue independents |

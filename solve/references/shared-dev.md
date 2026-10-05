@@ -7,7 +7,7 @@ every multi-issue `/solve` (`N ≥ 2`, `all`, `/solve today`, scoped drain).
 Parent skill: [`../SKILL.md`](../SKILL.md)
 Eligibility / created-today: [`eligibility.md`](eligibility.md)
 Batch guidance: [`batch-guidance.md`](batch-guidance.md)
-Claims: [`multiplayer-linear.md`](multiplayer-linear.md)
+Claims: [`multiplayer.md`](multiplayer.md)
 Git baseline: [`git-dev-workflow.md`](git-dev-workflow.md)
 Worktree parallel (opt-in only): [`fast-mode.md`](fast-mode.md)
 
@@ -32,7 +32,7 @@ Quality that still applies: S0, blocked tickets, WCP leases, one assignee,
 runtime proof on the combined tree, drain gate. Quality that this mode
 **drops**: worktree isolation, per-issue branches, per-worker verify before
 the others finish. File overlap waits for the next wave (occupancy), it does
-not become Linear `blockedBy`.
+not become a `blocked/` tracker relation. Overlap is the next wave.
 
 ---
 
@@ -115,7 +115,7 @@ Do not launch a file in `blocked/` until its blocker is `done` or `canceled`. Fi
 S0 must produce `guidance.md` + `graph.json` before the first spawn.
 
 Skip `action=skip` obsolete leaves. Promote migrations in `order_rank` for the
-user report. **Launch** Linear-unblocked leaves whose **primary write paths**
+user report. **Launch** unblocked leaves whose **primary write paths**
 do not collide with another leaf already in this wave ([`../../docs/wcp.md`](../../docs/wcp.md)).
 Hotspot remainder waits for the next wave. One writer if the whole remaining
 set shares one primary path.
@@ -144,7 +144,7 @@ Then **spawn immediately**. Do not wait for a nod unless direction is low.
 
 ### Claim (orchestrator only)
 
-Before spawn, [`multiplayer-linear.md`](multiplayer-linear.md) for **each**
+Before spawn, [`multiplayer.md`](multiplayer.md) for **each**
 ready leaf:
 
 1. Unclaimed (`open/`, or expired `in-progress/`).
@@ -234,10 +234,10 @@ required. Commit is **not** required.
 5. Matrix green is necessary, not sufficient, for in-scope work.
 6. On verify fail: **resume** the implementer(s) whose paths/AC failed (or spawn
    a new `solve-implementer` for that id). Do **not** edit application source
-   yourself. Re-run combined verify. Do not In Review a leaf that still fails.
-7. Independent failures: leave that leaf In Progress/Blocked with a failure
-   comment; **continue** other leaves. Cascade-skip only Linear `blockedBy`
-   dependents, not file-overlap neighbors.
+   yourself. Re-run combined verify. Do not move a leaf to `in-review/` that still fails.
+7. Independent failures: leave that leaf `in-progress`/`blocked` with `reason`;
+   **continue** other leaves. Cascade-skip only files in `blocked/` with
+   `reason: blocked by <id>`, not file-overlap neighbors.
 
 **Inner review:** if **any** leaf in the wave is heavy/critical (or `--effort`
 asked for a reviewer), spawn **one** `solve-reviewer` on the combined diff after
@@ -326,13 +326,13 @@ eligible issues still exist — that is correct.
 ```markdown
 **Batch:** solved K of <N|all|today> · failed F · skipped S
 **Mode:** /solve <today|N|all> · shared-dev · concurrency C · run <RUN_ID>
-**Scope:** created today <YYYY-MM-DD> | <milestone/label/area> | none
+**Scope:** created today <YYYY-MM-DD> | <area> | none
 **Delivery:** shared local `dev` (no worktrees) → combined verify → commit
 **local `dev`:** <sha>
 **Drain (all/today):** verified — no eligible unblocked unclaimed leaves [created today <date>]
 
-### Solved (In Review on local `dev`)
-1. [TEAM-123](url) — local `dev` <sha>
+### Solved (file `in-review` / `done` on local `dev`)
+1. TEAM-123 — local `dev` <sha>
 
 ### Failed
 - [TEAM-125](url) — reason
@@ -347,22 +347,22 @@ eligible issues still exist — that is correct.
 - Using `isolation: worktree` or `solve/<RUN_ID>/<ISSUE>` branches in this mode
 - Verifying worker A (and merging) before spawning or waiting for worker B
 - Waiting for an explicit `fast` flag
-- Treating file overlap as Linear `blockedBy` (it is WCP occupancy: next wave)
+- Treating file overlap as a `blocked/` relation (it is WCP occupancy: next wave)
 - Launching two workers on the same primary write path in one wave
 - Worker edits a pre-existing file without look/acquire/write-ok/release
 - Holding a WCP lease through tests or combined verify
 - Rewinding sibling hunks (`git checkout --`, reset, restore) to “go first”
-- Launching a Linear-`blockedBy` dependent before the blocker is `on_dev`
+- Launching a `blocked by <id>` dependent before the blocker is `on_dev`
 - Worker commit, stash, merge, or push
 - Orchestrator commit or stash while `wcp look` shows a live source-file lease
 - Orchestrator implementing application source
 - `git add -A` / `git reset --hard` / `git checkout --` that discards siblings
   or unrelated dirty files
 - Treating `/solve today` as a project-wide `/solve all`
-- Treating `today` as a Linear milestone named Today
+- Treating `today` as an area named Today
 - UTC-only `createdAt` (misses local-morning issues)
 - Capping shared-dev at worktree concurrency **8** when more leaves are ready
 - Stashing, worktree-merging, or creating issue branches “to keep dev clean”
 - Phase 9 while created-today eligible leaves remain
-- Marking Linear **Done**
+- Setting Notion **done** from `/solve`
 - Skipping S0 or combined runtime proof “to go faster”

@@ -6,36 +6,36 @@ description: >
   template", "validate this starter repo", or wants a greenfield product
   scaffolded from next-starter-template — or /start inside an existing checkout
   to validate bones plus AGENTS.md / VISION.md / README and repair onboard.
-argument-hint: "[brief…] [--slug SLUG] [--dir PATH] [--team TEAM] [--docs-only|--no-linear|--no-build|--draft] [fast]"
+argument-hint: "[brief…] [--slug SLUG] [--dir PATH] [--docs-only|--no-notion|--no-build|--draft] [fast]"
 ---
 
-# /start — Scaffold or validate, onboard, file V1, build
+# /start — Scaffold or validate, onboard, Notion, build V1
 
 Two modes:
 
 | Mode | When | What |
 |------|------|------|
-| **greenfield** | empty DEST | Clone **next-starter-template**, onboard docs, file V1, build on `dev` |
-| **existing** | DEST is already a repo/tree | **Do not overlay the template.** Validate starter **bones** + `AGENTS.md` / `VISION.md` / `README.md` / identity. Repair docs. Then file V1 and build if still needed |
+| **greenfield** | empty DEST | Clone **next-starter-template**, onboard docs, Notion queue, V1 on `dev` |
+| **existing** | DEST is already a repo/tree | **Do not overlay the template.** Validate starter **bones** + `AGENTS.md` / `VISION.md` / `README.md` / identity. Repair docs. Then the Notion queue + V1 if still needed |
 
 This is not `/issues` (tickets only) and not `/solve` alone.
 **Greenfield** creates the repo. **Existing** must pass
 [`references/existing-repo.md`](references/existing-repo.md) before later phases.
 
-**North star:** after one `/start`, a stranger can open `$HOME/src/<slug>`, read
-`VISION.md` + `AGENTS.md`, find `.wcp/issues/`, and run the app’s V1 on
+**North star:** after one `/start`, a stranger can open `~/GitHub/<slug>`, read
+`VISION.md` + `AGENTS.md`, find the Notion issues database, and run the app’s V1 on
 local `dev`.
 
 ## Operating contract
 
-- **Template:** [github.com/davidsolheim/next-starter-template](https://github.com/davidsolheim/next-starter-template). Do not invent a different stack. Do not mutate the template repo.
+- **Template:** [github.com/teton-web/next-starter-template](https://github.com/teton-web/next-starter-template). Do not invent a different stack. Do not mutate the template repo.
 - **Onboard:** greenfield always runs DEST `AGENTS.md` first-run after scaffold. Existing runs the same protocol only for **repair** gaps (marker still present, missing/wrong VISION/AGENTS/README/identity). Questionnaire SoT is DEST `AGENTS.md` — do not fork the question list into this skill.
 - **Queue default on:** write V1 leaves into `.wcp/issues/open/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not create a Linear project.
-- **Build default on:** nested `/solve all` of the V1 leaves in DEST. Do not implement V1 yourself; do not skip build unless `--no-build` / `--docs-only` / `--draft`. A Notion failure does not skip the build when the files exist.
+- **Build default on:** nested `/solve all` of the V1 leaves in DEST. Do not implement V1 yourself; do not skip build unless `--no-build` / `--docs-only` / `--draft`. A failed Notion upsert does not skip the build.
 - **V1 = VISION.md “V1” section**, not the whole future product. Starter auth/CMS/admin/contact already exist — do not re-ticket them unless they must change for this product.
 - **Git (greenfield):** fresh history (no template commits). `main` + lowercase `dev`. **Existing:** keep history; create `dev` if missing. No push/PR/deploy unless the user asks.
 - **Secrets:** Doppler names only. Never reuse the starter Doppler project or another product’s `DATABASE_URL`. Never commit `.env` values.
-- **Queue:** write issues under `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. `--no-linear` skips filing and the Notion upsert.
+- **Notion:** after the V1 files exist, upsert each row ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. Do not write `.linear-project`. `--no-notion` skips that Notion create. `--no-linear` is the same skip.
 - **Models:** every `spawn_subagent` sets `model: grok-4.6` ([`../docs/grok-models.md`](../docs/grok-models.md)).
 - **Onboard questions:** required by DEST `AGENTS.md` first-run when that marker is present or docs fail validate. Prefill from the brief, flags, and existing README/VISION. Ask only gaps. Never product-onboard the public template repo.
 
@@ -48,11 +48,11 @@ local `dev`.
 ```text
 /start
 /start a private claims network for shops
-/start Acme App — merchant-to-merchant claim files
-/start --slug acme-app brochure site for …
-/start --dir $HOME/src/foo-com …
+/start Customer Blacklist — merchant-to-merchant claim files
+/start --slug cblacklist-com brochure site for …
+/start --dir ~/GitHub/foo-com …
 /start --docs-only …
-/start --no-linear …
+/start --no-notion …
 /start --no-build …
 /start --draft …
 /start fast …
@@ -61,23 +61,23 @@ local `dev`.
 | Arg | Meaning |
 |-----|---------|
 | free text | Product brief (name, audience, V1) |
-| `--slug SLUG` | Repo / Doppler / package name (`acme-app`) |
-| `--dir PATH` | Destination directory (default `$HOME/src/<slug>`) |
-| `--team TEAM` | Linear team (else heuristic) |
-| `--docs-only` | Greenfield: scaffold + onboard. Existing: validate + repair docs. Stop (no Linear, no build) |
-| `--no-linear` | Skip Linear; still build from `VISION.md` V1 if not `--no-build` |
-| `--no-build` | Stop after docs (+ Linear unless disabled) |
-| `--draft` | Full plan + drafted Linear bodies in chat; do not create Linear; do not build |
+| `--slug SLUG` | Repo / Doppler / package name (`cblacklist-com`) |
+| `--dir PATH` | Destination directory (default `~/GitHub/<slug>`) |
+| `--team TEAM` | Ignored. It is not a Linear team and it does not pick a Notion database. |
+| `--docs-only` | Greenfield: scaffold + onboard. Existing: validate + repair docs. Stop (no Notion queue, no build) |
+| `--no-notion` | Skip the Notion upsert. Still build from `VISION.md` V1 if not `--no-build`. `--no-linear` means the same thing. |
+| `--no-build` | Stop after docs and the Notion upsert, unless `--no-notion` skipped that upsert |
+| `--draft` | Full plan + drafted issue bodies in chat. Do not write files. Do not create Notion rows. Do not build. |
 | `fast` / `--fast` | No-op. Nested `/solve all` is already parallel |
 
 ### Parse order
 
-1. `--dir PATH`, `--slug SLUG`, `--team TEAM`
-2. `--docs-only` / `--no-linear` / `--no-build` / `--draft`
+1. `--dir PATH`, `--slug SLUG`. Ignore `--team`.
+2. `--docs-only` / `--no-notion` / `--no-linear` / `--no-build` / `--draft`
 3. `fast` / `--fast` → `FAST_BUILD`
 4. Remainder = `BRIEF`
 
-`--docs-only` implies no Linear and no build. `--draft` implies no Linear create and no build.
+`--docs-only` implies no Notion queue and no build. `--draft` implies no Notion create and no build.
 
 ## Skill paths
 
@@ -86,14 +86,14 @@ START_SKILL_DIR = directory containing this SKILL.md
 SCAFFOLD_MD     = $START_SKILL_DIR/references/scaffold.md
 EXISTING_MD     = $START_SKILL_DIR/references/existing-repo.md
 ONBOARD_MD      = $START_SKILL_DIR/references/onboard-docs.md
-LINEAR_V1_MD    = $START_SKILL_DIR/references/linear-v1.md
+V1_QUEUE_MD     = $START_SKILL_DIR/references/v1-queue.md
 HANDOFF_MD      = $START_SKILL_DIR/references/handoff.md
 ISSUE_SKILL_MD  = $START_SKILL_DIR/../issue/SKILL.md
 ISSUES_SKILL_MD = $START_SKILL_DIR/../issues/SKILL.md
 SOLVE_SKILL_MD  = $START_SKILL_DIR/../solve/SKILL.md
 ```
 
-Read `SCAFFOLD_MD` (greenfield), `EXISTING_MD` (existing), `ONBOARD_MD`, `LINEAR_V1_MD` before the matching phase.
+Read `SCAFFOLD_MD` (greenfield), `EXISTING_MD` (existing), `ONBOARD_MD`, `V1_QUEUE_MD` before the matching phase.
 Read `$ISSUE_SKILL_MD` Phase 1 + create gate, `$ISSUES_SKILL_MD` decomposition,
 and `$SOLVE_SKILL_MD` only when that phase runs.
 
@@ -105,7 +105,7 @@ and `$SOLVE_SKILL_MD` only when that phase runs.
 2. Set **`MODE`**:
    - `existing` if `--dir` points at a **non-empty** tree, **or** cwd is a git/app repo (has `.git` or `package.json`) and is not `$HOME` and not the public template, and the user did not name a **different** empty slug dest
    - else `greenfield`
-3. Prefill first-run fields from `BRIEF` + flags. **Existing:** also prefill from DEST `README.md`, `VISION.md` / `vision.md`, `package.json` `name`, `doppler.yaml`, `.linear-project`.
+3. Prefill first-run fields from `BRIEF` + flags. **Existing:** also prefill from DEST `README.md`, `VISION.md` / `vision.md`, `package.json` `name`, `doppler.yaml`, and any Notion project-page URL already in `AGENTS.md` or `VISION.md`. Ignore `.linear-project` if a leftover file is present. Do not create one.
 4. Greenfield: if name **and** slug are both missing, ask those two before DEST can be chosen. Infer slug from name (`Foo Bar` → `foobar-com` only when a domain is stated; else kebab-case).
 5. Existing: empty `BRIEF` is OK. Do not ask “What are we starting?” if the tree already names the product.
 
@@ -114,16 +114,16 @@ Existing + public template tree → stop (template maintenance, not product `/st
 
 ---
 
-## Phase 1 — Destination + Linear team (no file writes yet)
+## Phase 1 — Destination (no file writes yet)
 
 **Destination**
 
 - **Existing:** DEST = `--dir` if set, else cwd. Do **not** refuse because the tree is non-empty.
-- **Greenfield:** [`references/scaffold.md`](references/scaffold.md) *Where*. Default `$HOME/src/<slug>`. `--dir` wins if that path is **empty or missing**.
+- **Greenfield:** [`references/scaffold.md`](references/scaffold.md) *Where*. Default `$HOME/GitHub/<slug>`. `--dir` wins if that path is **empty or missing**.
 - **Refuse both modes** if DEST is the public `next-starter-template` working tree.
 - Greenfield only: if the chosen path exists and is non-empty, **switch to `MODE=existing`** on that path (validate) instead of asking for a new folder — unless the user clearly wanted a **new** sibling project (then ask for another path).
 
-The work queue is `.wcp/issues/` in DEST ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or a Linear project.
+The Notion database is identified later from this repo's origin URL ([`../docs/notion-issues.md`](../docs/notion-issues.md)). `--team` is ignored. Do not call Linear.
 
 ---
 
@@ -137,7 +137,7 @@ Follow [`references/scaffold.md`](references/scaffold.md) end-to-end.
 
 After: dest exists, fresh git `main`, identity files retargeted (`package.json`, `doppler.yaml`), `bun.lock` kept, `.git` is **not** the template’s, template remote gone.
 
-Optional: `gh repo create` **private** under `$GH_USER/<slug>` (`GH_USER=$(gh api user --jq .login)`) only if `gh` is authenticated **and** the user asked to create a remote. Default: local only.
+Optional: `gh repo create` **private** under `davidsolheim/<slug>` only if `gh` is authenticated **and** the user asked to create a remote, or `--dir`/`BRIEF` named a GitHub repo to create. Default: local only.
 
 ### Existing
 
@@ -157,13 +157,13 @@ Follow [`references/existing-repo.md`](references/existing-repo.md).
 ### Greenfield, or existing with first-run marker
 
 1. Prefill from Phase 0. Ask remaining required questions in **one** message. Wait if required fields are missing.
-2. Write `VISION.md`, product `README.md`, `.linear-project`, identity retarget.
+2. Write `VISION.md`, product `README.md`, and the identity retarget. Do not write `.linear-project`.
 3. **Overwrite DEST `AGENTS.md` in full** with the onboarded shape. Marker and questionnaire **must be gone**.
 4. Commit (`docs: onboard <name>`). Greenfield: on `main`, then lowercase `dev`. Existing: current integration branch / `dev` (create `dev` if missing). Do not commit unrelated dirty files.
 
 ### Existing, marker already gone
 
-1. Repair only failed doc/identity/git checks (missing `VISION.md`, leftover `vision.md`, README still the template, AGENTS missing Linear/Product/slug, Doppler still `next-starter-template`, no `.linear-project`, no `dev`).
+1. Repair only failed doc/identity/git checks (missing `VISION.md`, leftover `vision.md`, README still the template, AGENTS missing Notion/Product/slug, Doppler still `next-starter-template`, no `dev`). A leftover `## Linear` section is a repair: replace it with `## Notion`. Do not treat `.linear-project` as the tracker. Do not create that file.
 2. If AGENTS is a thin leftover without platform rules, overwrite with the onboarded shape (need the same required fields — ask gaps only).
 3. If **every** doc/identity check passed: **do not rewrite**. Note `docs: already correct` and continue.
 4. Commit repairs only when files changed.
@@ -174,9 +174,9 @@ Phase 3 is not done while the first-run marker remains, or while `VISION.md` is 
 
 ## Phase 4 — Queue + Notion
 
-Skip if `--docs-only`, `--no-linear`, or `--draft` (draft still produces full bodies in chat).
+Skip if `--docs-only`, `--no-notion`, `--no-linear`, or `--draft` (draft still produces full bodies in chat).
 
-Follow [`references/linear-v1.md`](references/linear-v1.md). Write the files, then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). The database title is the repo slug. Its description is the origin URL.
+Follow [`references/v1-queue.md`](references/v1-queue.md) for what to file. Write the files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). The database title is the repo slug. Its description is the origin URL. Do not call Linear.
 
 1. Decompose **VISION.md V1 only** using `/issues` decomposition. Investigate the **new** tree (starter paths are real).
 2. File atomic leaves in `open/`. A hard dependency goes in `blocked/` with `reason`. No epic file. Unassigned.
@@ -206,7 +206,7 @@ If `DATABASE_URL` is missing: continue. Code still ships; runtime proof for DB-b
 
 ## Phase 6 — Build V1
 
-Skip if `--docs-only`, `--no-build`, `--draft`, or no filed leaves (and not `--no-linear` with a vision-only build).
+Skip if `--docs-only`, `--no-build`, `--draft`, or no filed leaves (and not `--no-notion` / `--no-linear` with a vision-only build).
 
 **Do not implement V1 in this orchestrator.** Nested `/solve`:
 
@@ -234,7 +234,7 @@ Prompt must include:
 
 `/start` must not write application source while the nested solve runs.
 
-If `--no-linear` but build requested: implement V1 from `VISION.md` on local `dev` in DEST. Follow [`../docs/wcp.md`](../docs/wcp.md) and skill `water-cooler-protocol` for every edit (name yourself, lease pre-existing files, release before tests). Do not use bundled `/implement`.
+If `--no-notion` or `--no-linear` but build requested: implement V1 from `VISION.md` on local `dev` in DEST. Follow [`../docs/wcp.md`](../docs/wcp.md) and skill `water-cooler-protocol` for every edit (name yourself, lease pre-existing files, release before tests). Do not use bundled `/implement`. Do not call Linear.
 
 After drain: local files are `done` after review. Notion stays `in-review` until `/prb` or `/yeet`. Do not set Notion `done`. Do not `/prb`.
 
@@ -258,7 +258,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 - Leaving `<!-- first-run: starter-onboard -->` in DEST after Phase 3
 - Forking a second onboard questionnaire instead of DEST `AGENTS.md`
 - Skipping `VISION.md`
-- Filing V1 into some other product’s checkout
+- Filing V1 onto Teton Web Platform / some other product’s board
 - Re-ticketing starter auth/CMS/admin as if they were missing
 - One mega “build the product” ticket
 - Implementing V1 in the `/start` orchestrator instead of nested `/solve`
@@ -266,7 +266,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 - `/solve all` with no `SELECTION_PIN` on a shared team board
 - Reusing Doppler/Neon from the starter or a sibling product
 - Push/PR/production deploy without being asked
-- Marking Linear Done from `/start`
+- Marking a Notion row `done` from `/start`
 - Asking the user for stack (it is the starter)
 - Pretending V1 is done when nested solve failed or runtime proof was skipped
 
@@ -276,7 +276,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 - About to `/start` product-onboard the public template repo
 - About to `doppler setup` against `next-starter-template`
 - About to file on Platform “because that’s where eng goes”
-- About to skip Linear and also skip a vision V1 list
+- About to skip the Notion queue and also skip a vision V1 list
 - About to declare done after docs-only when the user did not pass `--docs-only`
 
 ---
@@ -285,7 +285,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 
 | Skill | Role |
 |-------|------|
-| **`/start`** | Greenfield scaffold **or** existing-repo bones/docs validate+repair → file V1 → build on local `dev` |
+| **`/start`** | Greenfield scaffold **or** existing-repo bones/docs validate+repair → Notion queue → V1 on local `dev` |
 | `/issue` | One ticket on an **existing** repo |
 | `/issues` | Many tickets; **no** scaffold, **no** implement |
 | `/solve` | Nested consumer for V1 leaves |
@@ -295,7 +295,7 @@ Follow [`references/handoff.md`](references/handoff.md). Then **stop**.
 ```text
 /start (empty dest)     → scaffold → AGENTS.md / VISION.md / README.md
 /start (existing dest)  → bones + docs validate → repair gaps
-       → V1 leaves in `.wcp/issues/` plus Notion
+       → Notion issues database (reuse the one whose description is the origin URL)
        → nested /solve all in DEST
        → later /prb when the user wants main
 ```

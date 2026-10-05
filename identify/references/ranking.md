@@ -11,7 +11,8 @@ first, then thin S0 in [`guidance.md`](guidance.md), then rank remaining leaves.
 
 After guidance bands (only if a platform conflict exists):
 
-1. **Linear priority** (primary) — more urgent first.
+1. **File `priority`** (primary) — more urgent first (`critical`, `high`,
+   `normal`, `low`).
 2. **User-facing impact** (secondary) — higher impact first.
 3. **Identifier number** (tie-break) — `TEAM-(\d+)` ascending.
 
@@ -23,16 +24,16 @@ when those tickets outrank a theme. Area filter (`AREA_FILTER`) is applied
 
 ## Priority
 
-Use the issue’s Linear priority. Map:
+Use the issue file’s frontmatter `priority`. Map:
 
-| Linear | Rank key | Sort |
-|--------|----------|------|
-| Urgent (`1`) | `P1` | 1 (first) |
-| High (`2`) | `P2` | 2 |
-| Medium (`3`) or None (`0`) | `P3` | 3 |
-| Low (`4`) | `P4` | 4 |
+| File `priority` | Rank key | Sort |
+|-----------------|----------|------|
+| `critical` | `P1` | 1 (first) |
+| `high` | `P2` | 2 |
+| `normal` or missing | `P3` | 3 |
+| `low` | `P4` | 4 |
 
-If the tool omits priority, treat as Medium.
+If frontmatter omits priority, treat as `normal`.
 
 ---
 
@@ -97,7 +98,7 @@ Read **Occupancy (WCP)** primary write path, else the code map (or infer from
 title / obvious route files). Two leaves **overlap** when they share a path or
 one path is the same feature file (same route/module, not merely the same app
 package). Overlap is WCP exclusive-lease occupancy
-([`../../docs/wcp.md`](../../docs/wcp.md)), not Linear `blockedBy`.
+([`../../docs/wcp.md`](../../docs/wcp.md)), not a tracker `blockedBy` field.
 
 ```text
 kept = []

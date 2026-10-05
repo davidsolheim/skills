@@ -10,7 +10,7 @@ Then append the sections below. User report = the discovery finding (not a
 human dump). Omit `/issues` Batch metadata. Direction conflicts:
 [`../../issue/references/direction-conflict.md`](../../issue/references/direction-conflict.md).
 
-Copy into Linear `description` with **literal markdown newlines**.
+The body is the `.wcp` issue file.
 
 ```markdown
 ## Review metadata
@@ -35,9 +35,9 @@ Copy into Linear `description` with **literal markdown newlines**.
 Titles: short, specific, searchable. Include the surface name. No trailing
 period. No vague titles like “Polish dashboard” or “Fix bug”.
 
-## Epic body (parent only)
+## Initiative line (leaf body only)
 
-Epics are packaging, not implementable work. Keep short:
+There is no epic file. When the run packages a batch, put this short block on each leaf:
 
 ```markdown
 ## Review pass
@@ -46,13 +46,8 @@ Epics are packaging, not implementable work. Keep short:
 - Surface: <…>
 - Date: <YYYY-MM>
 - Intent: Package solve-ready leaves from agentic project review.
-- **Do not implement this epic shell.** `/solve` expands to eligible children.
-
-## Leaves
-
-(filled after create, or leave empty — children are the work)
 
 ## Notes
 
-- Filed unassigned in Backlog/Todo for `/solve`.
+- Filed unassigned in `open/` for `/solve`.
 ```

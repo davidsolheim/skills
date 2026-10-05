@@ -19,12 +19,12 @@ This skill does **not** implement, claim, tidy, upgrade, or start `/solve` /
 
 ## Operating contract
 
-- **Whole open board.** Done / Canceled / Duplicate / Completed are resolved;
-  do not list them. Blocked, claimed, In Progress, In Review, and epic shells
-  still need resolution — **include them**.
+- **Whole open board.** `done` / `canceled` are resolved; do not list them.
+  `blocked`, claimed, `in-progress`, `in-review`, and epic shells still need
+  resolution — **include them**.
 - **One ranked list**, not a 2–4 ticket batch. Do not apply Identify size cut
   or overlap cut.
-- **Rank** = Linear **priority**, then **user-facing impact** (`U`), then
+- **Rank** = file frontmatter **`priority`**, then **user-facing impact** (`U`), then
   identifier number. Keys: `$IDENTIFY_SKILL_DIR/references/ranking.md`
   (Sort keys + Priority + User-facing impact **only**).
 - **Read-only on the queue.** Do not edit issue files.
@@ -127,18 +127,19 @@ apply Size cut, Overlap cut, or Identify batch guidance.
 ## Phase 4 — Report, then stop
 
 ```markdown
-**Status:** [Team] / [Project] · [open] open
-**Rank:** priority, then user-facing impact, then identifier
+**Status:** `.wcp/issues/` · [open] open
+**Rank:** file `priority`, then user-facing impact, then identifier
 **Args:** top=[N or all] · area=[filter or none]
 **Counts:** P1=n · P2=n · P3=n · P4=n · ready=n · blocked=n · claimed=n · in-progress=n · in-review=n · epics=n
 
 ### Queue (urgent → least)
-1. [TEAM-123](url) — <title>
-   P2 · U4 · Todo · unassigned · ready
-2. [TEAM-80](url) — <title>
-   P2 · U3 · In Progress · alice · claimed
-3. [TEAM-40](url) — <title>
-   P3 · U1 · In Review · me · in-review
+1. TEAM-123 — <title>
+   P2 · U4 · open · unassigned · ready
+   notion_url: <frontmatter or omit>
+2. TEAM-80 — <title>
+   P2 · U3 · in-progress · alice · claimed
+3. TEAM-40 — <title>
+   P3 · U1 · in-review · me · in-review
 ```
 
 Rules:
@@ -164,8 +165,8 @@ If the queue directory is missing, say so. Do not invent issues. Do not call Lin
 | `/identify` | Picks a **small** eligible batch and waits for approve |
 | `/solve` | Implements the next eligible leaf |
 | `/tidy` | Hygiene writes; not a briefing |
-| `/issue` | Files one ticket; team/project resolution reused here |
-| `/prb` | Ships `dev` → `main`; In Review rows are waiting on this |
+| `/issue` | Files one ticket; quality bar reused here |
+| `/prb` | Ships `dev` → `main`; `in-review` rows are waiting on this |
 
 ```text
 /stat              ← you are here (look)
@@ -180,15 +181,15 @@ If the queue directory is missing, say so. Do not invent issues. Do not call Lin
 ## Anti-patterns
 
 - Treating this as `/identify` (batch of 2–4, approve prompt, upgrades)
-- Hiding blocked / claimed / In Review / epics because they are not
+- Hiding blocked / claimed / `in-review` / epics because they are not
   `/solve`-eligible
 - Sorting by identifier or “interesting” instead of P then U
 - Applying Identify size/overlap cut
-- `list_issues` for team/project with no `state`
-- Pulling `description` for every issue
+- Listing `done/` / `canceled/` as if they were the open queue
+- Pulling full bodies for every issue
 - Commenting, claiming, assigning, or changing state
 - Starting `/solve` because the top row is “obvious”
-- Listing Done / Canceled from an unfiltered project dump
+- Opening a tracker UI for this briefing
 - Using this skill for session `/status` (model, auth, context)
 
 ## Red flags — stop

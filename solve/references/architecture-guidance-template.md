@@ -15,7 +15,7 @@
 | Field | Value |
 |-------|--------|
 | Run id | `{{RUN_ID}}` |
-| Team / project | {{TEAM}} / {{PROJECT}} |
+| Queue | `.wcp/issues/` |
 | Count mode | {{COUNT_MODE}} |
 | Concurrency | {{CONCURRENCY}} |
 | Effort | {{EFFORT}} |
@@ -146,7 +146,7 @@ After coding (worker):
 2. [ ] Verify per repo AGENTS / issue verification
 3. [ ] Do not commit. Do not stash. Leave the worktree dirty for the orchestrator
 4. [ ] Write worker summary to the path the orchestrator gave you
-5. [ ] **Do not** merge `dev`, push, PR, or set Linear Done
+5. [ ] **Do not** merge `dev`, push, PR, or set file `done`
 
 ---
 
@@ -155,12 +155,12 @@ After coding (worker):
 When generating this document in Phase F2:
 
 1. Inventory eligible **leaves** after epic expansion (same eligibility as sequential `/solve` Phase 2).
-2. Pull Linear `blockedBy` / related → **hard_deps**.
+2. Pull `blocked/` files with `reason: blocked by <id>` → **hard_deps**.
 3. Infer **primary_paths** from issue body, code map, labels, and light repo search.
 4. Build **conflict_zones** where primary_paths overlap; serialize those issues.
 5. Detect **supersedes** edges (`## Supersedes`, body language, related notes). Drop **full**-superseded leaves from the implement inventory; record edges in SUPERSESSION_EDGES and graph `supersedes` / `superseded_by` / `override_scope`.
 6. For conflict zones involving a superseder + superseded: prefer serialize superseded → superseder only when the superseded issue is still being implemented (partial). Full supersedes: skip superseded.
 7. Assign **waves** / **merge_order** (topo order; lowest issue number breaks ties within a level). Superseders of done work have no hard dep on the superseded id.
 8. Extract **tech intersections** and **shared contracts** from the set of issues + repo conventions (`AGENTS.md`, existing patterns). Where a superseder replaces a contract, write the **new** contract and note the superseded id.
-9. Keep the doc concise enough that every worker can read it in one pass; put bulk issue bodies in Linear, not here.
+9. Keep the doc concise enough that every worker can read it in one pass; put bulk issue bodies in the issue files, not here.
 10. Write matching `graph.json` (see `graph.schema.json`) and keep both paths absolute in worker prompts.

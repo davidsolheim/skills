@@ -9,7 +9,7 @@ under time / sunk-cost / “just ship it” pressure.
 
 **Pressure:** User is silent after `/identify`. Board looks obvious.
 
-**Required:** Present one batch. Stop. No claim, no `/solve`, no app edits.
+**Required:** Present one batch. Stop. No lease, no `/solve`, no app edits.
 
 **Fail:** Starts `/solve` because the tickets “look obvious.”
 
@@ -52,18 +52,19 @@ banded after. Do not approve obsolete-stack work first.
 **Setup:** User approves 3. First nested `/solve` fails.
 
 **Required:** JIT — only the current id was claimed. Remaining stay unclaimed.
-Failed leaf stays In Progress (solve owns it). No zombie claims on 2 and 3.
+Failed leaf stays `in-progress` (solve owns it). No zombie leases on 2 and 3.
 
-**Fail:** All three claimed up front; 2 and 3 left In Progress + `claimed-by:`.
+**Fail:** All three leased up front; 2 and 3 left `in-progress` with this run's assignee.
 
 ## 7. Dump the whole project
 
-**Setup:** Project has hundreds of Done issues and a few Backlog leaves.
+**Setup:** Queue has hundreds of `done` files and a few `open/` leaves.
 
-**Required:** List `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Do not
-read `done/` or `canceled/` for the inventory. Do not call Linear.
+**Required:** List `open/`, `in-progress/`, and `blocked/` only. Slim
+frontmatter. No unfiltered dump of the whole `.wcp/issues/` tree.
 
-**Fail:** Reads `done/` into the inventory, or calls Linear `list_issues`.
+**Fail:** Walks every folder including `done/` and `canceled/`; locally
+filters `done` out of a huge listing.
 
 ## 8. Workflow in the description
 

@@ -2,12 +2,12 @@
 name: walk
 description: >
   Walk every front-facing UI surface in the live app as a user, debug broken
-  interactions, and file every bug, idea, and improvement as a solve-ready `.wcp/issues/` file
-  issues. Use when the user runs /walk, says "walk the UI", "click through the
-  app", "walk every screen", "front-facing UI audit", "debug the whole UI into
-  Linear", or "file UI issues from a live walkthrough". Prefer this over
-  /project-review when the job is a live click-through of customer-facing pages
-  rather than a full product+code review.
+  interactions, and file every bug, idea, and improvement as a solve-ready
+  `.wcp/issues/` file and Notion row. Use when the user runs /walk, says
+  "walk the UI", "click through the app", "walk every screen", "front-facing
+  UI audit", "debug the whole UI", or "file UI issues from a live walkthrough".
+  Prefer this over /project-review when the job is a live click-through of
+  customer-facing pages rather than a full product+code review.
 argument-hint: "[--url URL] [--draft|--file] [--signed-out|--signed-in] [--no-epic] [--desktop-only|--mobile-only] [surface…]"
 ---
 
@@ -17,7 +17,7 @@ Do not call Linear. File leaves per [`../docs/wcp-queue.md`](../docs/wcp-queue.m
 
 Act as a user **and** a debugger. Visit **every** front-facing screen, exercise
 it, and file **every** actionable bug, idea, and improvement as an atomic
-solve-ready Linear leaf.
+solve-ready `.wcp/issues/` leaf.
 
 This skill is **walk + debug + issue creation only**. It never implements
 application code, never merges, never pushes, never opens PRs, and never runs
@@ -57,7 +57,7 @@ If they already know the tickets → `/issue` or `/issues`.
 7. **Unassigned backlog only.** No In Progress, no assignee, no `/solve` claim.
 8. **No product code changes.** Scratch files only.
 9. **Secrets.** Never put tokens, env values, connection strings, or Doppler
-   secrets in Linear or candidate files.
+   secrets in issue files, Notion properties, or candidate files.
 10. **Notion.** After the files are written, upsert each row
     ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear.
 
@@ -80,13 +80,13 @@ If they already know the tickets → `/issue` or `/issues`.
 
 | Arg | Meaning |
 |-----|---------|
-| *(none)* | Walk all front-facing surfaces; file to Linear |
+| *(none)* | Walk all front-facing surfaces; file to `.wcp/issues/` and Notion |
 | `--url <URL>` | Live app / preview to drive (else infer) |
-| `--draft` | Local candidates only; do **not** create Linear issues |
-| `--file` | Explicit file mode (default when Linear works) |
+| `--draft` | Local candidates only; do **not** write `.wcp/issues/` or Notion |
+| `--file` | Explicit file mode (default when `--draft` is absent) |
 | `--signed-out` | Public/unauthenticated walk only |
 | `--signed-in` | Prefer authenticated app chrome (still walk public entry) |
-| `--no-epic` | Flat leaves; no parent epic |
+| `--no-epic` | Skip the initiative line in the leaf body |
 | `--desktop-only` / `--mobile-only` | Skip the other viewport sample |
 | `full` / `all` | No surface bias (same as empty args) |
 | free text / paths | Surface bias — still inventory everything; walk named areas first, then the rest |
@@ -114,7 +114,7 @@ Initialize:
 
 `/walk`, `walk the UI`, `click through the app`, `walk every screen`,
 `front-facing UI audit`, `debug the whole UI`, `file UI issues from a walkthrough`,
-`UI walkthrough into Linear`
+`UI walkthrough into Notion`
 
 ---
 
@@ -138,19 +138,19 @@ Resolve companions (first hit):
 
 Set:
 
-- `ISSUE_SKILL_DIR` — Phase 1 team/project, body template, create gate, direction-conflict
-- `REVIEW_SKILL_DIR` — `references/board-sync.md`, `linear-filing.md`, `taste-to-concrete.md`, `issue-candidates.md`, `dependency-ordering.md`
+- `ISSUE_SKILL_DIR` — body template, create gate, direction-conflict
+- `REVIEW_SKILL_DIR` — `references/board-sync.md`, `notion-filing.md`, `taste-to-concrete.md`, `issue-candidates.md`, `dependency-ordering.md`
 
-If **issue** is missing, still walk and draft; do not pretend Linear was filed
+If **issue** is missing, still walk and draft; do not pretend files were filed
 to the `/issue` bar without the template. If **project-review** is missing,
-still snapshot once and file, but do not invent a second board-sync protocol.
+still snapshot `.wcp/issues/` once and file, but do not invent a second board-sync protocol.
 
 ---
 
 ## Workflow
 
-Follow phases in order. Parallelize reads **within** a phase. Do not file
-Linear during the walk.
+Follow phases in order. Parallelize reads **within** a phase. Do not write
+`.wcp/issues/` or Notion during the walk.
 
 ### Phase 0 — Bootstrap
 
@@ -158,8 +158,8 @@ Linear during the walk.
 2. Read `README.md`, `AGENTS.md` / `CLAUDE.md`, design-system notes if present.
 3. Inventory **front-facing** routes/views (protocol § Inventory). Exclude
    `/api/*`, webhooks, server-only, install-chrome unless the user sees it.
-4. Resolve Linear **team** and **project** using `/issue` Phase 1. Do not ask
-   first. Ask once with candidates only if unresolved.
+4. Do not resolve a Linear team or project. The queue is `.wcp/issues/` and
+   the Notion database is this repo's origin URL.
 5. Infer `LIVE_URL`: `--url`, README/deploy docs, then local preview
    (`http://127.0.0.1:8080` in Grok sandbox / `npm run dev` in this repo).
 6. Detect browser tools: chrome-devtools MCP, agent-browser, browser-use,
@@ -176,11 +176,11 @@ Linear during the walk.
 
 Follow `$REVIEW_SKILL_DIR/references/board-sync.md` **snapshot only**.
 
-Write `board-snapshot.json` under the scratch dir. Do **not** re-list Linear
-per finding.
+Write `board-snapshot.json` under the scratch dir. Do **not** re-list
+`.wcp/issues/` per finding.
 
-If Linear is down: empty snapshot; continue; `FILE_MODE` may still be `file`
-(publish will fail closed and keep scratch).
+If the snapshot read fails: empty snapshot; continue; `FILE_MODE` may still be
+`file` (publish writes files then Notion; keep scratch if Notion fails).
 
 ### Phase 2 — Live walk (required)
 
@@ -220,7 +220,7 @@ For every captured finding, follow `KINDS_MD` then pin code:
 1. Kind: `bug` | `idea` | `improvement`
 2. Grep/read the route/component. Fill code map + drift anchors (real paths).
 3. Taste / idea: convert via `$REVIEW_SKILL_DIR/references/taste-to-concrete.md`.
-   If it cannot become concrete AC, **drop** (not a Linear shell).
+   If it cannot become concrete AC, **drop** (not a queue shell).
 4. Offline `board_match` against the Phase 1 snapshot (board-sync classify).
 5. Write `issue-candidates/` files (issue-candidates.md). Prefer one file per finding.
 
@@ -256,36 +256,36 @@ Move passing leaves to `issue-candidates/final/`.
 
 Follow `$REVIEW_SKILL_DIR/references/dependency-ordering.md`.
 
-Default epic title (if `EPIC`):
+Put the initiative name in the leaf body when `EPIC` is true:
 
 `UI walk – {Project or Surface} – YYYY-MM-DD`
 
-Epic is packaging only. Prefer reusing an open “UI walk” epic from the snapshot
-when same project and same week.
+There is no epic file. `--no-epic` skips that initiative line.
 
 Filing order: foundation → feature/bug → polish/idea/improvement/a11y/content.
 
 ### Phase 6 — File the queue and Notion (default)
 
-Follow `$REVIEW_SKILL_DIR/references/linear-filing.md` with this **filter
+Follow `$REVIEW_SKILL_DIR/references/notion-filing.md` with this **filter
 override**. That file writes `.wcp/issues/` and the Notion row. Do not call Linear.
 
 | Mode | What to file |
 |------|----------------|
 | Default | **All** well-formed `final/` leaves (bugs, ideas, improvements), including Low |
-| `--draft` | Nothing in Linear |
+| `--draft` | Nothing written to `.wcp/issues/` or Notion |
 
 Priority map (same as project-review):
 
-| Finding | Linear `priority` |
+| Finding | `priority` |
 |---------|-------------------|
-| P0 broken core path / data loss | `1` Urgent |
-| Other P0 / high-visibility P1 bugs | `2` High |
-| Remaining P1 / solid improvements | `3` Medium |
-| Ideas and minor improvements | `4` Low |
+| P0 broken core path / data loss | `critical` |
+| Other P0 / high-visibility P1 bugs | `high` |
+| Remaining P1 / solid improvements | `normal` |
+| Ideas and minor improvements | `low` |
 
-Create sequence: epic (unless `--no-epic`) → leaves in order → `relatedTo` /
-`blockedBy` → retire `retire_after_file` unstarted ids (direction-conflict.md).
+Create sequence: write independent leaves to `open/` in order. A hard
+dependency goes in `blocked/` with `reason: blocked by <id>`. Retire
+`retire_after_file` unstarted files (direction-conflict.md).
 
 **Never:** assign, In Progress, Done, start comments, mass-cancel.
 
@@ -312,14 +312,14 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 
 ---
 
-## Linear hygiene
+## Queue hygiene
 
 | Action | Allowed? |
 |--------|----------|
-| Create epic + leaves from `final/` | Yes (default) |
-| One board snapshot | Yes |
-| Per-finding Linear search | **No** |
-| Assign / In Progress / Done | **No** |
+| Write `open/` leaves and Notion rows from `final/` | Yes (default) |
+| One read of `.wcp/issues/` | Yes |
+| Per-finding queue re-read | **No** |
+| Assign / `in-progress` / `done` | **No** |
 | Targeted retire of unstarted contradictions | **Yes** (after create) |
 | Walk workers calling Linear | **No** |
 
@@ -333,11 +333,11 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 - One mega “Fix the UI” ticket
 - Skipping ideas/improvements because `/project-review` would prune them
 - Filing “make it nicer” with no match surface or exact AC
-- Re-listing Linear per candidate
+- Re-listing `.wcp/issues/` per candidate
 - Implementing a “tiny fix” mid-walk
 - Asking the user which pages to open (inventory is your job)
 - Running `/solve` automatically
-- Putting secrets or raw console dumps in Linear
+- Putting secrets or raw console dumps in issue files or Notion
 - Claiming exhaustive coverage after walking only the home page
 
 ## Red flags — stop and resume the protocol
@@ -357,8 +357,8 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 | No browser tool | Stop. Do not fake a walk. Point at `/project-review`. |
 | App not reachable and cannot start | Stop. Report what you tried. |
 | Login impossible | Walk public; `blocked_auth` the rest; still file public findings |
-| Linear down | Finish walk + `final/`; handoff **not filed** + scratch path |
-| Team/project unresolved | Ask once; do not invent a team |
+| Notion down | Finish walk + write `.wcp/issues/` when `FILE_MODE=file`; handoff lists failed rows; keep scratch if any file write did not finish |
+| Origin URL unknown | Infer from `git remote`; do not invent a Linear team |
 | Partial publish | Keep scratch; list created vs remaining finals |
 | Production URL | Do not submit real payments, emails, or destructive admin; prefer local/preview |
 
@@ -368,16 +368,16 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 
 | Skill | Relationship |
 |-------|--------------|
-| `/walk` | Live front-facing click-through → every UI finding into Linear |
+| `/walk` | Live front-facing click-through → every UI finding into `.wcp/issues/` and Notion |
 | `/project-review` | Whole-project discovery (code + optional live); not a substitute walk |
-| `/issue` | Shared team resolution + execution-ready bar |
+| `/issue` | Shared execution-ready bar |
 | `/issues` | Human multi-item dump; walk **invents** the dump from the UI |
 | `/identify` | Picks a batch from the queue this skill fills |
 | `/solve` | Implements filed leaves |
 | `/tidy` | Optional later hygiene; not this skill |
 
 ```text
-/walk  →  Linear epic + leaves (Backlog)
+/walk  →  `.wcp/issues/open/` leaves + Notion
          ↓
 /identify  →  /solve
 ```

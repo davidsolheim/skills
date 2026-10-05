@@ -6,7 +6,7 @@ Use during Phase 2 discovery (fast) and inside **deep review workers** for each 
 
 **Deep workers:** For every assigned unit, run the full `[F]` + `[D]` set that applies to that unit’s kind (route vs API vs component). Recording “reviewed, 0 findings” after a real pass is correct — do not invent tickets to satisfy the checklist.
 
-**Coverage ≠ tickets:** Exhaustive deep review means every unit is inspected; it does not mean one Linear issue per unit or per checkbox.
+**Coverage ≠ tickets:** Exhaustive deep review means every unit is inspected; it does not mean one queue issue per unit or per checkbox.
 
 ---
 
@@ -140,8 +140,8 @@ Use during Phase 2 discovery (fast) and inside **deep review workers** for each 
 
 - Pure nit (1px misalignment no one will notice)
 - Speculative rewrite without evidence of user impact
-- Duplicate of another candidate or open Linear issue
+- Duplicate of another candidate or open queue issue
 - Cannot be made concrete after one taste-conversion attempt (and not escalated)
 
 Fast mode: when in doubt, **drop** or leave as handoff note.  
-Deep mode: when in doubt, require code pin + concrete AC or drop (during **local** cleanup on disk — not via Linear thrash).
+Deep mode: when in doubt, require code pin + concrete AC or drop (during **local** cleanup on disk — not via per-candidate queue re-reads).

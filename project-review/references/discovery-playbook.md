@@ -115,7 +115,7 @@ A candidate needs:
 5. **Priority guess** P0 / P1 / P2
 6. **Evidence** (UI, code, or both)
 
-**Prefer writing each candidate to a local file** under a scratch `issue-candidates/` folder (see [`issue-candidates.md`](issue-candidates.md)) rather than only holding them in chat. Clean locally, then file to Linear.
+**Prefer writing each candidate to a local file** under a scratch `issue-candidates/` folder (see [`issue-candidates.md`](issue-candidates.md)) rather than only holding them in chat. Clean locally, then write `.wcp/issues/` and upsert Notion.
 
 ### Priority heuristics
 
@@ -168,7 +168,7 @@ Statuses move to `keep` only after board match + quality gates for that item.
 
 - Inventory routes + read AGENTS + one board snapshot can overlap with early code reads.
 - Live walk and code walk can interleave per surface (see bug in UI → immediately pin code).
-- Do not open unbounded Linear queries; one snapshot is enough for offline dedupe.
+- Do not re-list `.wcp/issues/` unbounded; one snapshot is enough for offline dedupe.
 
 ---
 
@@ -180,5 +180,5 @@ Statuses move to `keep` only after board match + quality gates for that item.
 - Skipping primary journey because docs look complete
 - Asking the user “what should I look at?” as the first step
 - Using this playbook alone and claiming a **deep** exhaustive review
-- Creating Linear issues mid-discovery before local cleanup
-- Searching Linear once per candidate
+- Writing `.wcp/issues/` mid-discovery before local cleanup
+- Searching the queue once per candidate

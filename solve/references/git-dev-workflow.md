@@ -48,12 +48,12 @@ git merge main -m "Merge main into dev"
 
 - First run in a clone: create **`dev`** from current `main` (never create `Dev`).
 - Always merge **main → dev**, not the reverse, under this skill.
-- Resolve conflicts before starting the Linear issue.
+- Resolve conflicts before starting the issue.
 - **Never** use capital-`D` `Dev` for new work, checkouts for issue branches, or merges. If both `dev` and `Dev` exist, use **`dev` only** and note the duplicate to the user (do not delete `Dev` without asking).
 
 ### 4. Issue branch
 
-Prefer Linear’s suggested `gitBranchName` when present; else:
+Name the sequential issue branch from the file id:
 
 ```text
 feat/<team-lower>-<number>-short-slug

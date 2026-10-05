@@ -1,16 +1,46 @@
 # Tidy ledger and cooldown
 
-Each processed issue gets a **local ledger** entry. That entry is the cooldown clock. Do not post a Linear comment. Do not call Linear.
+Each processed issue gets a **`tidy-pass:` line in the issue file** (source of
+truth across machines) and a **local ledger** entry (fast skip on this
+machine).
 
-Cooldown is **7 days** from `last_pass` unless `/tidy --force` or `/tidy 0123`.
+Cooldown is **7 days** from the last stamp date unless `/tidy --force` or
+`/tidy TEAM-123`.
 
-## Stamp
+## File stamp
 
-After you finish acting on (or inspecting) an issue, merge one object into the ledger. `actions` is a list from:
+After you finish acting (or inspecting) an issue, add one body line. **First
+line of that note exactly:**
 
-`inspected` · `upgraded` · `retitled` · `related` · `status:in-review` · `status:done` · `duplicate:0123` · `canceled` · `needs-you`
+```text
+tidy-pass: YYYY-MM-DD · run <RUN_ID> · actions: <csv>
+```
 
-One stamp per issue per pass. If this `run_id` is already on that id today, do not write a second stamp.
+`actions` is a comma-separated list from:
+
+`inspected` · `upgraded` · `retitled` · `related` · `status:in-review` ·
+`status:done` · `duplicate:TEAM-N` · `canceled` · `epic-rollup` · `needs-you`
+
+Example:
+
+```text
+tidy-pass: 2026-08-18 · run 7f3a2c · actions: upgraded,retitled,related
+```
+
+One stamp per pass. Do not post a tracker comment. Do not add a second stamp
+the same run (skip if this `RUN_ID` already has `tidy-pass:` today). Optional
+one-line evidence under the first line (sha, PR url) when status changed.
+
+### Parse
+
+Newest body line whose first line matches `^tidy-pass: (\d{4}-\d{2}-\d{2})`.
+That date is `last_pass`. In cooldown if `today - last_pass < 7` days
+(calendar dates, UTC or local consistently — use the machine’s local date).
+
+Ignore older stamps. A newer stamp replaces the cooldown clock.
+
+The local ledger at `$HOME/.grok/tidy/ledgers/<workspace-id>.json` is the fast
+skip on this machine. If both exist, the later date wins.
 
 ## Local ledger
 
@@ -20,17 +50,19 @@ Path:
 $HOME/.grok/tidy/ledgers/<workspace-id>.json
 ```
 
-`workspace-id`: slug from `git config remote.origin.url` (host + path, no `.git`, `/` → `--`). If no remote, use the absolute git common dir, then cwd.
+`workspace-id`: slug from `git config remote.origin.url` (host + path, no
+`.git`, `/` → `--`). If no remote, use the absolute git common dir, then cwd.
 Example: `github.com--acme--widgets`.
 
-Never put tokens or issue *bodies* in the ledger. Ids + dates + action tags only.
+Never put tokens or issue *bodies* in the ledger. Ids + dates + action tags
+only.
 
 ```json
 {
   "remote": "github.com/acme/widgets",
   "updated": "2026-08-18",
   "issues": {
-    "0123": {
+    "EX-123": {
       "last_pass": "2026-08-18",
       "run_id": "7f3a2c",
       "actions": ["upgraded", "retitled"]
@@ -39,21 +71,22 @@ Never put tokens or issue *bodies* in the ledger. Ids + dates + action tags only
 }
 ```
 
-Create `$HOME/.grok/tidy/ledgers/` if needed. Merge: overwrite only keys you processed this run.
+Create `$HOME/.grok/tidy/ledgers/` if needed. Merge: overwrite only keys you
+processed this run.
 
-## Due
+## Conflict
 
-| Ledger `last_pass` | Use |
-|--------------------|-----|
-| Present and younger than 7 days | Skip, unless `--force` or this id is pinned |
-| Present and 7 days or older | Due |
-| Missing | Due |
+| File stamp | Ledger | Use |
+|------------|--------|-----|
+| Present | anything | **Later date** of the two |
+| Missing | present | Ledger date (this machine only) |
+| Missing | missing | Due |
 
-Use the machine’s local date. Do not invent stamps for skipped issues.
+Do not invent stamps for skipped issues.
 
 ## Do not stamp
 
 - Cooldown skips
-- Live foreign claims
+- Live foreign WCP leases / live ticket leases held by someone else
 - Issues not in scope (`PINNED_ID` run)
-- `done/` and `canceled/` files you only read as evidence
+- Terminal issues you only read as epic-child evidence

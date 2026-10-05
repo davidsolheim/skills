@@ -6,10 +6,10 @@ description: >
   dependencies, and set `done` when a work commit already exists. Skip any
   issue tidied in the last 7 days unless /tidy --force or /tidy 0123.
   Finish the board first, then one needs-you list. Skip live foreign claims.
-  Track the last pass in the local tidy ledger. Use when
-  the user runs /tidy, /tidy --force, /tidy TEAM-123, says "tidy Linear",
-  "clean up the board", "thicken thin tickets", or "close issues that are
-  already done".
+  Track last pass via a tidy-pass line in the issue file plus a local ledger.
+  Use when the user runs /tidy, /tidy --force, /tidy TEAM-123, says "tidy
+  the queue", "tidy the board", "clean up the board", "thicken thin tickets",
+  or "close issues that are already done".
 argument-hint: "[--force] [TEAM-123]"
 ---
 
@@ -38,7 +38,7 @@ push, or open PRs.
   Low-confidence closes are listed, not applied. Rules:
   [`references/actions.md`](references/actions.md).
 - **Live foreign claim** → skip entirely. No rewrite, no status, no stamp,
-  no cooldown. See `/solve` `references/multiplayer-linear.md`.
+  no cooldown. See `/solve` `references/multiplayer.md`.
 - **Needs-you last.** Do not stop the pass. Do not set Blocked. Collect
   questions; ask once at the end.
 - **No implement, no assign-for-solve, no `claimed-by:`.**
@@ -47,8 +47,8 @@ push, or open PRs.
 
 ## Trigger phrases
 
-`/tidy`, `/tidy --force`, `/tidy TEAM-123`, `tidy Linear`, `tidy the board`,
-`clean up Linear issues`, `thicken thin tickets`, `close issues that are
+`/tidy`, `/tidy --force`, `/tidy TEAM-123`, `tidy the queue`, `tidy the board`,
+`clean up the board`, `thicken thin tickets`, `close issues that are
 already done`
 
 ## Invocation
@@ -63,7 +63,7 @@ already done`
 
 | Arg | Meaning |
 |-----|---------|
-| (none) | Every **due** issue on the resolved project (last pass ≥ 7 days ago or never) |
+| (none) | Every **due** issue in this repo's `.wcp/issues/` queue (last pass ≥ 7 days ago or never) |
 | `--force` / `force` | Ignore cooldown; still skip live foreign claims |
 | `TEAM-123` | That issue only; ignore its cooldown. Do not scan the rest of the board for writes |
 
@@ -93,7 +93,7 @@ lives in `$SOLVE_SKILL_DIR/references/eligibility.md`.
 
 If **issue** is missing, still do status/dup/rollup; skip body upgrades and
 mark those as not upgraded. If **solve** is missing, still skip anything with
-a live `claimed-by:` comment younger than 60 minutes; fall back to
+a live WCP lease or ticket lease held by someone else; fall back to
 `$HOME/.grok/skills/solve/references/eligibility.md` for the inventory fetch.
 
 ---
@@ -128,7 +128,7 @@ Otherwise list `open/`, `in-progress/`, and `blocked/`. Skip a live lease held b
 | Condition | Action |
 |-----------|--------|
 | `PINNED_ID` set and this is not that issue | Ignore (out of scope; never listed) |
-| Live foreign `claimed-by:` (< 60 min, different run) or In Progress assigned to someone else | **Skip claimed** — no writes, no stamp |
+| Live WCP lease held by someone else, or live ticket lease (`assignee` + unexpired `lease_expires`) held by someone else | **Skip claimed** — no writes, no stamp |
 | Last `tidy-pass` < 7 days and not `FORCE` and not pinned | **Skip cooldown** |
 | Else | **Due** |
 
@@ -146,11 +146,11 @@ Follow [`references/actions.md`](references/actions.md) in this order:
 
 1. **Claimed?** already filtered.
 2. **Completed in git?** A work commit that meets acceptance sets the file `done`. Notion follows where that commit sits: `origin/main` → `done`; only `origin/dev` → `in-review`.
-3. **Epic rollup?** all children terminal → Done + rollup comment.
-4. **High-confidence duplicate / fully obsolete?** → Duplicate or Canceled +
-   one comment (canonical or superseding id).
+3. **Epic rollup?** all children terminal → file `done` + rollup note on the file.
+4. **High-confidence duplicate / fully obsolete?** → `canceled` with `reason`
+   (canonical or superseding id).
 5. **Title** vague → retitle.
-6. **Relations** obvious (`relatedTo` / `blockedBy` / parent) → set.
+6. **Dependency** obvious → move the file to `blocked/` with `reason: blocked by <id>`.
 7. **Thin body?** investigate like `/issue` Phase 3; update the **existing**
    issue to the `/issue` bar. Ready → leave body alone.
 8. **Needs a human?** do not guess. Append to `NEEDS_YOU`. Leave state.
@@ -177,15 +177,15 @@ After the due set is processed, write:
 ## Phase 5 — Report, then needs-you
 
 ```markdown
-**Tidy:** [Team] / [Project] · run <RUN_ID>
+**Tidy:** `.wcp/issues/` · run <RUN_ID>
 **Scope:** all due | force | pinned TEAM-123
 **Due / cooldown-skip / claimed-skip:** D / C / K
 
 ### Changed
-- [TEAM-123](url) — upgraded · retitled · relatedTo TEAM-80
-- [TEAM-124](url) — status In Review (`origin/dev` <sha>)
-- [TEAM-125](url) — Duplicate of TEAM-90
-- [TEAM-100](url) — epic rollup Done
+- TEAM-123 — upgraded · retitled · relatedTo TEAM-80
+- TEAM-124 — `in-review` (`origin/dev` <sha>)
+- TEAM-125 — `canceled` (`reason`: duplicate of TEAM-90)
+- TEAM-100 — epic rollup `done`
 
 ### Inspected, already tidy
 - TEAM-… (ready, status correct)
@@ -203,7 +203,7 @@ If `NEEDS_YOU` is empty, omit that section and stop.
 
 If `NEEDS_YOU` is non-empty: **stop and wait**. Do not start `/identify` or
 `/solve`. When the user answers in a follow-up, apply answers to those
-Linear bodies/assumptions (and status only if they explicitly confirm a
+issue files/assumptions (and status only if they explicitly confirm a
 close). Do **not** re-scan the whole board unless they run `/tidy` again.
 
 ---
@@ -228,7 +228,7 @@ close). Do **not** re-scan the whole board unless they run `/tidy` again.
 |-------|------------|
 | `/tidy` | Board hygiene + stamps. No implement |
 | `/stat` | Read-only briefing of the open board; no writes |
-| `/issue` | Quality bar + team/project resolution |
+| `/issue` | Quality bar |
 | `/identify` | Picks a small batch to **solve**; upgrades only that batch; JIT-claims on approve |
 | `/solve` | Implements; claim protocol Tidy must not fight |
 | `/prb` | Done after merge to `main` — Tidy may set Done only with the same evidence |
@@ -258,6 +258,6 @@ close). Do **not** re-scan the whole board unless they run `/tidy` again.
 - Stamping cooldown on an issue you skipped
 - Inventing a second quality template instead of reading `/issue`
 - Claiming or assigning as if this were `/solve`
-- `list_issues` for team/project with no `state` (dumps Done/Canceled; truncates)
-- Posting a Linear comment without `list_comments` first (duplicate tidy-pass / evidence)
+- Scanning `done/` / `canceled/` as if they were due
+- Posting a tracker comment (the stamp is the `tidy-pass:` line in the issue file)
 - Tidying or stamping Done / Canceled / Duplicate issues as if they were due

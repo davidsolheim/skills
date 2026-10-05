@@ -26,7 +26,7 @@ This skill is **discovery and issue creation only**. It never implements applica
 | | `/issue` | `/project-review` |
 |--|----------|-------------------|
 | Who invents the problems? | **Human** prompt | **Agent** (product + code walk) |
-| Volume | One ticket per invocation | Many tickets (+ optional epic) |
+| Volume | One ticket per invocation | Many tickets |
 | Human input | Required problem statement | Optional bias only (surface, URL, notes) |
 | Ticket quality bar | Full implementation-ready body | **Same bar** + review metadata |
 
@@ -60,7 +60,7 @@ Mode is fixed for the whole run. Report it in the handoff.
 ## Operating contract
 
 1. **Agent owns the finding list.** Invent issues from intended state + product/code evidence.
-2. **Atomic leaves only.** Many small independently solvable issues. Epics package; `/solve` never implements parent shells.
+2. **Atomic leaves only.** Many small independently solvable issues. Put an initiative name in the leaf body when a batch needs one. There is no epic file.
 3. **Solve-ready bar.** Every filed leaf uses the `/issue` body
    ([`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md))
    plus Review metadata in [`references/issue-template.md`](references/issue-template.md).
@@ -73,7 +73,7 @@ Mode is fixed for the whole run. Report it in the handoff.
    Retire unstarted contradicted ids at publish only. Agent-invented findings
    do not beat an explicit user ticket of the opposite intent.
 7. **Code-pin required** for every filed leaf. No zero-anchor polish tickets.
-8. **Queue-shaped for solve.** Foundation-first filing order + `blockedBy` when hard deps exist ([`references/dependency-ordering.md`](references/dependency-ordering.md)).
+8. **Queue-shaped for solve.** Foundation-first filing order + `blocked/` with `reason: blocked by <id>` when hard deps exist ([`references/dependency-ordering.md`](references/dependency-ordering.md)).
 9. **Default file to `.wcp/issues/` and Notion.** `--draft` is opt-out. Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. Deep files **only** from `issue-candidates/final/`.
 10. **Scratch lifecycle.** **Filed (issue ids verified) → delete** the run’s `project-review-<RUN_ID>` temp dir. **Not filed** (`--draft`, Notion failure, partial publish) → **keep** the temp dir and put its absolute path in the handoff. Never delete while intended `final/` bodies are only on disk.
 11. **Do not claim work.** New leaves stay `open` and unassigned. That is `/solve`’s job.
@@ -108,7 +108,7 @@ Mode is fixed for the whole run. Report it in the handoff.
 | `--file` | Explicit file mode (default when `--draft` is absent) |
 | `--p0-p1-only` | After cleanup, publish only P0/P1 (list unfiled P2 in handoff) |
 | `--include-p2` | In **fast** mode, allow well-formed high-leverage P2s to be filed |
-| `--no-epic` | Flat leaves; no parent epic |
+| `--no-epic` | Skip the initiative line in the leaf body |
 | `--concurrency N` | Deep only. Max simultaneous review workers (1–8). Default **4**. |
 | `--scope-only` | Deep only. Limit inventory to SURFACE bias (default: whole project still inventoried) |
 | `--url <URL>` | Live app / preview to inspect |
@@ -137,9 +137,9 @@ Initialize:
 
 ## Trigger phrases
 
-`/project-review`, `project-review fast`, `project-review deep`, `review this project`, `quality pass`, `taste pass`, `bug hunt`, `find issues for solve`, `audit the app`, `audit the dashboard`, `queue tickets for solve`, `turn this product into Linear issues`
+`/project-review`, `project-review fast`, `project-review deep`, `review this project`, `quality pass`, `taste pass`, `bug hunt`, `find issues for solve`, `audit the app`, `audit the dashboard`, `queue tickets for solve`, `turn this product into Notion issues`
 
-A **live click-through of every front-facing screen** (bugs + ideas + improvements into Linear) is **`/walk`**, not this skill. Keep this skill for whole-project / code-inclusive review. “UI audit” with no live-walk language still belongs here.
+A **live click-through of every front-facing screen** (bugs + ideas + improvements into `.wcp/issues/` and Notion) is **`/walk`**, not this skill. Keep this skill for whole-project / code-inclusive review. “UI audit” with no live-walk language still belongs here.
 
 ---
 
@@ -217,7 +217,7 @@ Phase D8    Handoff (filed ids; scratch deleted if fully filed, else keep path)
 7. On file or Notion failure, the local package remains the recovery path — do not re-run full discovery just to re-file.
 8. **Filed → delete scratch; not filed → keep scratch** (verify issue ids before delete).
 
-After Phase 1, **read `deep-mode.md` fully** and execute D0–D8. Quality gates for finals match [Issue quality rules](#issue-quality-rules-non-negotiable) below. Filing filters match Phase 7 / linear-filing.
+After Phase 1, **read `deep-mode.md` fully** and execute D0–D8. Quality gates for finals match [Issue quality rules](#issue-quality-rules-non-negotiable) below. Filing filters match Phase 7 / notion-filing.
 
 ---
 
@@ -318,14 +318,14 @@ Full procedure: [`references/dependency-ordering.md`](references/dependency-orde
 1. Cluster by surface / theme.
 2. Classify each leaf: `foundation` | `feature` | `polish` | `content` | `a11y`.
 3. Add hard dependency edges when B’s AC assumes A is done.
-4. Default epic title (if `EPIC`):  
+4. Initiative line in the leaf body (if `EPIC`):  
    `Review pass ({mode}) – {Project or Surface} – YYYY-MM`
 5. **Filing order:** foundations → features → polish/content/a11y.
-6. Plan `blockedBy` for hard deps; do **not** use Blocked *state* for normal chains.
+6. Plan hard deps as `blocked/` with `reason: blocked by <id>`. Soft order is filing order only.
 
 ### Phase 7 — Write `.wcp/issues/` files (default)
 
-Full procedure: [`references/linear-filing.md`](references/linear-filing.md).
+Full procedure: [`references/notion-filing.md`](references/notion-filing.md).
 
 #### Filing filters
 
@@ -348,7 +348,7 @@ Full procedure: [`references/linear-filing.md`](references/linear-filing.md).
 
 #### Create sequence
 
-Follow [`references/linear-filing.md`](references/linear-filing.md). Write each leaf under `.wcp/issues/` and upsert Notion. No epic file. Do not assign. Do not set `in-progress` or Notion `done`.
+Follow [`references/notion-filing.md`](references/notion-filing.md). Write each leaf under `.wcp/issues/` and upsert Notion. No epic file. Do not assign. Do not set `in-progress` or Notion `done`.
 
 1. `--draft` writes nothing and keeps the scratch package.
 2. **Deep:** file only `issue-candidates/final/*.md`. **Fast:** file cleaned finals.
@@ -360,7 +360,7 @@ Follow [`references/linear-filing.md`](references/linear-filing.md). Write each 
 
 Use [`references/handoff-template.md`](references/handoff-template.md). Always include:
 
-- Mode, team/project, epic link (if any)
+- Mode, origin URL, Notion database
 - Counts filed vs discovered-not-filed by P0/P1/P2
 - Unblocked leaves ready for `/solve` (ordered)
 - Dependency chains
@@ -414,24 +414,24 @@ These exist so tickets survive the `/solve` implement→review loop:
 - One mega “Fix everything from the review” ticket
 - Leaving taste as subjective feelings without concrete AC
 - Filing without code map / drift check
-- Creating duplicates of open Linear issues (use board snapshot offline)
+- Creating duplicates of open queue files (use board snapshot offline)
 - Filing Y while leaving unstarted X implementable when they contradict
 - Canceling a user ticket because the review invented the opposite
 - Treating `## Supersedes` / chat as the retire step
-- **Re-listing Linear for every candidate** during discovery or cleanup
-- **Filing Linear from raw worker `_inbox` dumps** without local cleanup
+- **Re-listing `.wcp/issues/` for every candidate** during discovery or cleanup
+- **Filing from raw worker `_inbox` dumps** without local cleanup
 - **Stopping deep early** with pending inventory units (“enough findings”)
 - Claiming deep exhaustive coverage after a single-agent skim
 - **Deleting scratch while any intended final is unfiled** (draft, partial, failed publish)
-- **Leaving scratch forever after a fully verified Linear publish** (should delete the run dir)
+- **Leaving scratch forever after a fully verified file + Notion upsert** (should delete the run dir)
 - Assigning, claiming, or setting In Progress
 - Implementing fixes inside this skill
 - Flooding fast mode with P2 nits
-- Filing polish before foundations with no `blockedBy` when B requires A
-- Inventing platform migrations without repo/Linear evidence
-- Asking whether to file when Linear works and user did not pass `--draft`
+- Filing polish before foundations with no `reason: blocked by <id>` when B requires A
+- Inventing platform migrations without repo or queue evidence
+- Asking whether to file when `--draft` is absent
 - Running `/solve` automatically without being asked
-- Dumping raw command transcripts into Linear
+- Dumping raw command transcripts into issue files or Notion
 - Putting secrets in issue bodies
 - Using worktrees for deep review workers (unnecessary; discovery-only)
 
@@ -457,9 +457,9 @@ These exist so tickets survive the `/solve` implement→review loop:
 
 | Skill | Relationship |
 |-------|--------------|
-| `/project-review` | **Agentic** multi-issue discovery + Linear queue (fast single-agent or deep orchestrator) |
+| `/project-review` | **Agentic** multi-issue discovery + `.wcp/issues/` and Notion (fast single-agent or deep orchestrator) |
 | `/walk` | Live **front-facing UI** click-through; files every bug/idea/improvement. Use when the user wants to drive screens, not audit APIs/jobs. |
-| `/issue` | **Human-prompted** single issue; **shared ticket quality bar** and Linear resolution order |
+| `/issue` | **Human-prompted** single issue; **shared ticket quality bar** |
 | `/solve` | **Downstream consumer.** Picks unblocked leaves, implement→review, merges to local `dev`. Deep’s guidance package is for **review**, not solve batch guidance — but leaves must be solve-ready. |
 | `/implement` | Not invoked by this skill |
 | `/prb` `/yeet` | Later ship; not this skill |
@@ -488,13 +488,13 @@ These exist so tickets survive the `/solve` implement→review loop:
 | [`references/worker-prompt.md`](references/worker-prompt.md) | Deep worker prompt template |
 | [`../issue/references/execution-ready-bar.md`](../issue/references/execution-ready-bar.md) | Shared quality bar |
 | [`../issue/references/issue-body-template.md`](../issue/references/issue-body-template.md) | Canonical leaf body |
-| [`references/issue-template.md`](references/issue-template.md) | Review metadata + titles + epic shell |
+| [`references/issue-template.md`](references/issue-template.md) | Review metadata + titles + initiative line |
 | [`../issue/references/direction-conflict.md`](../issue/references/direction-conflict.md) | Contradiction search + retire |
 | [`references/review-checklist.md`](references/review-checklist.md) | Lens checklist (fast vs deep tags) |
 | [`references/taste-to-concrete.md`](references/taste-to-concrete.md) | Feel → executable AC |
 | [`references/discovery-playbook.md`](references/discovery-playbook.md) | Fast discovery steps; deep defers to deep-mode |
 | [`references/intended-state.md`](references/intended-state.md) | Infer “done and good” without a human list |
 | [`references/board-sync.md`](references/board-sync.md) | Snapshot + offline dedupe / relate / conflict classify |
-| [`references/dependency-ordering.md`](references/dependency-ordering.md) | Foundation order, blockedBy, epic packaging |
-| [`references/linear-filing.md`](references/linear-filing.md) | Publish from final/ into `.wcp/issues/` and Notion |
+| [`references/dependency-ordering.md`](references/dependency-ordering.md) | Foundation order, `blocked/` reason, initiative line |
+| [`references/notion-filing.md`](references/notion-filing.md) | Publish from final/ into `.wcp/issues/` and Notion |
 | [`references/handoff-template.md`](references/handoff-template.md) | User-facing end summary |

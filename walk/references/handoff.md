@@ -1,6 +1,6 @@
 # /walk handoff
 
-Scannable. Full bodies live in Linear (or scratch `final/` if not filed).
+Scannable. Full bodies live in `.wcp/issues/` (or scratch `final/` if not filed).
 
 ---
 
@@ -8,14 +8,10 @@ Scannable. Full bodies live in Linear (or scratch `final/` if not filed).
 
 ```markdown
 **UI walk complete**
-- **Team / project:** <team> / <project>
+- **Repo / Notion:** origin URL · issues database
 - **Live URL:** <url>
 - **Auth:** public walked | signed-in walked | blocked_auth on <n> units
 - **Filed:** yes
-
-### Epic
-- [<ID>](url) — UI walk – <Project> – <YYYY-MM-DD>
-  (or none)
 
 ### Coverage
 | Status | Count |
@@ -37,7 +33,7 @@ Units not walked: <none | list>
 | Thin (not filed) | n | | | |
 
 ### Unblocked leaves (ready for `/solve`)
-1. [TEAM-101](url) — <title> · bug · P0
+1. [0123](notion_url) — <title> · bug · critical
 2. …
 
 ### Suggested next
@@ -54,16 +50,16 @@ Units not walked: <none | list>
 - …
 
 ### Scratch
-- **Status:** deleted after successful Linear file **or** kept at `<abs path>`
+- **Status:** deleted after successful file **or** kept at `<abs path>`
 ```
 
 ---
 
-## Draft / Linear unavailable
+## Draft / file write unfinished
 
 ```markdown
 **UI walk complete — NOT FILED**
-- **Reason:** `--draft` | Linear failed: <brief>
+- **Reason:** `--draft` | file write unfinished: <brief>
 - **Scratch (keep):** `<abs path>`
 - **Finals:** `…/issue-candidates/final/` (N)
 - **Coverage:** walked n / blocked_auth n / pending 0

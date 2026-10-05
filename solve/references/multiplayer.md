@@ -4,6 +4,8 @@ The queue is `.wcp/issues/`. Contract: [`../../docs/wcp-queue.md`](../../docs/wc
 
 Do not call Linear. Do not post `claimed-by` comments.
 
+Claims are WCP ticket leases. Status lives on the issue file (`open`, `in-progress`, `in-review`, `done`, `blocked`, `canceled`). After a status write, Notion mirrors the file ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)). Do not set Notion `done` from `/solve`.
+
 ## Unclaimed vs claimed
 
 **Unclaimed:** file is in `open/`, or `in-progress/` with `lease_expires` in the past.
@@ -25,7 +27,7 @@ Before any product edit on that ticket:
 
 ## Close
 
-The solver does not commit and does not stash. When acceptance is met, the solver sets `status: in-review`, clears `lease_expires`, and moves the file to `in-review/`.
+The solver does not commit and does not stash. When acceptance is met, the solver sets `status: in-review`, clears `lease_expires`, and moves the file to `in-review/`. File `in-review` is the review state. It is not proof the work is on `dev` by itself; the commit check stays.
 
 The orchestrator launches one reviewer per file in `in-review/`. The reviewer checks security, accessibility, functionality, and aesthetics, fixes failures under a file lease, and sets `status: done`. The reviewer does not commit.
 
@@ -39,7 +41,7 @@ Claim only the leaf you are about to hand to `/solve`, using the same ticket lea
 
 ## `/prb` and `/yeet`
 
-Do not update an external tracker. The issue file already holds `commit` when `/solve` closed it. Include `.wcp/issues/` in the ship commit.
+Do not update an external tracker from `/solve`. The issue file already holds `commit` when `/solve` closed it. Include `.wcp/issues/` in the ship commit.
 
 ## `/issues` and `/issue`
 

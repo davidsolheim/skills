@@ -135,7 +135,7 @@ Workers share one `dev` tree (`isolation: none`). Occupancy is WCP.
 2. Launch a **disjoint-path** ready set up to `CONCURRENCY` (host cap 32;
    WCP operating point is about 8–20 writers on disjoint files).
 3. A leaf whose primary path collides with a live wave-mate waits for the
-   next wave. That is occupancy, not Linear `blockedBy`.
+   next wave. That is occupancy.
 4. If the whole remaining set is one hotspot, launch **one** writer.
 5. Workers still look/acquire/write-ok/release on pre-existing files. Tests and new files are written with no claim. A surprise collision follows
    the player conflict order (retarget / overtake idle / pick another path).

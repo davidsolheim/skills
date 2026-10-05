@@ -20,17 +20,18 @@ via nested `/solve` after approve (unless `--pick-only`).
 ## Operating contract
 
 - **Highest-value mix**, not a related cluster, unless the user passed an area
-  filter. Rank = guidance bands (when a platform conflict exists) then Linear
-  **priority**, then **user-facing impact**. Identifier number is a tie-break.
+  filter. Rank = guidance bands (when a platform conflict exists) then file
+  frontmatter **`priority`** (`critical`, `high`, `normal`, `low`), then
+  **user-facing impact**. Identifier number is a tie-break.
   [`references/ranking.md`](references/ranking.md).
 - **Eligibility** = `$SOLVE_SKILL_DIR/references/eligibility.md` (2B / 2D / 2E).
   Expand epics; never recommend a parent shell. Do not invent a second
   blocked/claim policy.
 - **Thin S0** before rank: [`references/guidance.md`](references/guidance.md)
   (uses `/solve` batch-guidance vocabulary).
-- **Read-only on Linear** except: (1) **upgrade** bodies of the *proposed*
-  batch before the approve prompt, (2) **JIT claim** of the next id after
-  approve (not pick-only). No comments on ordinary skips.
+- **Upgrades edit the existing issue file.** Do not create a second issue.
+  JIT claim after approve is the player-skill ticket lease (not pick-only).
+  No tracker comments on ordinary skips. Do not call Linear.
 - **Upgrade before the approve prompt.** [`references/upgrade.md`](references/upgrade.md).
 - **First present = one batch.** Reply parsing (subset / drop / swap / theme)
   is [`references/replies.md`](references/replies.md).
@@ -42,7 +43,7 @@ via nested `/solve` after approve (unless `--pick-only`).
 ## Trigger phrases
 
 `/identify`, `identify work`, `pick a batch`, `what should we solve`,
-`recommend issues to solve`, `choose Linear tickets to work`,
+`recommend issues to solve`, `choose .wcp issues to work`,
 `what’s the best batch to solve`
 
 ## Invocation
@@ -100,10 +101,10 @@ Resolve companions (first hit):
 Set `ISSUE_SKILL_MD`, `ISSUE_SKILL_DIR`, `SOLVE_SKILL_MD`, `SOLVE_SKILL_DIR`.
 `ELIGIBILITY_MD` = `$SOLVE_SKILL_DIR/references/eligibility.md`.
 `BATCH_GUIDANCE_MD` = `$SOLVE_SKILL_DIR/references/batch-guidance.md`.
-`MULTIPLAYER_MD` = `$SOLVE_SKILL_DIR/references/multiplayer-linear.md`.
+`MULTIPLAYER_MD` = `$SOLVE_SKILL_DIR/references/multiplayer.md`.
 
 If **solve** is missing, stop after a recommendation — do not pretend `/solve`
-ran. If **issue** is missing, still recommend; skip Linear upgrades and mark
+ran. If **issue** is missing, still recommend; skip file upgrades and mark
 each thin ticket as not upgraded.
 
 ---
@@ -134,7 +135,8 @@ The board is `.wcp/issues/` in this checkout. Do not resolve a team or project. 
 
 1. Read `ELIGIBILITY_MD`. List `.wcp/issues/` files. Do not call Linear.
 2. Apply 2B, 2D, 2E on that union. Identify inventory is **read-only** (no
-   status writes). Read the issue file when a leaf enters rank or `PROPOSED`.
+   epic rollup writes). Read the issue files for 2D/2E needs and for tickets
+   that enter rank / `PROPOSED`.
 3. If `AREA_FILTER`: keep leaves whose title, labels, description, or code-map
    paths match (case-insensitive). If the filter matches nothing: **stop** and
    ask whether to re-run unfiltered. Do not silently drop the filter.
@@ -144,7 +146,7 @@ The board is `.wcp/issues/` in this checkout. Do not resolve a team or project. 
 If `PIN_ID` is set and that issue is ineligible: say why once; continue without
 it.
 
-If `ELIGIBLE` is empty: report team/project, rejected ids (if any), and why
+If `ELIGIBLE` is empty: report the queue path, rejected ids (if any), and why
 nothing is implementable. **Stop.** Do not invent work.
 
 ---
@@ -174,8 +176,8 @@ Follow [`references/ranking.md`](references/ranking.md):
 ## Phase 4 — Upgrade thin tickets in `PROPOSED`
 
 Follow [`references/upgrade.md`](references/upgrade.md). Status line first,
-then parallel research and a serial file write. Skip the rewrite when the
-tidy ledger is fresh and the body is still ready.
+then parallel research / serial save of the existing issue file. Tidy-stamp
+skip when fresh and still ready.
 
 If an upgrade cannot reach the bar: drop that id, pull the next ranked eligible
 leaf, upgrade that one. Repeat until the batch is ready or `ELIGIBLE` is
@@ -188,8 +190,8 @@ exhausted.
 Show **one** batch. Then **stop**. Do not claim. Do not start `/solve`.
 
 ```markdown
-**Identify:** [N] issues · [Team] / [Project] · run <RUN_ID>
-**Rank:** [guidance bands ·] Linear priority, then user-facing impact
+**Identify:** [N] issues · `.wcp/issues/` · run <RUN_ID>
+**Rank:** [guidance bands ·] file `priority`, then user-facing impact
 **Args:** MAX_N=[n] · pin=[id or none] · area=[filter or none] · pick-only=[yes/no] · fast=[ok/refused/off]
 
 ### Proposed
@@ -217,7 +219,7 @@ Then wait. Parse the reply with [`references/replies.md`](references/replies.md)
 
 On **whole-batch reject:** append every `PROPOSED` id to `REJECTED`, clear
 `PROPOSED` / this-round `UPGRADED` display list (file upgrades stay), re-run
-Phase 3–5 on `ELIGIBLE` minus `REJECTED`. Re-read those files if the queue
+Phase 3–5 on `ELIGIBLE` minus `REJECTED`. Re-read `.wcp/issues/` if the queue
 may have changed. Do not re-upgrade tickets already upgraded this session
 unless someone else edited them.
 
@@ -308,7 +310,7 @@ for ID in QUEUE:
     stop the queue
     release every later QUEUE id that this RUN_ID claimed and did not start
       (should be none under JIT)
-    current failed leaf stays In Progress (solve owns it)
+    current failed leaf stays `in-progress` (solve owns it)
     report what finished and what is still claimed
   else:
     continue to the next ID
@@ -322,7 +324,7 @@ this `RUN_ID` claimed that is **not** solved and **not** the in-flight failure:
 1. If this run still holds the file and the lease is live, set `status: open`, clear `assignee` and `lease_expires`, and move it to `open/`.
 2. Set the Notion row to `open`.
 
-Do not release a leaf the nested solve already moved to In Review / completed.
+Do not release a leaf the nested solve already moved to `in-review` / `done`.
 
 ### 7E. User reply after the queue
 
@@ -342,21 +344,23 @@ Omit empty rows.
 
 ---
 
-## Queue hygiene
+## Issue-file hygiene
 
-Do not call Linear.
+YES means edit the existing issue file and set the Notion status to match
+([`../docs/notion-issues.md`](../docs/notion-issues.md)). Claim is the
+player-skill ticket lease. Do not call Linear.
 
-| Moment | Write? |
-|--------|--------|
+| Moment | File / Notion write? |
+|--------|----------------|
 | Inventory / skip / thin S0 | No |
-| Upgrade thin proposed ticket | **Yes** — issue file body (title only if vague), then Notion |
+| Upgrade thin proposed ticket | **Yes** — body (and title only if vague) |
 | Present batch | No |
 | Reject | No |
 | Approve pick-only | No |
-| Approve + solve | Sequential: **Yes** — ticket lease on the **next** id only, then Notion `in-progress`. Parallel pin: nested `/solve` owns claims |
-| Nested `/solve` | Solve owns the file move on that leaf. Notion `done` stays with `/prb` or `/yeet` |
-| Queue stop (unstarted claims) | **Yes** — return the file to `open/` and set Notion `open` |
-| Parent shell | No claim |
+| Approve + solve | Sequential: **Yes** — JIT lease (`assignee`, `in-progress`, `lease_expires`) on the **next** id only; Notion `in-progress`. Parallel pin: nested `/solve` owns claims |
+| Nested `/solve` | Solve owns start-plan/closeout on that leaf |
+| Queue stop (unstarted claims) | **Yes** — clear lease, move to `open/`, Notion `open` |
+| Parent epic | No claim; solve may note expansion on the file |
 
 ---
 
@@ -366,7 +370,7 @@ Do not call Linear.
 |-------|------|
 | `/identify` | Human-approved **batch picker** + JIT claim + start `/solve` |
 | `/stat` | Read-only full open board, urgent → least; does not pick or claim |
-| `/issue` | Team/project resolution + execution-ready bar (upgrade target) |
+| `/issue` | Execution-ready bar (upgrade target) |
 | `/solve` | Eligibility file, claim format, cheap construction, merge local `dev` |
 | `/tidy` | Whole-board hygiene + `tidy-pass:` stamp Identify may skip on |
 | `/project-review` | Creates the queue Identify reads (whole-project review) |
@@ -397,10 +401,10 @@ Do not call Linear.
 - Recommending an epic/parent shell
 - Claiming the whole batch before the first `/solve`
 - Nested `/solve 1` per id on an overlap-free queue of 2+ (use one parallel pin)
-- Leaving unsolved queue ids In Progress after a stop
+- Leaving unsolved queue ids `in-progress` after a stop
 - Claiming or commenting on issues that were only scanned
 - Showing the approve prompt before upgrading thin members
-- Creating new Linear issues instead of updating thin ones
+- Creating a second issue file instead of updating thin ones
 - Marking Done from Identify
 - Pushing or opening PRs (unless the user asked; `/solve` still defaults local)
 - Inventing a second blocked/claim policy instead of `eligibility.md`
@@ -408,8 +412,8 @@ Do not call Linear.
 - Loading the entire `/solve` skill just to apply 2B–2E (read `eligibility.md`)
 - Treating `claimed-by: identify` as foreign when `run` matches `RUN_ID`
 - Nested `/solve` or upgrade workers without `model: grok-4.6` / `grok-4.5` ([`../docs/grok-models.md`](../docs/grok-models.md))
-- Posting a claim/release comment without `list_comments` first
-- `list_issues` for team/project with no `state` (dumps Done; truncates)
+- Posting a tracker comment for claim or release (the lease is the file)
+- Dumping `done/` and `canceled/` as if they were the open queue
 
 ## Red flags — stop
 

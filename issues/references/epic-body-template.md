@@ -33,6 +33,6 @@ not implement the shell. All execution depth lives on **child** tickets
 
 ## Notes
 
-- Filed unassigned in Backlog/Todo for `/solve`.
+- Filed unassigned in `open/` for `/solve`.
 - Batch plan title: <…>
 ```

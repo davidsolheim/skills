@@ -12,7 +12,7 @@ Do **not** patch the first-run file in place and leave the marker. Overwrite
 
 ## VISION.md (create)
 
-This file is the V1 scope lock. Nested `/solve` and Linear leaves obey it.
+This file is the V1 scope lock. Nested `/solve` and the Notion queue obey it.
 Filename is **`VISION.md`** (not `vision.md`). On existing repos, rename
 lowercase `vision.md` if that is the only copy.
 
@@ -60,11 +60,11 @@ Next.js 16 App Router, Better Auth, Neon + Drizzle **migrations only**, Doppler,
 Resend, Tailwind 4, shadcn/ui, starter CMS + media library. Mutations = Route
 Handlers + Zod, not Server Actions.
 
-## Linear
+## Notion
 
-- Team: <name> (`PREFIX`)
-- Project: <name>   <!-- fill URL after Phase 4 -->
-- Identifiers: `<PREFIX>-*`
+- Project page: <url or pending>
+- Issues database: `<slug>` — description is the origin URL; pending until that database exists
+- Do not create Linear issues. Do not write `.linear-project`.
 
 ## Success
 
@@ -79,13 +79,13 @@ Handlers + Zod, not Server Actions.
   stack task (`add Postgres`).
 - Always imply product identity (name, metadata, home, footer) if not listed.
 
-If Linear is not created this run, still fill Team from Phase 1; Project may
-say `pending`.
+If the Notion issues database is not created this run, Project page and
+Issues database may say `pending`.
 
 ## AGENTS.md (overwrite)
 
 Use the **Onboarded AGENTS.md** block from the first-run file (filled).
-Must not contain `first-run: starter-onboard`. Must include Linear, Product,
+Must not contain `first-run: starter-onboard`. Must include Notion, Product,
 Secrets (`<slug>` / `development`), Database, Auth, Conventions, and:
 
 ```markdown
@@ -105,11 +105,11 @@ This checkout may have many coding agents on one local `dev` working tree.
 ## README.md (rewrite)
 
 Not a clone of the template README. Shape like a product README
-(example-product / acme-app):
+(thesingularityreport-com / cblacklist-com):
 
 1. `# <Product name>`
 2. One-paragraph job + URL if known
-3. Credit: bootstrapped from [next-starter-template](https://github.com/davidsolheim/next-starter-template) (**MIT** © David Solheim), content-only / no starter git history
+3. Credit: bootstrapped from [next-starter-template](https://github.com/teton-web/next-starter-template) (**MIT** © Teton Web Ventures LLC), content-only / no starter git history
 4. Stack bullets (current starter facts: Next 16, Drizzle/Neon, Better Auth, Resend, Tailwind 4, shadcn, CMS, media, site gate)
 5. Getting started: **this** slug (`git clone` this repo, `doppler setup --project <slug>`)
 6. Auth / structure / scripts — keep useful starter sections, retarget names
@@ -117,15 +117,10 @@ Not a clone of the template README. Shape like a product README
 
 Installation commands must not say `cd next-starter-template`.
 
-## .linear-project
+## Do not write `.linear-project`
 
-Single line, no extra markup:
-
-```text
-<Linear project name>
-```
-
-Same string used in `save_project` `name` (or the name you will use in Phase 4).
+Do not create that file. Do not call Linear. If a leftover `.linear-project`
+exists, leave it on disk and do not treat it as the tracker.
 
 ## Commit
 

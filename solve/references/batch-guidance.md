@@ -33,9 +33,9 @@ Lowest-issue-number order is wrong when:
 | `/solve N` (`N ≥ 2`) | **Yes**, before first claim |
 | `/solve all` | **Yes**, before first claim |
 | `/solve` with `SCOPE` (implicit `all`) | **Yes**, on the in-scope leaf set only |
-| `/solve today` / any `SHARED_DEV` (default parallel) | **Yes**, on the in-scope leaf set only. File overlap is **WCP occupancy** (next wave), not Linear `blockedBy` |
+| `/solve today` / any `SHARED_DEV` (default parallel) | **Yes**, on the in-scope leaf set only. File overlap is **WCP occupancy** (next wave), not a `blocked/` relation |
 | Any parallel run (`N ≥ 2` / `all` / scoped, unless `seq`) | **Yes** (F1 inventory + this analysis before workers) |
-| `/identify` | **Thin** subset only — tag, skip full-obsolete, promote migrations when a conflict exists. No scratch files. No Linear writes. See identify `references/guidance.md`. |
+| `/identify` | **Thin** subset only — tag, skip full-obsolete, promote migrations when a conflict exists. No scratch files. Do not call Linear. See identify `references/guidance.md`. |
 
 If S0 is not required, sequential mode may keep pure lowest-number selection.
 
@@ -73,7 +73,7 @@ Fast mode may use the same dir naming (`solve-batch-*` or `solve-fast-*`) but **
 
 ## Step A — Inventory
 
-1. Linear inventory fetch in [`eligibility.md`](eligibility.md) (team + project + state per actionable status; slim fields; page each state).
+1. Inventory in [`eligibility.md`](eligibility.md). Do not call Linear.
 2. If `SCOPE` is set, keep `issue_in_scope` only ([`eligibility.md`](eligibility.md) Scope filter).
 3. Apply eligibility (Phase 2B), blocked (2D), epic expansion (2E) → **leaf** set.
 4. Optionally sample **recent Done** issues that share keywords/paths with open leaves (override context only).
@@ -82,7 +82,7 @@ Fast mode may use the same dir naming (`solve-batch-*` or `solve-fast-*`) but **
    - Deferred/superseded plan docs under `docs/plans/`
    - Package layout (`apps/`, `packages/`) for actual runtime
 
-Record for each leaf: id, title, url, state, assignee, parent epic, blockedBy, relatedTo, body excerpt, primary_paths (from code map / inference).
+Record for each leaf: id, title, path, status, assignee, `reason` (hard deps), body excerpt, primary_paths (from code map / inference), `priority`.
 
 ---
 
@@ -149,7 +149,7 @@ Outputs:
 
 | Situation | Action |
 |-----------|--------|
-| Open ticket **fully** targets abandoned platform; no remaining product value beyond that stack | `skip` + Linear comment; prefer **Canceled** or **Duplicate** of superseder when high confidence |
+| Open ticket **fully** targets abandoned platform; no remaining product value beyond that stack | `skip`; cancel the file with `reason` when high confidence |
 | Open feature targets abandoned platform but outcome still needed | `rescope` to canonical platform; rewrite AC in guidance/implement prompt |
 | Open **migration** / foundation toward canonical | `promote` early in `order_rank` |
 | Matches canonical; no conflict | `normal` |
@@ -165,7 +165,7 @@ Never implement abandoned-platform work **before** the open migration that estab
 Assign `order_rank` (1 = first):
 
 ```text
-1. Linear hard blockedBy unlockers (deps already modeled)
+1. Hard-dep unlockers (`blocked/` with `reason: blocked by <id>`; deps already modeled)
 2. Architecture migrations / platform foundations for canonical direction
 3. Re-scoped features that previously depended on abandoned stack
 4. Independent features/docs (tie-break: lowest issue number)
@@ -207,7 +207,7 @@ Skip: TEAM-67 (full supersede / abandoned platform)
 After each successful merge to local `dev` (sequential leaf or parallel wave)
 or shared-dev combined commit:
 
-1. Re-list Linear for newly eligible leaves.
+1. Re-read `.wcp/issues/` for newly eligible leaves.
 2. If new leaves add platform conflicts or supersession edges, **patch** guidance + re-rank **remaining** only.
 3. Do not reorder already merged/solved work.
 4. If `SELECTION_PIN` is set, do not append ids outside the pin ([`eligibility.md`](eligibility.md)).
@@ -215,14 +215,16 @@ or shared-dev combined commit:
 
 ---
 
-## Linear policy (skips and rescopes)
+## File policy (skips and rescopes)
 
-| Event | Comment? | State change |
-|-------|----------|--------------|
-| Skip full-obsolete open ticket | **Yes** (superseded by …; batch guidance) | Prefer Canceled or Duplicate when high confidence; else leave open and skip implement |
-| Rescope open ticket | **Yes** (re-scoped to canonical platform) | Leave actionable; implement re-scoped AC |
-| Mere “not next in order” | **No** | Unchanged |
-| Ambiguous direction stop | **No** mass cancels | Unchanged |
+| Event | File write | Status |
+|-------|----------|--------|
+| Skip full-obsolete open ticket | `reason` names the superseder | Cancel when high confidence; else leave `open` and skip implement |
+| Rescope open ticket | Re-scoped AC in guidance | Leave `open`; implement re-scoped AC |
+| Mere “not next in order” | None | Unchanged |
+| Ambiguous direction stop | None | Unchanged |
+
+Do not call Linear.
 
 ---
 

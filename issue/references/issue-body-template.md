@@ -1,4 +1,4 @@
-# Issue body template
+# Issue body
 
 Canonical body for `/issue`, `/issues`, `/start` V1 leaves, `/project-review`, and `/walk` leaves. Do not
 fork this file. Skill-specific extras:
@@ -11,7 +11,7 @@ fork this file. Skill-specific extras:
   [`../../walk/references/walk-metadata.md`](../../walk/references/walk-metadata.md); User report = live UI observation
 - `/issue` — omit Batch metadata, Review metadata, and Walk metadata
 
-Write this body into the `.wcp/issues/` file ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Use **literal markdown newlines**
+Write this body in the issue file under `.wcp/issues/`. Use **literal markdown newlines**
 (not `\n` escape sequences). Omit a section only if truly N/A — and write why
 (e.g. `- N/A: no data model change`).
 

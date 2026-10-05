@@ -8,13 +8,13 @@ Authority for the quality bar is the **`/issue` skill**, not this file:
 1. Read `$ISSUE_SKILL_MD` (draft / quality / create-gate sections).
 2. Read `$ISSUE_SKILL_DIR/references/` templates if present
    (`issue-body-template.md`, `execution-ready-bar.md`).
-3. Rewrite the **existing** `.wcp/issues/` file. **Do not create** a second file. After the file write, upsert Notion ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)).
+3. Write the **existing** issue file. **Do not create** a second issue.
 
 ---
 
 ## Progress (required)
 
-Before file writes, show a short status (todo or one message), **not** the
+Before writing the issue file, show a short status (todo or one message), **not** the
 approve prompt:
 
 ```text
@@ -36,10 +36,7 @@ Treat as **ready** (no file rewrite) when the body already has all of:
 - An ordered plan or file-by-file change list
 - Occupancy (WCP) primary write path, or explicit N/A for docs-only
 
-Missing `## Intensity` or Occupancy (WCP) alone does **not** make a ticket
-thin. When you **do** rewrite a thin ticket, stamp `## Intensity` per
-[`../../docs/intensity.md`](../../docs/intensity.md) and fill Occupancy (WCP)
-from the `/issue` template ([`../../docs/wcp.md`](../../docs/wcp.md)).
+Missing `## Intensity` alone does **not** make a ticket thin. When you **do** rewrite a thin ticket, stamp `## Intensity` per [`../../docs/intensity.md`](../../docs/intensity.md).
 
 Treat as **thin** if any of those are missing, or the body is product prose
 without paths/symbols.
@@ -48,14 +45,15 @@ without paths/symbols.
 
 ## Tidy-stamp skip
 
-If the local tidy ledger `last_pass` is fresh (**< 7 days**, parse
+If `/tidy`’s `tidy-pass:` line in the issue file is fresh (**< 7 days**, parse
 `$IDENTIFY_SKILL_DIR/../tidy/references/ledger.md` or
 `$HOME/.grok/skills/tidy/references/ledger.md`) **and** the ready checks still
 pass: **do not rewrite**. Mark **Ready:** `already ready (tidy)`.
 
-If the ledger date is fresh but the body still fails ready checks: upgrade anyway.
+If the stamp is fresh but the body still fails ready checks: upgrade anyway.
 
-The ledger is the cooldown. Do not call Linear.
+Do not require the local tidy ledger. If both the file stamp and the local
+ledger exist, the later date wins.
 
 ---
 
@@ -68,17 +66,19 @@ For each **thin** id in `PROPOSED`:
    ([`../../docs/grok-models.md`](../../docs/grok-models.md)). Do not inherit.
    Read-only on app code. Prompt: `/issue` Phase 3 investigation + draft a full
    `/issue`-bar body for this existing id. Return title + markdown body +
-   whether create-gate passes. No file writes from the worker.
-2. Orchestrator **owns** the file write, then the Notion upsert. Fail-closed: if the gate fails, do **not**
+   whether create-gate passes. No issue-file writes from the worker. Do not
+   call Linear.
+2. Orchestrator **owns** the issue-file save. Fail-closed: if the gate fails, do **not**
    leave a half-rewritten body; drop from `PROPOSED` and pull the next ranked
-   eligible leaf (then upgrade that one).
+   eligible leaf (then upgrade that one). Then set Notion to match the file
+   ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)).
 
 Ready / tidy-fresh tickets skip spawn.
 
-Keep the original title unless it is vague (“Fix bug”); then retitle the file and the Notion Name.
-Keep `priority` unless the ticket is critical or high in name only and the
-body is clearly Low chore — do not silently demote user-facing P1/P2.
-Preserve project, parent, labels unless a label is objectively wrong.
+Keep the original title unless it is vague (“Fix bug”); then retitle the file.
+Keep frontmatter **`priority`** unless the ticket is `critical`/`high` in name
+only and the body is clearly a `low` chore — do not silently demote user-facing
+P1/P2. Preserve parent, labels unless a label is objectively wrong.
 
 Record upgraded ids in `UPGRADED`.
 

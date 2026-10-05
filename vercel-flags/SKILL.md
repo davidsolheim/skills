@@ -47,7 +47,7 @@ SDK with `@flags-sdk/vercel`, Flags Explorer, and `vercel flags`.
   and skill `water-cooler-protocol`. Name yourself, lease pre-existing files for the
   edit burst, release before tests. Do not commit and do not stash while a source-file lease is live. `wcp look` before the session commit or push.
   `unset WCP_AGENT WCP_NAME_TOKEN` immediately before `git push`. Commit `.wcp/issues/`. Do not commit `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
-- **Queue:** file follow-up work under `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear.
+- **Queue**: eng work tracks in this repo’s Notion issues database and `.wcp/issues/` via `/issue`.
 - **Eval model**: prefer **server-side** evaluation (RSC / Route Handlers).
   Flags are **not** authorization — never use a flag alone as an authz gate.
 
@@ -217,5 +217,5 @@ requested that specific production change.
 2. Confirm `vercel link`, `vercel env pull`, and adapter package versions.
 3. `vercel flags inspect <flag>` and Explorer discovery route.
 4. Check identify payload matches rule entity attributes (`user.plan`, etc.).
-5. Ask the user before any production change. File follow-up work under `.wcp/issues/`.
+5. Ask the user before any production change; file via `/issue` into this repo’s Notion issues database and `.wcp/issues/`.
 

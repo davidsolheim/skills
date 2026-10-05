@@ -10,7 +10,7 @@ Read this file in Phase 2 (existing). Repair in Phase 3.
 | Class | Meaning | Action |
 |-------|---------|--------|
 | **Bone** | Starter framework/layout that V1 assumes | Missing → **stop**. Do not convert a different stack. |
-| **Doc / identity** | AGENTS, VISION, README, Linear binding, Doppler slug | Wrong or missing → **repair** (onboard). |
+| **Doc / identity** | AGENTS, VISION, README, Notion home, Doppler slug | Wrong or missing → **repair** (onboard). |
 | **Git** | `main` + lowercase `dev` | Missing `dev` → create from `main`. Do not invent a second remote. |
 
 Report every check as `pass` / `repair` / `fail` before writing.
@@ -62,13 +62,12 @@ Infer product name from README `#` heading or VISION title.
 |-------|-----------|--------|
 | `AGENTS.md` exists | file present | Restore onboarded shape from template AGENTS **Onboarded** block (need answers) |
 | No first-run marker | no `<!-- first-run: starter-onboard -->` | Run first-run onboard (questions + overwrite) |
-| AGENTS Linear | `## Linear` with team + project | Add from answers / `.linear-project` |
+| AGENTS Notion | `## Notion` with project page or issues database. No `## Linear` section. | Add from answers. Replace a leftover Linear section. |
 | AGENTS Secrets | Doppler project is **this** slug, not `next-starter-template` | Retarget |
 | AGENTS Database / Auth / Conventions | migrations-only, `/login`, no `db:push`, `dev` branch | Fill from platform section |
-| AGENTS WCP | `## Water Cooler Protocol` (skill, `wcp init`, no agent push) | Add from onboard-docs |
 | `VISION.md` (not `vision.md`) | exists; **Intent** + **V1 Must ship** (3–8 outcomes) | Create/upgrade via onboard-docs; rename lowercase `vision.md` → `VISION.md` |
 | `README.md` | product title + job; install uses **this** slug; no `cd next-starter-template` as *this* repo | Rewrite product README |
-| `.linear-project` | one line, product Linear name | Write it |
+| `.linear-project` | absent, or present and ignored | Do not create it. Do not treat it as the tracker. |
 | `package.json` `name` | equals slug, not `next-starter-template` | Retarget |
 | `doppler.yaml` `setup.project` | equals slug, not `next-starter-template` | Retarget |
 | `doppler:setup` script | `--project <slug>` | Retarget |
@@ -98,13 +97,14 @@ Do not force-push. Do not delete branches.
 
 ---
 
-## Linear (existing)
+## Notion (existing)
 
-If `.linear-project` / AGENTS names a project that `list_projects` finds on
-the team → **reuse**. Do not `save_project` a duplicate.
+Find the issues database whose description is the normalized origin URL
+([`../../docs/notion-issues.md`](../../docs/notion-issues.md)). Reuse it.
+Do not create a second database for the same URL. Do not call Linear.
 
-If a `V1 – <Product>` epic already exists on that project → reuse; only file
-**missing** V1 leaves (duplicate scan). Do not file a second epic.
+If V1 leaves already exist under `.wcp/issues/`, file only the missing
+outcomes. Do not file a second copy of the same leaf.
 
 ---
 

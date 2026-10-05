@@ -26,7 +26,7 @@ This is **internal** (optional to show the user). It drives what you look for, n
 
 1. **In-repo product specs** — `docs/prd.md`, SOW, `docs/product/`, design specs, Figma links in README
 2. **AGENTS.md / CLAUDE.md / README** — product description, non-goals, stack constraints
-3. **Linear history** — open epics/features + recent Done (what the team already believed mattered)
+3. **Queue history** — open files + recent `done/` (what the team already believed mattered)
 4. **Code as product truth** — nav labels, route titles, marketing site copy, onboarding steps
 5. **User bias this turn** — “focus on onboarding”, Loom notes, pasted feedback (bias, not sole source)
 6. **Domain defaults** — only when 1–5 are thin (e.g. SaaS apps usually need auth, empty states, settings)
@@ -43,7 +43,7 @@ Never invent a large product roadmap that the repo never implied.
 - Note explicit non-goals (do not ticket those as missing)
 - Capture acceptance language if already written (can seed Expected behavior later)
 
-### Linear
+### `.wcp/issues/`
 
 - Open feature tickets ≈ intended but unfinished
 - Open bugs ≈ known current failures (relate/dedup later; do not blindly re-file)
@@ -66,7 +66,7 @@ Taste tickets should **match these**, not invent a new design system.
 
 | Level | When | Behavior |
 |-------|------|----------|
-| **High** | Clear PRD/nav + active Linear project | Discover aggressively against stated intent |
+| **High** | Clear PRD/nav + active queue | Discover aggressively against stated intent |
 | **Medium** | Partial docs; strong code structure | Discover from code + nav; mark Assumptions on tickets |
 | **Low** | Greenfield / almost no docs | Completeness tickets only for obvious half-built paths; prioritize functional/UI bugs over inventing features |
 
@@ -104,7 +104,7 @@ Otherwise state Assumptions on issues and proceed. Prefer agentic progress over 
 ## Anti-patterns
 
 - Waiting for the user to enumerate features before starting
-- Treating every open Linear ticket as a finding to re-create
+- Treating every open queue ticket as a finding to re-create
 - Inventing enterprise features for a thin MVP without evidence
 - Ignoring explicit non-goals in README/PRD
 - Using marketing hype as literal AC without code pin

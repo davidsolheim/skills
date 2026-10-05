@@ -127,7 +127,7 @@ These skills are intentionally portable, but they were shaped around the stacks 
 - **Cheap construction** under `/solve` (one `solve-implementer`; optional bug-only inner review on heavy/critical). Standalone `/implement` is separate.
 - **Browser / preview URL** optional for `/project-review`; **required** for `/walk` (agent-browser, Chrome DevTools, etc.).
 - **Production migrations** discovered per repo at ship time (`/prb`, `/yeet`)—never invent a stack, never `db:push` to prod by default.
-- **Local code review gate** on `/prb` before push: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), findings in scratch markdown, one `prb-fixer` on local `dev`, one Linear gate comment. `/solve` does **not** run a review swarm.
+- **Local code review gate** on `/prb` before push: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), findings in scratch markdown, one `prb-fixer` on local `dev`. The scratch report is the gate record. `/solve` does **not** run a review swarm.
 
 ### Platform supersession (multi-ticket runs)
 
@@ -137,64 +137,64 @@ These skills are intentionally portable, but they were shaped around the stacks 
 
 ## Skill catalog
 
-### `/start` — scaffold or validate, onboard, Linear V1, build on local `dev`
+### `/start` — scaffold or validate, onboard, file V1, build on local `dev`
 
 **Path:** [`start/`](./start/)
 
-Greenfield: clone **[next-starter-template](https://github.com/davidsolheim/next-starter-template)** into a fresh tree (no template git history), onboard `AGENTS.md` / `VISION.md` / `README.md`, create a Linear project + V1 epic, then nested `/solve all` on local `dev`. Existing dest: **do not overlay the template** — validate starter bones, repair docs/identity, reuse the bound Linear project if present.
+Greenfield: clone **[next-starter-template](https://github.com/davidsolheim/next-starter-template)** into a fresh tree (no template git history), onboard `AGENTS.md` / `VISION.md` / `README.md`, file V1 leaves in `.wcp/issues/`, then nested `/solve all` on local `dev`. Existing dest: **do not overlay the template** — validate starter bones, repair docs/identity, and reuse the Notion issues database whose description is the origin URL.
 
 | Flag | Behavior |
 |------|----------|
 | `--slug SLUG` | Repo / Doppler / package name |
 | `--dir PATH` | Destination (default `$HOME/src/<slug>`) |
-| `--team TEAM` | Linear team (else dest docs / `list_teams`) |
-| `--docs-only` | Scaffold or repair docs; no Linear, no build |
-| `--no-linear` | Skip Linear; still build from `VISION.md` V1 |
-| `--no-build` | Stop after docs (+ Linear unless disabled) |
-| `--draft` | Print project + leaf bodies; do not create Linear; do not build |
+| `--team TEAM` | Ignored. It does not pick a Notion database. |
+| `--docs-only` | Scaffold or repair docs; no queue files, no build |
+| `--no-notion` / `--no-linear` | Skip the Notion upsert; still build from `VISION.md` V1 |
+| `--no-build` | Stop after docs |
+| `--draft` | Print leaf bodies; do not write issue files; do not build |
 | `fast` / `--fast` | Nested `/solve all fast` for V1 |
 
 **Triggers:** `/start`, “bootstrap a new project”, “spin up a new Next app”, “validate this starter repo”…
 
-**Needs:** git · companion `/issue` `/issues` `/solve` · Linear MCP unless `--docs-only` / `--no-linear` / `--draft` · optional `gh` + Doppler
+**Needs:** git · companion `/issue` `/issues` `/solve` · Notion for the issues database unless `--docs-only` / `--no-notion` / `--draft` · optional `gh` + Doppler
 
-**Companion refs:** [`start/references/scaffold.md`](./start/references/scaffold.md), [`start/references/existing-repo.md`](./start/references/existing-repo.md), [`start/references/onboard-docs.md`](./start/references/onboard-docs.md), [`start/references/linear-v1.md`](./start/references/linear-v1.md)
+**Companion refs:** [`start/references/scaffold.md`](./start/references/scaffold.md), [`start/references/existing-repo.md`](./start/references/existing-repo.md), [`start/references/onboard-docs.md`](./start/references/onboard-docs.md), [`start/references/v1-queue.md`](./start/references/v1-queue.md)
 
 Default dest is **local only**. No GitHub remote, push, or production deploy unless you ask. Nested solve pins **this product’s** V1 leaves — it does not drain some other board.
 
 ---
 
-### `/project-review` — agentic discovery → solve-ready Linear queue
+### `/project-review` — agentic discovery → solve-ready queue
 
 **Path:** [`project-review/`](./project-review/)
 
-The agent **invents** findings (completeness, bugs, UI consistency, taste→concrete AC, a11y, edge cases, cross-feature consistency)—no human laundry list required. Files atomic **solve-ready** leaves (optional epic) that `/solve` can claim. Discovery and Linear publish only; never implements or ships.
+The agent **invents** findings (completeness, bugs, UI consistency, taste→concrete AC, a11y, edge cases, cross-feature consistency)—no human laundry list required. Files atomic **solve-ready** `.wcp/issues/` leaves that `/solve` can claim, then upserts Notion. Never implements or ships.
 
 | Mode | Behavior |
 |------|----------|
 | **`fast`** | High-signal single-agent pass; prefer P0/P1 on primary journeys |
-| **`deep`** (default) | Exhaustive multi-agent inventory + workers → local `issue-candidates/` → one Linear publish |
+| **`deep`** (default) | Exhaustive multi-agent inventory + workers → local `issue-candidates/` → one `.wcp/issues/` and Notion publish |
 
 **Useful flags:** `--draft`, `--file`, `--p0-p1-only`, `--include-p2`, `--no-epic`, `--concurrency N`, `--scope-only`, `--url URL`, surface paths
 
 **Triggers:** `/project-review`, “review this project”, “quality pass”, “bug hunt”, “find issues for solve”…
 
-**Needs:** Linear MCP (unless `--draft`) · git workspace · optional live app URL · optional browser tools
+**Needs:** git workspace · Notion when filing (unless `--draft`) · optional live app URL · optional browser tools
 
 A **live click-through of every front-facing screen** is **`/walk`**, not this skill.
 
 ---
 
-### `/walk` — live front-facing UI walk → Linear queue
+### `/walk` — live front-facing UI walk → `.wcp/issues/` and Notion
 
 **Path:** [`walk/`](./walk/)
 
-The agent **drives the live app** like a user: every front-facing route, click/type/submit, console and network debug, desktop + mobile on primary journeys. Files **every** actionable **bug, idea, and improvement** as atomic solve-ready Linear leaves (optional epic). Discovery and Linear publish only; never implements or ships. Browser tools are **required** — a code-only skim is a failed walk.
+The agent **drives the live app** like a user: every front-facing route, click/type/submit, console and network debug, desktop + mobile on primary journeys. Files **every** actionable **bug, idea, and improvement** as atomic solve-ready `.wcp/issues/` leaves, then Notion. Never implements or ships. Browser tools are **required** — a code-only skim is a failed walk.
 
 | Flag | Behavior |
 |------|----------|
 | `--url URL` | Preview / live origin to drive |
-| `--draft` | Local candidates only; do not create Linear issues |
+| `--draft` | Local candidates only; do not write issue files |
 | `--signed-out` / `--signed-in` | Auth scope (default: both when login is possible) |
 | `--no-epic` | Flat leaves |
 | `--desktop-only` / `--mobile-only` | Skip the other viewport sample |
@@ -202,7 +202,7 @@ The agent **drives the live app** like a user: every front-facing route, click/t
 
 **Triggers:** `/walk`, “walk the UI”, “click through the app”, “walk every screen”, “front-facing UI audit”…
 
-**Needs:** Linear MCP (unless `--draft`) · git workspace · reachable live/local app · a browser driver that can click and read console
+**Needs:** git workspace · Notion when filing (unless `--draft`) · reachable live/local app · a browser driver that can click and read console
 
 **Companion refs:** [`walk/references/walk-protocol.md`](./walk/references/walk-protocol.md), [`walk/references/finding-kinds.md`](./walk/references/finding-kinds.md)
 
@@ -212,11 +212,11 @@ The agent **drives the live app** like a user: every front-facing route, click/t
 
 **Path:** [`issue/`](./issue/)
 
-Rapid-fire intake. One short human description → deep, read-only codebase investigation → one **implementation-ready** Linear issue (code map, acceptance criteria, verification, drift anchors). Does **not** implement or open PRs.
+Rapid-fire intake. One short human description → deep, read-only codebase investigation → one **implementation-ready** `.wcp/issues/` file (code map, acceptance criteria, verification, drift anchors). Does **not** implement or open PRs.
 
 **Triggers:** `/issue`, “file this bug”, “log this issue”, “ticket this”…
 
-**Needs:** Linear MCP · current git workspace · optional `.linear-project` / `AGENTS.md`
+**Needs:** current git workspace · Notion after the file write · `AGENTS.md`
 
 ---
 
@@ -224,7 +224,7 @@ Rapid-fire intake. One short human description → deep, read-only codebase inve
 
 **Path:** [`issues/`](./issues/)
 
-Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic **solve-ready** leaves, optional epic / `blockedBy` / `relatedTo`. Same quality bar as `/issue`. Prefer `/project-review` or `/walk` when the agent must invent the finding list.
+Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic **solve-ready** leaves. A hard dependency is `blocked/` plus `reason: blocked by <id>`. Same quality bar as `/issue`. Prefer `/project-review` or `/walk` when the agent must invent the finding list.
 
 **Useful flags:** `--draft`, `--plan-only`, `--no-epic`, `--epic "Title"`, `--max N`
 
@@ -232,7 +232,7 @@ Bulk intake for brain dumps and residual backlogs. Shared investigation, atomic 
 
 ---
 
-### `/tidy` — Linear board hygiene (weekly cooldown)
+### `/tidy` — queue hygiene (weekly cooldown)
 
 **Path:** [`tidy/`](./tidy/)
 
@@ -244,11 +244,11 @@ Full pass on the current project’s **due** issues. Thickens thin tickets to th
 | `/tidy --force` | Ignore cooldown for the whole board |
 | `/tidy TEAM-123` | That issue only; ignore its cooldown |
 
-Last pass is a parseable Linear `tidy-pass:` comment plus a machine-local ledger under `~/.grok/tidy/ledgers/`. Does **not** implement or claim.
+Last pass is a `tidy-pass:` line in the issue file plus a machine-local ledger under `~/.grok/tidy/ledgers/`. Does **not** implement or claim.
 
-**Triggers:** `/tidy`, “tidy Linear”, “clean up the board”, “thicken thin tickets”, “close issues that are already done”
+**Triggers:** `/tidy`, “tidy the queue”, “clean up the board”, “thicken thin tickets”, “close issues that are already done”
 
-**Needs:** Linear MCP · current git workspace · companion `/issue` (quality bar)
+**Needs:** current git workspace · companion `/issue` (quality bar)
 
 **Companion refs:** [`tidy/references/ledger.md`](./tidy/references/ledger.md), [`tidy/references/actions.md`](./tidy/references/actions.md)
 
@@ -258,7 +258,7 @@ Last pass is a parseable Linear `tidy-pass:` comment plus a machine-local ledger
 
 **Path:** [`stat/`](./stat/)
 
-Lists **every issue that still needs resolution** on this repo’s Linear project, sorted **most urgent → least**. Includes blocked, claimed, In Progress, In Review, and epic shells. Does **not** implement, claim, tidy, upgrade, or start `/solve` / `/identify`.
+Lists **every issue that still needs resolution** in this repo’s `.wcp/issues/` queue, sorted **most urgent → least**. Includes `blocked` and `in-progress`. Does **not** implement, claim, tidy, upgrade, or start `/solve` / `/identify`.
 
 | Invocation | Behavior |
 |------------|----------|
@@ -268,7 +268,7 @@ Lists **every issue that still needs resolution** on this repo’s Linear projec
 
 **Triggers:** `/stat`, “board status”, “what's open”, “what's left to solve”
 
-**Needs:** Linear MCP · current git workspace · companion `/issue` (team/project) and `/identify` ranking keys
+**Needs:** current git workspace · companion `/identify` ranking keys
 
 Do **not** use for session `/status` (auth/model/context) or for picking a solve batch (`/identify`).
 
@@ -278,24 +278,24 @@ Do **not** use for session `/status` (auth/model/context) or for picking a solve
 
 **Path:** [`identify/`](./identify/)
 
-Reads the current project’s **open** Linear board, keeps only `/solve`-eligible unblocked **leaves**, ranks by **Linear priority then user-facing impact**, and proposes a **small mix** (2–4). Thin tickets in that set are rewritten in Linear to the `/issue` bar **before** you see them. The skill **stops and waits**.
+Reads `.wcp/issues/open/`, keeps only `/solve`-eligible unblocked **leaves**, ranks by file `priority` then user-facing impact, and proposes a **small mix** (2–4). Thin tickets in that set are rewritten in the issue file to the `/issue` bar **before** you see them. The skill **stops and waits**.
 
 | You say | What happens |
 |---------|----------------|
-| **Approve** | Claim each id (`claimed-by:` + In Progress), then sequential `/solve 1 <ID>` in the proposed order |
+| **Approve** | Lease each id on the issue file, then sequential `/solve 1 <ID>` in the proposed order |
 | **Reject** | Those ids are excluded for the session; next-best 2–4 is proposed |
 
 Plain `/identify` only — no size, theme, or id args. `/solve` still works without Identify when you want auto-pick.
 
 **Triggers:** `/identify`, “identify work”, “pick a batch”, “what should we solve”, “recommend issues to solve”
 
-**Needs:** Linear MCP · current git workspace · companion `/issue` (upgrades) and `/solve` (eligibility + implement)
+**Needs:** current git workspace · companion `/issue` (upgrades) and `/solve` (eligibility + implement)
 
 **Companion refs:** [`identify/references/ranking.md`](./identify/references/ranking.md), [`identify/references/upgrade.md`](./identify/references/upgrade.md)
 
 ---
 
-### `/solve` — implement unblocked Linear work onto local `dev`
+### `/solve` — implement unblocked queue work onto local `dev`
 
 **Path:** [`solve/`](./solve/)
 
@@ -321,7 +321,7 @@ Selects the next unblocked leaf (or drains the board), runs **cheap construction
 Ship **already finished** session work:
 
 1. Refresh `origin/main` into local `main` and merge into local `dev` (**hard rule before any push**).
-2. **Local Code Review Gate** on `origin/main...dev`: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), merged through [`prb/references/review-rubric.md`](./prb/references/review-rubric.md). High-signal findings only; load `## Code Review Rules` from AGENTS.md. If actionable findings exist: fix on local `dev` from scratch markdown via `prb-fixer` (no per-finding Linear tickets), re-run the panel until clean (default max **2** cycles), then **one** Linear gate comment. Exhaustive second pass only on **critical** ships. **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
+2. **Local Code Review Gate** on `origin/main...dev`: intensity-selected `grok-4.6` panel ([`docs/intensity.md`](./docs/intensity.md)), merged through [`prb/references/review-rubric.md`](./prb/references/review-rubric.md). High-signal findings only; load `## Code Review Rules` from AGENTS.md. If actionable findings exist: fix on local `dev` from scratch markdown via `prb-fixer` (no per-finding Linear tickets), re-run the panel until clean (default max **2** cycles). The scratch report is the gate record. Exhaustive second pass only on **critical** ships. **No push until clean** (unless `--skip-review`). See [`prb/references/local-code-review.md`](./prb/references/local-code-review.md).
 3. Push `origin/dev`.
 4. Open/reuse PR `main` ← `dev`.
 5. Babysit CI/bots (default every **5** minutes for **15** minutes).
@@ -344,7 +344,7 @@ Ship **already finished** session work **now**. `/prb` is the careful path. `/ye
 4. **Runtime proof** for in-scope ships ([`docs/prove-it-works.md`](./docs/prove-it-works.md)) — skip the panel, **not** the proof.
 5. Additive production migrate when the ship includes migrations.
 6. Merge immediately (`gh pr merge --rebase --admin`). Do **not** re-push `dev` after merge.
-7. Linear comment + **Done** when ticket ids are known.
+7. Set Notion Status `done` and Main SHA when the production build of `origin/main` is Ready.
 
 **Useful flags:** `--via-dev-pr`, `--skip-migrations`, `--no-commit`
 
@@ -404,22 +404,16 @@ After install, invoke skills by slash command (`/start`, `/project-review fast`,
 
 ## Repo configuration tips
 
-Skills auto-resolve Linear **team** and **project** from the target codebase. Put the truth in the consumer repo, not in this skill pack:
+The issue queue is `.wcp/issues/` in the consumer repo. Notion mirrors it. Put verify commands and deploy notes in that repo, not in this skill pack.
 
 | File | Purpose |
 |------|---------|
-| `AGENTS.md` / `CLAUDE.md` | Linear team, project, verify commands, deploy notes |
-| `.linear-project` | Single line: project name or slug |
-| `.linear.json` / yaml | Optional structured Linear config |
+| `AGENTS.md` / `CLAUDE.md` | Product, verify commands, deploy notes |
 | `README.md` | Branching, migrate scripts, CI expectations |
+| `.wcp/issues/` | The committed queue |
+| Notion issues database | One database per repo. Title is the slug. Description is the origin URL. |
 
-Example `.linear-project`:
-
-```text
-My Product Launch
-```
-
-**Secrets:** never put Doppler values, connection strings, or API tokens in Linear descriptions or in commits. Skills only use **names** of env vars and documented migrate scripts.
+**Secrets:** never put Doppler values, connection strings, or API tokens in issue files or in commits. Skills only use **names** of env vars and documented migrate scripts.
 
 ---
 
@@ -440,10 +434,9 @@ My Product Launch
 ```text
 .
 ├── README.md
-├── .linear-project          # tracking for this skills repo itself (optional for consumers)
 ├── start/
 │   ├── SKILL.md
-│   └── references/          # scaffold, existing-repo, onboard, linear-v1, handoff
+│   └── references/          # scaffold, existing-repo, onboard, v1-queue, handoff
 ├── project-review/
 │   ├── SKILL.md
 │   └── references/          # deep mode, candidates, templates, …
@@ -484,7 +477,7 @@ My Product Launch
     ├── prove-it-works.md
     ├── intensity.md
     ├── grok-models.md
-    ├── linear-comments.md
+    ├── queue-record.md
     ├── rfc-multiplayer-linear.md
     ├── wcp.md               # how /solve /issues /prb use occupancy
     ├── wcp-queue.md         # how skills read and write .wcp/issues/
@@ -506,4 +499,4 @@ My Product Launch
 
 Published for reuse and adaptation. If you improve a skill, PRs that keep the packages **generic** (no private paths or client defaults) are welcome.
 
-When filing issues against *this* repo, a one-line `.linear-project` and clear acceptance criteria help the same loop dogfood itself.
+When filing issues against *this* repo, write a `.wcp/issues/` file with clear acceptance criteria.

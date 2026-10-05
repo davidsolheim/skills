@@ -14,7 +14,7 @@
 |-------|--------|
 | Run id | `{{RUN_ID}}` |
 | Mode | deep |
-| Team / project | {{TEAM}} / {{PROJECT}} |
+| Repo / Notion | {{ORIGIN_URL}} |
 | Concurrency | {{CONCURRENCY}} |
 | Repo root | {{REPO_ROOT}} |
 | Live URL | {{LIVE_URL}} |
@@ -40,7 +40,7 @@
 
 ## Quality bar (non-negotiable)
 
-Every candidate that may become a Linear leaf must eventually support:
+Every candidate that may become a queue leaf must eventually support:
 
 1. Atomic scope (one primary change)
 2. Current behavior + expected behavior
@@ -168,4 +168,4 @@ Workers **do not** call Linear. Optional: skim `board-snapshot.json` only to avo
 3. Init coverage.json + issue-candidates tree.  
 4. Phase D1b board snapshot.  
 5. Per worker: inject slice id + unit list + absolute paths.  
-6. After all units terminal → cleanup → final/ → Linear publish from final/ only.
+6. After all units terminal → cleanup → final/ → write `.wcp/issues/` and Notion from final/ only.
