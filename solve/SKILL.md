@@ -409,7 +409,7 @@ Do **not** stop for: “solved five already,” long context, finished first wav
 
 ### Multi-issue rules
 
-- **One issue at a time** — finish Phases 2–8 (including merge to local `dev` and file `in-review/`) before selecting the next.
+- **One issue at a time** — finish Phases 2–8 (including merge to local `dev` and the move to `done/`) before selecting the next.
 - **Guidance order when S0 ran** — walk `execution_order` (skip already solved/skipped/failed); re-validate eligibility each slot. Pure lowest-number selection only when S0 did not run.
 - **Refresh guidance** after success (and after failures that may unblock others) if `.wcp/issues/` gains new eligible leaves or supersession edges; re-rank **remaining** only. In `all` mode, **refill** is required — initial inventory is not a fixed closed set.
 - **Preferred `TEAM-123`** applies only to the **first** selection in the batch when it remains eligible and not skipped; subsequent selections follow guidance order (or lowest number if no guidance).
@@ -660,7 +660,7 @@ Order:
 
 Matrix green is **necessary, not sufficient** for in-scope work. “Not performed” is a **fail**.
 
-Fix failures **by resuming the `solve-implementer`** (spawn/resume; not by editing yourself), then re-verify. Do not merge to `dev` or move the file to `in-review/` if required checks **or** in-scope runtime proof fail.
+Fix failures **by resuming the `solve-implementer`** (spawn/resume; not by editing yourself), then re-verify. Do not merge to `dev` or move the file to `done/` if required checks **or** in-scope runtime proof fail.
 
 ### Hand off
 
@@ -700,11 +700,11 @@ spawn_subagent:
 Prompt:
 
 ```markdown
-You are the reviewer for one `.wcp/issues/in-review/` file. Read the issue and every path in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`.
+You are checking one issue whose writing is finished. Read the issue and every path in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`.
 
 If the check fails, fix the code. Read `.wcp/issues/in-progress/` and work around those paths. Do not commit. Do not stash.
 
-When the check passes, set `status: done`, clear `assignee` and `lease_expires`, and move the file to `done/`. Leave `commit` empty. Do not commit. Do not set Notion `done`.
+When the check passes, set `status: done` and move the file to `done/`. Leave `dev` empty. Do not commit.
 ```
 
 Wait until that reviewer exits. Set the Notion row to `in-review`. Local file `done` before `origin/main` is Notion `in-review`.
@@ -873,9 +873,9 @@ Workers do not close tickets. The orchestrator does. Do not call Linear. Notion 
 - Treating file `in-review` as proof the work is on `dev` (skip without the on-dev check)
 - Skipping a leaf because its blocker is `in-review` but not `done` and not on local `dev` — a blocker with `commit` on local `dev` unblocks dependents
 - Leaving a stale `in-review` file (not on local `dev`) unworked
-- Moving the file to `in-review/` without verification or without merge to local `dev`
+- Moving the file to `done/` without verification or without the work on local `dev`
 - Treating typecheck/tests/build as proof for user-visible, auth, billing, API, schema, or shared-helper changes ([`../docs/prove-it-works.md`](../docs/prove-it-works.md))
-- Writing “browser smoke not performed” and still moving the file to `in-review/`
+- Writing “browser smoke not performed” and still moving the file to `done/`
 - Starting a second `/solve all` drain on a project that already has foreign live ticket leases
 - Coding a leaf after a failed claim re-read (CAS miss)
 - Committing unrelated dirty files or secrets
@@ -973,5 +973,5 @@ Worktree orchestration (opt-in `worktree` only) lives in:
 - **`solve-implementer` type rejected**: fall back to `general-purpose` + `model: grok-4.6` once; do not stop.
 - **Batch guidance / fast package fails**: stop before claim/workers; report inventory/graph/direction problems; do not spawn parallel implementers or implement obsolete stack work.
 - **Fast worktree cleanup fails**: retry `grok worktree rm --force` once; include leftover paths in Phase 9; do not pretend remaining worktrees is 0.
-- **Shared-dev combined verify fails**: resume the implementer(s) for the failing leaf paths; do not move the file to `in-review/`; do not edit app source in the parent.
+- **Shared-dev combined verify fails**: resume the implementer(s) for the failing leaf paths; do not move the file to `done/`; do not edit app source in the parent.
 - **Push requested later**: user may run a separate ship step; this skill’s default remains local-only.

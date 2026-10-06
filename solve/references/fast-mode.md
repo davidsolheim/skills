@@ -25,7 +25,7 @@ or double-claiming.
    CLIs only take unclaimed leaves; they never start a second drain.
 3. Workers implement in **worktrees** (`solve-implementer`, `isolation: worktree`).
 4. Orchestrator merges ready issue branches into **local `dev`** in `merge_order`.
-   Move the file to `in-review/` after that merge. No PR unless the user asked.
+   Move the file to `done/` after that merge. No PR unless the user asked.
 5. Next wave **rebases on the new local `dev`**. `/prb` still owns `main`.
 
 The issue file is the claim board (wcp ticket lease). Git branches are backup + merge
@@ -264,7 +264,7 @@ If a worktree isolation branch is not in the main repo yet, fetch it first
 [`git-dev-workflow.md`](git-dev-workflow.md).
 
 Re-verify on `dev` if the merge was not a clean ff of an already-verified
-issue branch (conflict resolution, stacked merges). Do not move a leaf to `in-review/`
+issue branch (conflict resolution, stacked merges). Do not move a leaf to `done/`
 whose post-merge `dev` failed required checks or in-scope runtime proof.
 
 If **every** merge in the wave conflicts, stop the wave, report, do not
@@ -274,7 +274,7 @@ pretend `dev` moved.
 
 For each issue that landed:
 
-1. Solver: `status: in-review`, clear `lease_expires`, move to `in-review/`.
+1. Solver: `status: done`, move the file to `done/`.
 2. Orchestrator launches one reviewer. Reviewer sets file `done`. Do not set Notion `done`.
 3. After reviewers exit and `in-progress/` is empty, commit and write `dev`.
 
