@@ -36,7 +36,7 @@ via nested `/solve` after approve (unless `--pick-only`).
 - **First present = one batch.** Reply parsing (subset / drop / swap / theme)
   is [`references/replies.md`](references/replies.md).
 - **Hard cap 4.** Default cut prefers **2**. Do not pad with Low/`U=0` chores.
-- **Occupancy:** overlap cut is WCP exclusive paths ([`../docs/wcp.md`](../docs/wcp.md)). Nested `/solve` starts the WCP run. Identify does not write app source.
+- **Occupancy:** overlap cut is wcp exclusive paths ([`../docs/wcp.md`](../docs/wcp.md)). Nested `/solve` starts the wcp run. Identify does not write app source.
 - **Secrets:** never put tokens, env values, or connection strings in issue files or chat.
 - **Do not call Linear.** Inventory is [`../solve/references/eligibility.md`](../solve/references/eligibility.md). Claim is the player skill ticket lease.
 
@@ -246,7 +246,7 @@ orchestrator CAS-claims as it launches workers.
 
 For each `ID` in `QUEUE` on the **sequential** path, **immediately before** its nested `/solve`:
 
-1. Claim the file (player skill): `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
+1. Claim the file (player skill): `assignee`, `status: in-progress`, move to `in-progress/`.
 2. Re-read. If `assignee` is not you, drop that leaf and continue.
 3. Set the Notion row to `in-progress` ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
 
@@ -275,7 +275,7 @@ RUN_ID = this identify RUN_ID
 GUIDANCE_REQUIRED = true
 Do not refill outside SELECTION_PIN
 Treat identify claimed-by with this RUN_ID as this run
-Same git contract as /solve (shared local dev, WCP occupancy, no worktrees, no push unless the user asked)
+Same git contract as /solve (shared local dev, wcp occupancy, no worktrees, no push unless the user asked)
 ```
 
 Identify must not write application source. On nested-solve hard-fail: release
@@ -304,7 +304,7 @@ for ID in QUEUE:
     - claimed-by: identify with this RUN_ID is this run, not foreign
     - Do not pick any other leaf
     - Dirty tree: do not discard unrelated files
-    - Same git contract as /solve (local dev, WCP occupancy, no push unless the user asked)
+    - Same git contract as /solve (local dev, wcp occupancy, no push unless the user asked)
   Identify must not write application source while the worker runs
   if that solve fails (implement / verify / merge):
     stop the queue
@@ -321,7 +321,7 @@ for ID in QUEUE:
 On queue stop, user abort, or pick-only after a mistaken claim, for each leaf
 this `RUN_ID` claimed that is **not** solved and **not** the in-flight failure:
 
-1. If this run still holds the file and the lease is live, set `status: open`, clear `assignee` and `lease_expires`, and move it to `open/`.
+1. If this run still holds the file, set `status: open`, clear `assignee`, and move it to `open/`.
 2. Set the Notion row to `open`.
 
 Do not release a leaf the nested solve already moved to `in-review` / `done`.

@@ -87,6 +87,6 @@ Do not invent stamps for skipped issues.
 ## Do not stamp
 
 - Cooldown skips
-- Live foreign WCP leases / live ticket leases held by someone else
+- Live foreign wcp leases / live ticket leases held by someone else
 - Issues not in scope (`PINNED_ID` run)
 - Terminal issues you only read as epic-child evidence

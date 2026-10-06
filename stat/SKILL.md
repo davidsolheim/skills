@@ -20,7 +20,7 @@ This skill does **not** implement, claim, tidy, upgrade, or start `/solve` /
 ## Operating contract
 
 - **Whole open board.** `done` / `canceled` are resolved; do not list them.
-  `blocked`, claimed, `in-progress`, `in-review`, and epic shells still need
+  `blocked`, `in-progress`, `done`, and `deployed-dev` still need
   resolution — **include them**.
 - **One ranked list**, not a 2–4 ticket batch. Do not apply Identify size cut
   or overlap cut.
@@ -130,7 +130,7 @@ apply Size cut, Overlap cut, or Identify batch guidance.
 **Status:** `.wcp/issues/` · [open] open
 **Rank:** file `priority`, then user-facing impact, then identifier
 **Args:** top=[N or all] · area=[filter or none]
-**Counts:** P1=n · P2=n · P3=n · P4=n · ready=n · blocked=n · claimed=n · in-progress=n · in-review=n · epics=n
+**Counts:** open=n · in-progress=n · done=n · deployed-dev=n · deployed-main=n · blocked=n · canceled=n
 
 ### Queue (urgent → least)
 1. TEAM-123 — <title>
@@ -139,7 +139,7 @@ apply Size cut, Overlap cut, or Identify batch guidance.
 2. TEAM-80 — <title>
    P2 · U3 · in-progress · alice · claimed
 3. TEAM-40 — <title>
-   P3 · U1 · in-review · me · in-review
+   done · waiting for a quiet tree · me · done
 ```
 
 Rules:
@@ -150,7 +150,7 @@ Rules:
 - One line of metadata per issue: `P · U · <state> · <assignee or unassigned> · <wait>`.
 - Do not dump descriptions, code maps, or comments.
 - Do not ask to approve a batch. Point at `/identify` only if they ask what
-  to work next; `/prb` only for in-review rows if they ask how to ship.
+  to work next. `done/` is written and not pushed. `deployed-dev/` is on `origin/dev`.
 - Then **stop**.
 
 If the queue directory is missing, say so. Do not invent issues. Do not call Linear.
@@ -166,7 +166,7 @@ If the queue directory is missing, say so. Do not invent issues. Do not call Lin
 | `/solve` | Implements the next eligible leaf |
 | `/tidy` | Hygiene writes; not a briefing |
 | `/issue` | Files one ticket; quality bar reused here |
-| `/prb` | Ships `dev` → `main`; `in-review` rows are waiting on this |
+| `/prb` | Ships `dev` → `main`; `done/` and `deployed-dev/` rows are waiting on this |
 
 ```text
 /stat              ← you are here (look)
@@ -181,7 +181,7 @@ If the queue directory is missing, say so. Do not invent issues. Do not call Lin
 ## Anti-patterns
 
 - Treating this as `/identify` (batch of 2–4, approve prompt, upgrades)
-- Hiding blocked / claimed / `in-review` / epics because they are not
+- Hiding blocked / `in-progress` / `done` because they are not
   `/solve`-eligible
 - Sorting by identifier or “interesting” instead of P then U
 - Applying Identify size/overlap cut

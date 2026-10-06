@@ -1,8 +1,8 @@
 # Notion issue status
 
-External status for `/issue`, `/issues`, `/solve`, `/identify`, `/stat`, `/tidy`, `/project-review`, `/walk`, `/start`, `/prb`, and `/yeet`.
+Use this only when `.wcp/tracker.md` says `tracker: notion`. wcp issues are always the record. If `tracker` is `none`, missing, or a different tool, do not follow this file.
 
-The local queue stays `.wcp/issues/` ([`wcp-queue.md`](wcp-queue.md)). The issue file is the record. Claim, lease, and review stay in those files. Write the file first. This file is the only Notion procedure, and it runs after that write. If Notion fails, the file stands. Do not stop the git work. A later resync copies whatever this procedure missed. Do not call Linear.
+The local queue stays `.wcp/issues/` ([`wcp-queue.md`](wcp-queue.md)). Write the file first. This file is the Notion procedure, and it runs after that write. If Notion fails, the file stands. Do not stop the git work. A later resync copies whatever this procedure missed.
 
 One issues database per git repo. The database title is the repo slug. The database is identified by the origin URL.
 
@@ -70,20 +70,20 @@ Do not put tokens, connection strings, or secret values in any property or page 
 | --- | --- |
 | File created in `open/` | `open` |
 | File moved to `in-progress/` | `in-progress` |
-| File moved to `in-review/` | `in-review` |
-| File `done` and its `commit` is not on `origin/main` | `in-review` |
+| File moved to `done/` | `in-progress` |
+| File moved to `deployed-dev/` | `in-review` |
+| File moved to `deployed-main/` | `done` |
 | File `canceled` | `canceled` |
 | File `blocked` | `blocked` |
 | File moved back to `open/` | `open` |
-| `/prb` or `/yeet` finishes the ship below | `done` |
 
-`done` on Notion means the work is on `origin/main` and that ship skill's completion gate passed. A reviewer setting the local file to `done` does not set Notion to `done`.
+Notion has no separate status for `done/` or `deployed-dev/`. Use the statuses above. Notion `done` means the issue is in `deployed-main/`: the commit is on `origin/main`.
 
-The skill that writes the issue file updates the row in the same turn, after the file write. Do not call Notion during a source-file lease. A worker does not call Notion. The orchestrator, the filing skill, or the ship skill does. A failed update does not roll back the file and does not block the next step. Fill `notion_page_id` and `notion_url` on the file when the row write succeeds.
+The skill that writes the issue file updates the row in the same turn, after the file write. A failed update does not roll back the file and does not block the next step. Fill `notion_page_id` and `notion_url` on the file when the row write succeeds.
 
 ## Resync
 
-Walk `open/`, `in-progress/`, `in-review/`, and `blocked/` whole. Walk `done/` and `canceled/` by the `YYYY/MM/DD` day folders, and include any older flat file still in those status directories. Upsert each file by its issue id using the status table above. Read `pr` from the file into **PR**. Read `commit` when choosing Dev SHA or Main SHA from git. Running the walk twice is safe. There is no sync cursor and no daemon. Do this when Notion was down, or when a file has an empty `notion_page_id` after a failed copy.
+Walk `open/`, `in-progress/`, and `blocked/` whole. Walk `done/`, `deployed-dev/`, `deployed-main/`, and `canceled/` by the `YYYY/MM/DD` day folders, and include any older flat file still in those status directories. An `in-review/` file is `done`. Upsert each file by its issue id using the status table above. Read `dev` into **Dev SHA** and `main` into **Main SHA**. Running the walk twice is safe. There is no sync cursor. Do this when Notion was down, or when a file has an empty `notion_page_id` after a failed copy.
 
 Do not move a Notion status backward from `done` except when the user says to reopen that issue.
 
@@ -91,14 +91,14 @@ Do not move a Notion status backward from `done` except when the user says to re
 
 `/prb` and `/yeet` collect the ship set from `.wcp/issues/` and `git log origin/main..dev --pretty=%H%n%s`:
 
-- a file whose `commit` is in that range
+- a file whose `dev` sha is in that range
 - a file whose id is the leading `0123` or `0123:` on a subject in that range
 
 Skip `canceled`.
 
-**On dev.** Immediately after `git push origin dev` succeeds and the PR exists: upsert each id. Set **Dev SHA** to `origin/dev` and **PR** to the PR URL. If Status is `open` or `in-progress`, set `in-review`. Do not set `done`.
+**On dev.** Immediately after `git push origin dev` succeeds: upsert each id. Set **Dev SHA** to that sha and Status to `in-review`. Write the same sha into `dev` on the issue file and move the file to `deployed-dev/`. Do not set Notion `done`.
 
-**On main.** Immediately after the completion gate, set Status `done` and **Main SHA** to `origin/main`. Fill **Deploy** when a production deployment id or URL is already known. Do not wait for a later session.
+**On main.** Immediately after the completion gate, set Status `done` and **Main SHA** to `origin/main`. Write that sha into `main` and move the file to `deployed-main/`. Fill **Deploy** when a production deployment id or URL is already known. Do not wait for a later session.
 
 | Skill | Completion gate |
 | --- | --- |

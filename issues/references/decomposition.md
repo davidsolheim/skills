@@ -92,20 +92,20 @@ Examples that **deserve** a shared name:
 
 Examples that **do not**:
 
-- “Random leftover bugs” across app and services  
+- “Random leftover bugs” across inventright-com and gateway-match  
 - Two docs chores + one billing bug  
 
 `--no-epic` is already the file rule. `--epic "Title"` is a shared name in each leaf body, not a parent epic file.
 
 ---
 
-## 5. Occupancy (WCP)
+## 5. Occupancy (wcp)
 
 `/solve` runs many leaves on one local `dev`. Exclusive file leases:
 [`../../docs/wcp.md`](../../docs/wcp.md).
 
 - Give each leaf **one primary write path** (and symbol). Put it in
-  **Occupancy (WCP)** on the body.
+  **Occupancy (wcp)** on the body.
 - Prefer splits whose primary paths **differ**, so two `/solve` workers can
   hold leases at once.
 - Sharing a file is occupancy (next wave), not a reason to merge tickets.
@@ -120,11 +120,11 @@ explicit integration with AC on both sides.
 
 | Package | Typical leaf prefix |
 |---------|---------------------|
-| `app/` | app / dashboard / CRM routes |
-| `services/` | Gateway Match |
+| `inventright-com/` | inventright-com / dashboard / CRM routes |
+| `gateway-match/` | Gateway Match |
 | `agents/` | Agents / Eve / company-research |
 
-Respect package `AGENTS.md` language (e.g. do not brand app as “CRM”).
+Respect package `AGENTS.md` language (e.g. do not brand inventright-com as “CRM”).
 
 ---
 

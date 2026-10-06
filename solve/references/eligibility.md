@@ -8,7 +8,7 @@ Queue contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Claim and 
 
 ## Inventory
 
-List `*.md` under `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. Reclaim expired `in-progress` leases before selecting (player skill). Do not treat `in-review/`, `done/`, or `canceled/` as work to start. An `in-review` file is waiting for the reviewer.
+List `*.md` under `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Read frontmatter. An `in-progress/` issue whose agent is gone goes back to `open/`. Do not treat `done/`, `deployed-dev/`, `deployed-main/`, or `canceled/` as work to start. An old `in-review/` file is finished writing. Move it to `done/`.
 
 `/solve today`: keep files whose `created` local date is today. Empty `created`: use `git log -1 --format=%cI -- <path>`.
 
@@ -19,14 +19,14 @@ List `*.md` under `.wcp/issues/open/`, `in-progress/`, and `blocked/`. Read fron
 Include:
 
 - `status: open`
-- `in-progress` only when the lease is expired (reclaim to `open` first) or `assignee` is this agent
+- `in-progress` only when `assignee` is this agent
 
 Exclude:
 
-- `done`, `canceled`, `blocked`, `in-review`
-- `in-progress` with a future `lease_expires` and a different `assignee`
+- `done`, `deployed-dev`, `deployed-main`, `canceled`, `blocked`
+- `in-progress` whose `assignee` is someone else
 
-A `done` issue whose `commit` is an ancestor of local `dev` is finished for `/solve`. It is not a new implement target. A dependent whose `reason` names that id is no longer blocked: unblock it to `open` and leave `reason`.
+A `done`, `deployed-dev`, or `deployed-main` issue is finished writing. It is not a new implement target. A dependent whose `reason` names an id in one of those folders, or `canceled`, is no longer blocked: move it to `open` and leave `reason`.
 
 ---
 
@@ -34,7 +34,7 @@ A `done` issue whose `commit` is an ancestor of local `dev` is finished for `/so
 
 A file in `blocked/` is not eligible. Read `reason`.
 
-- `reason` names an id that is `done` or `canceled`: unblock to `open`, then it can be picked.
+- `reason` names an id that is `done`, `deployed-dev`, `deployed-main`, or `canceled`: unblock to `open`, then it can be picked.
 - `reason` names an id that is still `open` or `in-progress`: work that id first when it is in scope. Do not start the blocked file.
 - `reason` names an out-of-scope id: skip the blocked file. Do not implement the out-of-scope blocker.
 - `reason` is a human decision or a missing secret: skip.
@@ -82,8 +82,7 @@ A preferred id (`0123` or `TEAM-123`) is the file whose `id` contains that numbe
 | `blocked/` and blocker still open | Work the blocker if it is in scope; otherwise skip |
 | `blocked/` and blocker is `done` or `canceled` | Unblock to `open`, then it is eligible |
 | `blocked/` and blocker is out of scope | Skip |
-| Live `in-progress` lease, other assignee | Skip |
-| `in-review` | Skip as implement target. The orchestrator launches the reviewer |
-| `done` with `commit` on local `dev` | Skip as implement target |
+| `in-progress` with another assignee | Skip. Read its `files` and do not take those paths |
+| `done`, `deployed-dev`, or `deployed-main` | Skip as implement target |
 | Guidance says skip / abandoned platform | Cancel only at high confidence; otherwise skip |
 | Packaging-only body | Work the listed child ids |

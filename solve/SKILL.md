@@ -4,17 +4,17 @@ description: >
   Use when the user runs /solve, /solve N, /solve all, /solve today, /solve
   <area>, says "solve the next issue", "pick up the next ticket",
   "solve design related issues", "issues created today", "same dev branch",
-  "ignore each other's work", "verify after they are done", Water Cooler
-  Protocol, WCP, a /goal to finish today's .wcp/issues ASAP with many
-  subagents, or wants open WCP issues completed onto local dev.
+  "ignore each other's work", "verify after they are done", wcp,
+  a /goal to finish today's .wcp/issues ASAP with many
+  subagents, or wants open wcp issues completed onto local dev.
 argument-hint: "[N|all|today] [seq] [worktree] [--concurrency N] [--effort N] [ISSUE-ID] [area|today…] [extra constraints…]"
 ---
 
-# /solve — Next unblocked WCP issue(s) → local `dev`
+# /solve — Next unblocked wcp issue(s) → local `dev`
 
-Select unsolved, unblocked issues from `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. The **parent `/solve` session is the orchestrator** (ticket claim and close, git, commit). It **never** implements application source. Each leaf is **one `solve-implementer`** (low reasoning; optional one bug-only `solve-reviewer` on heavy/critical — [`../docs/intensity.md`](../docs/intensity.md)). Verify, then the orchestrator commits onto the long-lived local **`dev`** branch (lowercase) only when `wcp look` shows no live source-file lease. Workers do not commit and do not stash. Default delivery stops there. `/prb` is the deep review.
+Select unsolved, unblocked issues from `.wcp/issues/` ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not call Linear. The **parent `/solve` session is the orchestrator** (ticket claim and close, git, commit). It **never** implements application source. Each leaf is **one `solve-implementer`** (low reasoning; optional one bug-only `solve-reviewer` on heavy/critical — [`../docs/intensity.md`](../docs/intensity.md)). Verify, then the orchestrator commits onto the long-lived local **`dev`** branch (lowercase) only when `.wcp/issues/in-progress/` is empty. Workers do not commit and do not stash. Default delivery stops there. `/prb` is the deep review.
 
-Multi-issue runs build **batch guidance** first ([`references/batch-guidance.md`](references/batch-guidance.md)) so architectural direction changes (e.g. Neon replacing ClickHouse/Convex) reorder and re-scope work before coding. Then they run **as many independent leaves in parallel as possible on shared local `dev`** ([`references/shared-dev.md`](references/shared-dev.md): **WCP occupancy**, **no worktrees**, orchestrator combined-verifies then commits). Quality gates: S0, WCP ticket status, file leases, runtime proof, drain gate, one assignee per ticket. Worktrees are **opt-in only** (`worktree` / `--worktree` → [`references/fast-mode.md`](references/fast-mode.md)). Occupancy contract: [`../docs/wcp.md`](../docs/wcp.md).
+Multi-issue runs build **batch guidance** first ([`references/batch-guidance.md`](references/batch-guidance.md)) so architectural direction changes (e.g. Neon replacing ClickHouse/Convex) reorder and re-scope work before coding. Then they run **as many independent leaves in parallel as possible on shared local `dev`** ([`references/shared-dev.md`](references/shared-dev.md): **wcp occupancy**, **no worktrees**, orchestrator combined-verifies then commits). Quality gates: S0, wcp ticket status, file leases, runtime proof, drain gate, one assignee per ticket. Worktrees are **opt-in only** (`worktree` / `--worktree` → [`references/fast-mode.md`](references/fast-mode.md)). Occupancy contract: [`../docs/wcp.md`](../docs/wcp.md).
 
 | When | How |
 |------|-----|
@@ -48,8 +48,8 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
   - **Integer `N`**: `/solve N` solves up to **N** eligible issues in parallel (up to `min(N, 32)` workers unless `--concurrency` or `seq`). Inside a scope, `N` is a cap on that cluster.
   - **`all`**: **drain** — keep going until **no** eligible unblocked implementable leaves remain **in the active set** (whole project, or `SCOPE` if set). See [Drain contract](#drain-contract-solve-all--non-negotiable). No soft cap. Mandatory re-read of `.wcp/issues/` before exit. Independent leaves run in parallel.
   - **Scope** (created-today, then title/body area, then the issue id): resolve per [`references/eligibility.md`](references/eligibility.md) **Scope filter**. A resolved `SCOPE` with no bare `N` sets count mode to **`all` for that cluster only** — drain in parallel among independent in-scope leaves. Do not pick outside `SCOPE`. `/solve today` = created-today window, not a project-wide `/solve all`.
-- **Parallelism**: automatic whenever more than one implementable leaf is in play (`N ≥ 2`, `all`, scoped drain, **today**). Default protocol: [Shared-dev](#shared-dev--same-branch-parallel) + [`references/shared-dev.md`](references/shared-dev.md) (same local `dev`, **WCP exclusive file leases**, orchestrator verifies then commits; cap **32**, default = all ready disjoint paths). `worktree` / `--worktree` is the only way onto [Fast mode](#fast-mode--parallel-orchestrator). `seq` / `--sequential` disables parallelism. `fast` / `--fast` is a no-op.
-- **Occupancy (WCP)**: every implementer load of `water-cooler-protocol` + [`../docs/wcp.md`](../docs/wcp.md). Orchestrator starts the run and does not assign ids. Workers `wcp name` themselves, then write tests and new files with no claim. They `look` / `acquire --test` / `write-ok` / `release` only for a file that already existed. File overlap waits for the next wave or retargets. A ticket in `blocked/` is a queue status, not a file lease. Never rewind sibling edits. Never push while `WCP_AGENT` is set.
+- **Parallelism**: automatic whenever more than one implementable leaf is in play (`N ≥ 2`, `all`, scoped drain, **today**). Default protocol: [Shared-dev](#shared-dev--same-branch-parallel) + [`references/shared-dev.md`](references/shared-dev.md) (same local `dev`, **wcp exclusive file leases**, orchestrator verifies then commits; cap **32**, default = all ready disjoint paths). `worktree` / `--worktree` is the only way onto [Fast mode](#fast-mode--parallel-orchestrator). `seq` / `--sequential` disables parallelism. `fast` / `--fast` is a no-op.
+- **Occupancy (wcp)**: every implementer loads `water-cooler-protocol` and [`../docs/wcp.md`](../docs/wcp.md). An issue in `in-progress/` is an agent editing that work. Read its `files` and do not take those paths. There is no `wcp` command. Never rewind sibling edits. If a file already has uncommitted changes, read the `in-progress/` or `done/` issue that lists that path and the other paths in its `files`, and keep the behavior its `acceptance` describes. Do not commit while any issue is in `in-progress/`.
 - **Selection (sequential / single issue)**: when batch guidance is active and `seq` was passed, follow **`execution_order`**. When guidance is inactive (`/solve` / `/solve 1` without supersession pressure), rank by frontmatter `priority` (critical, high, normal, low), then user-facing impact, then identifier. Re-validate eligibility after each closeout; refresh guidance when the remaining set changes.
 - **Selection (parallel — default for batches)**: full eligible inventory + **shared batch guidance**; launch the **disjoint-path** ready set up to `CONCURRENCY`; refill after combined commits (see shared-dev.md + batch-guidance.md).
 - **No epics.** Implement the leaf file. A packaging-only body is skipped in favor of the ids it lists ([`references/eligibility.md`](references/eligibility.md)).
@@ -61,18 +61,18 @@ When `SOLVE_COUNT_MODE = all` (sequential, worktree, or shared-dev; project-wide
 - **Custom implement instructions**: always load and inject
   [`references/custom-implement-instructions.md`](references/custom-implement-instructions.md)
   into implementer (and reviewer, when useful) prompts. Edit that file to change solve-time coding policy without forking the whole implement skill. When batch guidance exists, also inject the run’s **`guidance.md`** path (and per-issue supersession/rescope notes) as hard constraints — guidance wins over older tickets on platform/stack.
-- **Batch guidance (S0)**: for `/solve all`, `/solve today`, `/solve N` (`N ≥ 2`), and any parallel run, build a guidance package **before** the first implement claim. Procedure: [`references/batch-guidance.md`](references/batch-guidance.md). Template: [`references/batch-guidance-template.md`](references/batch-guidance-template.md). Detects competing architectural directions (e.g. ClickHouse/Convex tickets vs Neon migration), orders migrations first, skips or re-scopes obsolete open tickets, and allows selective override of prior work. Shared-dev still runs S0. File overlap is WCP occupancy ([`../docs/wcp.md`](../docs/wcp.md)). A blocked ticket stays in `blocked/` until its `reason` is satisfied.
+- **Batch guidance (S0)**: for `/solve all`, `/solve today`, `/solve N` (`N ≥ 2`), and any parallel run, build a guidance package **before** the first implement claim. Procedure: [`references/batch-guidance.md`](references/batch-guidance.md). Template: [`references/batch-guidance-template.md`](references/batch-guidance-template.md). Detects competing architectural directions (e.g. ClickHouse/Convex tickets vs Neon migration), orders migrations first, skips or re-scopes obsolete open tickets, and allows selective override of prior work. Shared-dev still runs S0. File overlap is wcp occupancy ([`../docs/wcp.md`](../docs/wcp.md)). A blocked ticket stays in `blocked/` until its `reason` is satisfied.
 - **Integration branch name is always `dev`** — all-lowercase **d-e-v**. Never use capital-`D` `Dev` for checkout, merge, or new work. If a legacy `Dev` ref is found, rename it once to `dev` (see git-dev-workflow) then continue only on `dev`.
 - **Git delivery default**:
   1. Refresh from latest `main`
   2. Keep local **`dev`** up to date with `main`
-  3. **Parallel (default):** all workers stay on local `dev` (no issue branches, no worktrees). Workers do not commit and do not stash. Orchestrator **combined-verifies after they finish**, then commits on `dev` only when `wcp look` shows no live source-file lease ([`references/shared-dev.md`](references/shared-dev.md)).
-  4. **Sequential (`seq` / `/solve 1`):** short-lived issue branch off `dev`. The implementer leaves the tree dirty. The orchestrator verifies, commits only when `wcp look` shows no live source-file lease, then merges into local `dev`.
+  3. **Parallel (default):** all workers stay on local `dev` (no issue branches, no worktrees). Workers do not commit and do not stash. Orchestrator **combined-verifies after they finish**, then commits on `dev` only when `.wcp/issues/in-progress/` is empty ([`references/shared-dev.md`](references/shared-dev.md)).
+  4. **Sequential (`seq` / `/solve 1`):** short-lived issue branch off `dev`. The implementer leaves the tree dirty. The orchestrator verifies, commits only when `.wcp/issues/in-progress/` is empty, then merges into local `dev`.
   5. **Worktree opt-in only:** [`references/fast-mode.md`](references/fast-mode.md) — do not use unless the user passed `worktree`.
 - **Do not** `git push`, open a PR, or deploy unless the user explicitly requests it in this session.
-- **Closeout**: the solver moves the file to `in-review/`. The orchestrator launches one `solve-reviewer` per file there. That reviewer checks security, accessibility, functionality, and aesthetics, fixes failures, and sets `done`. The orchestrator then writes `commit` after it commits, and only when `wcp look` is empty ([`references/multiplayer.md`](references/multiplayer.md)). After each file move, update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not set Notion `done` from `/solve`.
+- **Closeout**: the solver moves the file to `done/` when the writing matches `acceptance`. The orchestrator commits only when `.wcp/issues/in-progress/` is empty, then writes that sha into `dev` ([`references/multiplayer.md`](references/multiplayer.md)). After each file move, mirror to the tracker in `.wcp/tracker.md` when one is named ([`../docs/wcp.md`](../docs/wcp.md)). `none` or a missing file means skip. Do not set an external tracker to its shipped status from `/solve`.
 - **Secrets**: never commit `.env`, print Doppler values, tokens, or connection strings.
-- **Do not call Linear.** The queue is files. After a file status write, update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Notion during a source-file lease. Do not set Notion `done` here.
+- **Queue:** the files are the record. After a file status write, mirror to the tracker named in `.wcp/tracker.md`. Skip when that file is missing or `tracker` is `none`. Do not set the external shipped status from `/solve`.
 - **Scope discipline**: satisfy the issue’s acceptance criteria; file follow-ups (e.g. via `/issue`) instead of expanding scope.
 - **Dirty tree**: never discard unrelated user changes. Only stage files for this issue. Do not stash another writer's files to make a commit.
 
@@ -197,7 +197,7 @@ The `/goal` (or plain) text “finish all issues created today ASAP, many subage
    - `BATCH_GUIDANCE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/batch-guidance-template.md` — **read when `GUIDANCE_REQUIRED`**
    - `FAST_MODE_MD` = `$SOLVE_SKILL_DIR/references/fast-mode.md` — **read when `FAST_MODE`**
    - `SHARED_DEV_MD` = `$SOLVE_SKILL_DIR/references/shared-dev.md` — **read when `SHARED_DEV`**
-   - `WCP_MD` = `$SOLVE_SKILL_DIR/../docs/wcp.md` — **read every run** (occupancy). Player skill: `$SOLVE_SKILL_DIR/../water-cooler-protocol/SKILL.md` (inject path into every implementer prompt).
+   - `wcp_md` = `$SOLVE_SKILL_DIR/../docs/wcp.md` — **read every run** (occupancy). Player skill: `$SOLVE_SKILL_DIR/../water-cooler-protocol/SKILL.md` (inject path into every implementer prompt).
    - `ARCHITECTURE_TEMPLATE` = `$SOLVE_SKILL_DIR/references/architecture-guidance-template.md` — optional fast supplement; prefer batch guidance as authority
    - `IMPLEMENT_SKILL_MD` = optional, **not used** for the construction loop (standalone `/implement` is a different skill). Do not fail `/solve` if it is missing.
    - Worker spawn types: `solve-implementer` (required), `solve-reviewer` (heavy/critical only). Authority: [`../docs/grok-models.md`](../docs/grok-models.md) + [`../docs/intensity.md`](../docs/intensity.md).
@@ -213,7 +213,7 @@ The `/goal` (or plain) text “finish all issues created today ASAP, many subage
 
 ## Phase 1 — Queue
 
-The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). If the checkout has `.WCP/` and no `.wcp/`, the board is `.WCP/issues/`. Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` in that folder if a run needs a queue and they are missing. Do not create `.wcp/` beside `.WCP/`. Do not create a backlog. Do not call Linear. Reclaim expired ticket leases before selecting. Launch one reviewer for each file already in `in-review/`. After a status write, update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
+The board is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `done/`, `deployed-dev/`, `deployed-main/`, `canceled/`, and `blocked/` in that folder if a run needs a queue and they are missing. Do not create a backlog. After a status write, mirror it when `.wcp/tracker.md` names a tracker. Skip when it is missing or `none`.
 
 ---
 
@@ -282,7 +282,7 @@ If open tickets include “build X on ClickHouse” and “migrate to Neon / Cli
 | **Open**, fully obsolete | Skip implement; cancel the file with `reason` when high confidence |
 | **Open**, outcome still needed on new stack | Re-scope in guidance; implement rewritten AC |
 
-After S0, sequential Phase 2 **selects the next leaf from `execution_order`**, not pure ascending number (still re-validate eligibility each slot). Fast mode uses the same package for waves and skips. Shared-dev uses it for skip/rescope; launch is the disjoint-path ready set (WCP).
+After S0, sequential Phase 2 **selects the next leaf from `execution_order`**, not pure ascending number (still re-validate eligibility each slot). Fast mode uses the same package for waves and skips. Shared-dev uses it for skip/rescope; launch is the disjoint-path ready set (wcp).
 
 ---
 
@@ -295,20 +295,20 @@ worktrees and the sequential loop**. Follow
 
 ```text
 Phase 0–1  Bootstrap + queue (above)
-Phase S0   Batch guidance (required) — skip obsolete; occupancy is WCP (disjoint-path waves)
+Phase S0   Batch guidance (required) — skip obsolete; occupancy is wcp (disjoint-path waves)
 Phase D1   Inventory (created-today when SCOPE.kind is created)
 Phase D3   Report + spawn disjoint-path ready workers in one turn (isolation: none, on `dev`)
 Phase D5   Wait until every live worker finishes → combined verify
-Phase D6   One reviewer per `in-review/` file. Reviewer fixes and sets `done`. Do not commit while a reviewer runs.
-Phase D7   After reviewers exit and `wcp look` is empty, commit the work, write the hash, commit the issue file
+Phase D6   Successful leaves are in `done/`. Do not commit while `in-progress/` has anything.
+Phase D7   After reviewers exit and `in-progress/` is empty, commit the work, write the sha into `dev`, commit the issue file
 Phase D8   Refill newly unblocked in-scope leaves; drain gate
 Phase 9    Batch summary
 ```
 
-Non-negotiable: WCP exclusive leases (disjoint-path waves); workers do not
+Non-negotiable: wcp exclusive leases (disjoint-path waves); workers do not
 commit; orchestrator does not implement; no worktrees; a `blocked/` ticket
 still waits; combined runtime proof after the wave, not per-worker-before-siblings.
-Never rewind sibling edits.
+Never rewind sibling edits. If you change a file that already has uncommitted work, keep the other issue's `acceptance`.
 
 If `SHARED_DEV` is false and `FAST_MODE` is true (`worktree` opt-in), use worktree fast mode below.
 
@@ -350,7 +350,7 @@ Phase 9    Batch summary (remaining worktrees: 0)
 |--|------------|------|------|
 | Selection | One at a time; **guidance order** when S0 ran | Inventory + disjoint-path ready; refill after combined commit | Inventory + waves + refill |
 | Batch guidance | **Required** for `all` / `N≥2` | **Required** before workers | **Required** before workers |
-| Occupancy | WCP on the issue branch | **WCP** exclusive leases on shared `dev` | Worktrees (no shared WCP board) |
+| Occupancy | wcp on the issue branch | **wcp** exclusive leases on shared `dev` | Worktrees (no shared wcp board) |
 | Parallelism | None | Disjoint-path ready, cap 32 | Up to 8 |
 | Isolation | Issue branch | **None** — shared local `dev` | Worktrees |
 | Verify | Per issue before merge | **Combined after all live workers finish** | Per issue in worktree, re-verify after merge |
@@ -499,7 +499,7 @@ For the **resolved leaf** issue, load the issue file: title, body, acceptance, s
 
 End the batch loop (do not invent work). Report in Phase 9:
 
-- Queue path (`.wcp/issues/` or `.WCP/issues/`)
+- Queue path (`.wcp/issues/`)
 - `SCOPE` if set (created today / area) and that the rest of the board was ignored
 - How many already solved this run (if any)
 - Guidance path (if S0 ran), execution order, and supersession skips
@@ -514,7 +514,7 @@ If this is the first selection and nothing is eligible → stop the whole `/solv
 Only for the leaf we are about to implement:
 
 1. Follow [`references/multiplayer.md`](references/multiplayer.md). If every remaining leaf is held by someone else under a live lease, do not take those.
-2. Claim: `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes UTC, move to `in-progress/`.
+2. Claim: `assignee`, `status: in-progress`, move to `in-progress/`.
 3. Re-read. If `assignee` is not you, abort and pick another.
 4. When S0 cancels an obsolete open ticket, cancel that file with `reason` (player skill) and set that Notion row to `canceled`. Do not cancel a live lease. Do not rewrite tickets you only scanned.
 5. After the claim write, set the Notion row to `in-progress`.
@@ -546,7 +546,7 @@ Rules:
 - If merge conflicts on `dev`←`main` block progress, resolve them first or stop with a clear report—do not implement the feature on a diverged broken base.
 - Never `git push` under default contract.
 - Never `git reset --hard` or force-delete user work.
-- Start a WCP run on this checkout if none exists ([`../docs/wcp.md`](../docs/wcp.md)). Sequential implementers still lease paths.
+- Start a wcp run on this checkout if none exists ([`../docs/wcp.md`](../docs/wcp.md)). Sequential implementers still lease paths.
 
 ---
 
@@ -589,20 +589,18 @@ Construct a single description string for the implementer:
 - If guidance and the original ticket disagree on platform/stack, **guidance wins**
 - Selective override of prior Done/open work is required inside override scope
 
-## Occupancy (WCP) — hard
-- Name yourself. Prefer the issue id lowercased (`issue-123`). `wcp name <id> --json`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. On `name_taken`, pick another id. Do not rename after the token is set.
+## Occupancy (wcp) — hard
 - Read `$SOLVE_SKILL_DIR/../water-cooler-protocol/SKILL.md` and `$SOLVE_SKILL_DIR/../docs/wcp.md`
-- Write the test first, with no claim: `// WCP <id>: <existing-path> <what it proves> (<arch>)`
-- New file: write it. No acquire.
-- Pre-existing file: look → acquire --test <test-file> → write-ok → re-read disk → edit → release
-- Never rewind sibling edits. Never hold a lease through tests. Never push.
+- Read `.wcp/issues/in-progress/`. Work around the paths those issues list. There is no `wcp` command.
+- Add each path you write to this issue's `files`.
+- Never rewind sibling edits. If the file already has uncommitted changes, read the `in-progress/` or `done/` issue that lists that path and the other paths in its `files`. Keep the behavior its `acceptance` describes. Do not commit. Do not push.
 
 ## Solve delivery constraints (hard)
 - Work only on the current git branch: <issue-branch>
 - Scope is this leaf issue only — do not implement listed sibling ids
 - Do not push, open PRs, merge to dev/main, or set file `done`. Do not call Linear.
 - Do not discard unrelated dirty files
-- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.wcp/issues/in-review/`. Do not set `done`. Do not commit. Do not stash.
+- When acceptance is met: append paths to `files`, set `status: done`, and move the file to `.wcp/issues/done/YYYY/MM/DD/` from `created`. Do not commit. Do not stash.
 - Smallest complete change meeting **current** (possibly re-scoped) acceptance criteria
 - Runtime proof: follow `$SOLVE_SKILL_DIR/../docs/prove-it-works.md` (in-scope classes). Matrix green is not enough.
 
@@ -666,7 +664,7 @@ Fix failures **by resuming the `solve-implementer`** (spawn/resume; not by editi
 
 ### Hand off
 
-Do not commit yet. The implementer moves the issue to `in-review/` when acceptance is met. If it is still `in-progress` after a passing verify, the orchestrator moves it to `in-review/`. Then run Phase 8.
+Do not commit yet. The implementer moves the issue to `done/` when acceptance is met. If it is still `in-progress` after a passing verify, the orchestrator moves it to `done/`. Then run Phase 8.
 
 ---
 
@@ -689,7 +687,7 @@ If merge to dev fails, do not set the file `done` and do not set Notion `done`; 
 
 ## Phase 8 — Review, then commit
 
-The file is in `.wcp/issues/in-review/`. Launch one reviewer. Do not commit while it runs.
+The file is in `done/` when the writing matches `acceptance`. Do not commit while `in-progress/` has anything.
 
 ```text
 spawn_subagent:
@@ -704,19 +702,19 @@ Prompt:
 ```markdown
 You are the reviewer for one `.wcp/issues/in-review/` file. Read the issue and every path in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`.
 
-If the check fails, fix the code. Name yourself with `wcp name`. A pre-existing file uses look → acquire --test → write-ok → edit → release. Do not commit. Do not stash.
+If the check fails, fix the code. Read `.wcp/issues/in-progress/` and work around those paths. Do not commit. Do not stash.
 
 When the check passes, set `status: done`, clear `assignee` and `lease_expires`, and move the file to `done/`. Leave `commit` empty. Do not commit. Do not set Notion `done`.
 ```
 
 Wait until that reviewer exits. Set the Notion row to `in-review`. Local file `done` before `origin/main` is Notion `in-review`.
 
-Then, only when `wcp look` shows no live source-file lease:
+Then, only when `.wcp/issues/in-progress/` is empty:
 
 1. Commit the work. Subject includes the issue id. Do not stash.
 2. Write that hash into `commit` on the done file.
 3. If a `blocked/` ticket names this id in `reason`, unblock it to `open/` and leave `reason`.
-4. Commit the issue-file update. `wcp look` is still empty.
+4. Commit the issue-file update. `in-progress/` is still empty.
 5. Update Notion to `in-review` for that id. Do not set Notion `done`. `/prb` and `/yeet` do that after `origin/main`.
 
 If verification failed before review: leave the ticket `in-progress` if you still hold the lease, or `blocked` with `reason` when a human has to answer. The reviewer is the one who sets `done`. In `all` mode the drain continues with other eligible leaves.
@@ -822,10 +820,10 @@ Canonical table: [`references/eligibility.md`](references/eligibility.md) (Block
 | Moment | File |
 | --- | --- |
 | Scanned and skipped | unchanged |
-| Phase 3 claim | `in-progress/`, `assignee` = this agent, `lease_expires` = now + 10 minutes |
-| While implementing | renew the ticket lease if it would expire; do not hold a source-file lease through tests |
-| Solver finished | `in-review/`, `lease_expires` cleared, `commit` empty |
-| Reviewer passed | `done/`, lease cleared. Orchestrator fills `commit` after the work commit. Notion stays `in-review` until `/prb` or `/yeet` |
+| Phase 3 claim | `in-progress/`, `assignee` = this agent |
+| While implementing | list each path in `files` as you write it |
+| Writing finished | `done/`. `dev` stays empty until the quiet commit |
+| Quiet tree | orchestrator commits and writes the sha into `dev` |
 | Failure, still ours | stay `in-progress`, or `blocked` with `reason` when a human must answer |
 | Blocker now `done` or `canceled` | dependent moves to `open/`; `reason` stays |
 
@@ -893,12 +891,11 @@ Workers do not close tickets. The orchestrator does. Do not call Linear. Notion 
 - Using worktrees / issue branches / stash-to-merge for a parallel `/solve` unless the user passed `worktree`
 - Verifying (or merging) worker A before spawning or waiting for worker B in shared-dev
 - Worker commit or stash on the shared tree
-- Orchestrator commit or stash while `wcp look` shows a live source-file lease
+- Orchestrator commit or stash while an issue is in `in-progress/`
 - `git add -A` / reset / checkout that discards sibling files on shared `dev`
-- Editing a pre-existing file on shared `dev` without WCP look/acquire/write-ok/release
+- Editing a path another `in-progress/` issue already lists
 - Launching two workers whose **primary write paths** overlap in the same wave
-- Holding a WCP lease through the test runner or combined verify
-- `git push` with `WCP_AGENT` set (hooks refuse; `/prb` / `/yeet` unset it)
+- Holding a wcp lease through the test runner or combined verify
 - UTC-only `createdAt` filter (misses local-morning issues)
 - Capping shared-dev at worktree concurrency **8** when more leaves are ready
 - Skipping combined runtime proof in shared-dev “to go faster”
@@ -945,7 +942,7 @@ Batch guidance (multi-issue order, supersession, platform direction) lives in:
 ~/.grok/skills/solve/references/graph.schema.json
 ```
 
-Shared-dev orchestration (default parallel: same `dev`, WCP occupancy, orchestrator verifies then commits) lives in:
+Shared-dev orchestration (default parallel: same `dev`, wcp occupancy, orchestrator verifies then commits) lives in:
 
 ```text
 ~/.grok/skills/solve/references/shared-dev.md

@@ -21,14 +21,12 @@ Finish a set of eligible leaves **ASAP** on **one** local `dev` working tree:
 2. One orchestrator. It **never** implements application source.
 3. Spawn a **disjoint-path** ready set in one turn (`solve-implementer`,
    `isolation: none`, same cwd, already on `dev`). Occupancy: [`../../docs/wcp.md`](../../docs/wcp.md).
-4. Workers use **WCP exclusive file leases**. No worktrees. No per-issue branches.
-5. After **all** live workers finish, each successful leaf is in `in-review/`.
-   The orchestrator launches one reviewer per file. The reviewer fixes and sets
-   `done`. The orchestrator commits on `dev` only after those reviewers have
-   exited and `wcp look` shows no live source-file lease. No push/PR unless
-   asked. Workers do not commit and do not stash.
+4. Workers use **wcp exclusive file leases**. No worktrees. No per-issue branches.
+5. After **all** live workers finish, each successful leaf is in `done/`.
+   The orchestrator commits on `dev` only when `.wcp/issues/in-progress/` is
+   empty. No push/PR unless asked. Workers do not commit and do not stash.
 
-Quality that still applies: S0, blocked tickets, WCP leases, one assignee,
+Quality that still applies: S0, blocked tickets, wcp leases, one assignee,
 runtime proof on the combined tree, drain gate. Quality that this mode
 **drops**: worktree isolation, per-issue branches, per-worker verify before
 the others finish. File overlap waits for the next wave (occupancy), it does
@@ -45,9 +43,9 @@ Set `SHARED_DEV = true` (parent parse) for every multi-issue run unless
 `WORKTREE_MODE` (`worktree` / `--worktree`) → [`fast-mode.md`](fast-mode.md).
 
 Do **not** wait for a `fast` flag. Do **not** invent worktrees to “keep merges
-clean” — that is the mess this file avoids. Workers write on `dev` under WCP
+clean” — that is the mess this file avoids. Workers write on `dev` under wcp
 leases; the orchestrator verifies and commits after they all finish, and
-only when `wcp look` shows no live source-file lease. Workers do not stash.
+only when `.wcp/issues/in-progress/` is empty. Workers do not stash.
 
 ---
 
@@ -61,7 +59,7 @@ only when `wcp look` shows no live source-file lease. Workers do not stash.
 | Isolation | `none` — never `worktree` |
 | Branch | local **`dev`** only. No `solve/<RUN_ID>/<ISSUE>` branches |
 | Integration | local `dev`. No push/PR unless asked |
-| Worker commit | **no** — workers do not commit or stash. Orchestrator commits after combined verify, and only when `wcp look` shows no live source-file lease |
+| Worker commit | **no** — workers do not commit or stash. Orchestrator commits after combined verify, and only when `.wcp/issues/in-progress/` is empty |
 | Soft timeout | ~45–60 min per worker; then kill, fail that leaf, continue others |
 
 `--concurrency` omitted → launch the disjoint-path ready set (≤ 32). Path
@@ -87,12 +85,10 @@ mkdir -p "$scratch_dir/workers" && chmod 700 "${TMPDIR:-/tmp}/grok-$(id -u)" "$s
 5. Do **not** create issue branches. Do **not** add worktrees.
 6. Trackers: `SOLVED`, `FAILED`, `SKIPPED`, `in_progress` (leaf → subagent id).
 
-If a leaf is `in-progress` with a future lease and another assignee: do not
+If a leaf is `in-progress` and `assignee` is someone else: do not
 drain that leaf; skip it.
 
-7. **WCP run** ([`../../docs/wcp.md`](../../docs/wcp.md)): resolve `WCP_BIN`,
-   `wcp look --json`, `wcp init --arch "<guidance aim · run RUN_ID>" --branch dev`
-   if no run. Do not wipe live rows. Do not `wcp stop` at the end of `/solve`.
+7. **wcp** ([`../../docs/wcp.md`](../../docs/wcp.md)): read `in-progress/` before the first worker writes. There is no daemon to start or stop.
 
 ---
 
@@ -106,7 +102,7 @@ Same as fast F1, with created-today when `SCOPE.kind` is `created`:
 4. S0 tags: skip full-obsolete. Guidance still **wins** on platform/stack.
 5. Integer `N`: implement until `N` successful **combined-verify commits**.
 
-Do not launch a file in `blocked/` until its blocker is `done` or `canceled`. File overlap is **WCP occupancy**: keep that leaf for the next wave.
+Do not launch a file in `blocked/` until its blocker is `done` or `canceled`. File overlap is **wcp occupancy**: keep that leaf for the next wave.
 
 ---
 
@@ -129,9 +125,9 @@ Direction confidence **low** → stop and ask. Otherwise proceed.
 ```text
 Shared-dev plan: K implementable · S skipped · concurrency C · run <RUN_ID>
 Scope: created today <YYYY-MM-DD> | <other scope> | none
-Launch now: TEAM-…, TEAM-… (disjoint primary paths; WCP leases)
+Launch now: TEAM-…, TEAM-… (disjoint primary paths; wcp leases)
 Held for next wave (path overlap): TEAM-…
-Delivery: shared local `dev` → in-review → one reviewer per issue → empty board → commit
+Delivery: shared local `dev` → done when the writing is finished → commit when in-progress is empty
 Worktrees: none
 main/prod: /prb (not this run)
 ```
@@ -147,11 +143,11 @@ Then **spawn immediately**. Do not wait for a nod unless direction is low.
 Before spawn, [`multiplayer.md`](multiplayer.md) for **each**
 ready leaf:
 
-1. Unclaimed (`open/`, or expired `in-progress/`).
-2. Set `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
+1. Unclaimed (`open/`, or `in-progress/` whose agent is gone).
+2. Set `assignee`, `status: in-progress`, and move the file to `in-progress/`.
 3. Re-read. If `assignee` is not this run, abort that leaf.
 
-Workers move their own ticket to `in-review/` when acceptance is met. They do not set `done`.
+Workers move their own ticket to `done/` when acceptance is met.
 
 ### Launch rule (non-negotiable)
 
@@ -180,14 +176,11 @@ Do not pass a fake `effort:` field. Do not inherit the parent model.
 ```markdown
 You are a solve **worker** for a single `.wcp/issues/` leaf on a **shared** local `dev` branch. The issue file is the spec. Do not call Linear.
 
-## Occupancy (WCP) — hard
-- Name yourself. Prefer the issue id lowercased. `wcp name <id> --json`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. On `name_taken`, pick another id. Do not rename after the token is set.
+## Occupancy (wcp) — hard
 - Read `$SOLVE_SKILL_DIR/../water-cooler-protocol/SKILL.md` and `$SOLVE_SKILL_DIR/../docs/wcp.md`
-- Write the test first (`// WCP <id>: <existing-path> …`). Do not claim the test file.
-- New file: write it. No acquire.
-- Pre-existing file: look → acquire --test → write-ok → re-read disk → edit → release.
-- Conflict: retarget, overtake idle only to finish their burst, or pick another path from arch.
-- Drift is other workers. Never rewind. Never hold a lease through tests.
+- Read `.wcp/issues/in-progress/`. Work around the paths those issues list. There is no `wcp` command.
+- Add each path you write to this issue's `files`.
+- Never rewind sibling edits. If the file already has uncommitted changes, read the `in-progress/` or `done/` issue that lists that path and the other paths in its `files`. Keep the behavior its `acceptance` describes. Do not commit. Do not push.
 
 ## Hard constraints
 - Read guidance fully: <GUIDANCE_MD>
@@ -199,7 +192,7 @@ You are a solve **worker** for a single `.wcp/issues/` leaf on a **shared** loca
   Do not `git add -A`. Do not `git clean`.
 - Do **not** create branches, worktrees, or check out any other branch
 - Do **not** commit, stash, merge, push, or open a PR. A stash on this shared tree hides another writer's files
-- When acceptance is met: append paths to `files`, release every source-file lease, set `status: in-review`, clear `lease_expires`, move the file to `.wcp/issues/in-review/`. Do not set `done`
+- When acceptance is met: append paths to `files`, set `status: done`, and move the file to `.wcp/issues/done/YYYY/MM/DD/` from `created`. Do not commit. Do not stash.
 - Cheap construction: the issue body + custom-implement-instructions.md.
   **No** bundled `/implement` until-zero-nits
 - Scope: this leaf only
@@ -234,7 +227,7 @@ required. Commit is **not** required.
 5. Matrix green is necessary, not sufficient, for in-scope work.
 6. On verify fail: **resume** the implementer(s) whose paths/AC failed (or spawn
    a new `solve-implementer` for that id). Do **not** edit application source
-   yourself. Re-run combined verify. Do not move a leaf to `in-review/` that still fails.
+   yourself. Re-run combined verify. Do not move a leaf to `done/` that still fails.
 7. Independent failures: leave that leaf `in-progress`/`blocked` with `reason`;
    **continue** other leaves. Cascade-skip only files in `blocked/` with
    `reason: blocked by <id>`, not file-overlap neighbors.
@@ -245,27 +238,15 @@ verify, bugs only. Nits do not block. Resume implementers once for open bugs.
 
 ---
 
-## D6 — Review each `in-review` file (orchestrator)
+## D6 — Confirm `done/`
 
-Workers do not commit. After combined verify passes, each successful leaf is in `in-review/`. If a successful worker left the file `in-progress`, move it to `in-review/`.
+Workers do not commit. After combined verify passes, each successful leaf is in `done/`. If a successful worker left the file `in-progress` and acceptance is met, move it to `done/`.
 
-Launch one reviewer per file, in one turn:
-
-```text
-spawn_subagent:
-  subagent_type: solve-reviewer
-  model: grok-4.6
-  isolation: none
-  description: [in-review] <ISSUE> <short title>
-```
-
-Prompt: read the issue and the paths in `files`. Check security, accessibility, functionality, and aesthetics against `acceptance`. If the check fails, fix under a WCP file lease and release it. Do not commit. Do not stash. When the check passes, set `status: done`, clear `assignee` and `lease_expires`, and move the file to `done/`. Leave `commit` empty.
-
-Wait until every reviewer has exited. Do not commit while one is running.
+Do not commit while any issue is still in `in-progress/`.
 
 ## D6b — Commit on local `dev` (orchestrator)
 
-1. `wcp look`. If any source-file lease is live, wait. Do not commit. Do not stash.
+1. Read `in-progress/`. If any issue is there, wait. Do not commit. Do not stash.
 2. Stage only this wave’s finished product paths. Leave unrelated dirty files unstaged. Leave the issue files for D7. Never secrets / `.env` / `.wcp/RUN.md` / `.wcp/run.sqlite` / sqlite wal/shm. Never `git add -A`.
 3. Commit the work. `commit` on the issue file cannot name a hash that does not exist yet.
 
@@ -288,12 +269,12 @@ branch delete. Confirm `git log -1` is on `dev`.
 
 ## D7 — Write the hash
 
-The reviewer already set `done`. `wcp look` is still empty. For each leaf whose paths landed in the work commit:
+The reviewer already set `done`. `in-progress/` is still empty. For each leaf whose paths landed in the work commit:
 
-1. Append paths to `files` if they are not already listed. Write the work-commit hash into `commit`.
+1. Append paths to `files` if they are not already listed. Write the work-commit hash into `dev`.
 2. Unblock any `blocked/` ticket whose `reason` names this id.
 
-Then commit those issue-file updates. If a source-file lease is live, wait. Do not stash.
+Then commit those issue-file updates. If `in-progress/` is not empty, wait. Do not stash.
 
 Failed leaves: leave `in-progress` or set `blocked` with `reason`. Do not take a live lease held by someone else. Those edits ride in the same issue-file commit when the board is empty.
 
@@ -306,8 +287,8 @@ After the wave is committed on local `dev`:
 1. Re-read `.wcp/issues/` (created-today filter still on when `SCOPE.kind` is `created`).
 2. Newly unblocked in-scope leaves (blocker now `on_dev`) plus occupancy-held
    leaves (primary path now free) enter the next disjoint-path wave on the
-   same `dev`. Spawn them the same way (one turn, WCP leases).
-3. Combined verify, then commit only when `wcp look` shows no live source-file lease.
+   same `dev`. Spawn them the same way (one turn, wcp leases).
+3. Combined verify, then commit only when `.wcp/issues/in-progress/` is empty.
 4. `SELECTION_PIN` / `SCOPE`: do not append outside the pin or `issue_in_scope`.
 
 ### Drain gate (`all`, including `/solve today`)
@@ -331,7 +312,7 @@ eligible issues still exist — that is correct.
 **local `dev`:** <sha>
 **Drain (all/today):** verified — no eligible unblocked unclaimed leaves [created today <date>]
 
-### Solved (file `in-review` / `done` on local `dev`)
+### Solved (`done/` on local `dev`)
 1. TEAM-123 — local `dev` <sha>
 
 ### Failed
@@ -347,14 +328,14 @@ eligible issues still exist — that is correct.
 - Using `isolation: worktree` or `solve/<RUN_ID>/<ISSUE>` branches in this mode
 - Verifying worker A (and merging) before spawning or waiting for worker B
 - Waiting for an explicit `fast` flag
-- Treating file overlap as a `blocked/` relation (it is WCP occupancy: next wave)
+- Treating file overlap as a `blocked/` relation (it is wcp occupancy: next wave)
 - Launching two workers on the same primary write path in one wave
-- Worker edits a pre-existing file without look/acquire/write-ok/release
-- Holding a WCP lease through tests or combined verify
+- Worker edits a path another `in-progress/` issue already lists
+- Holding a wcp lease through tests or combined verify
 - Rewinding sibling hunks (`git checkout --`, reset, restore) to “go first”
 - Launching a `blocked by <id>` dependent before the blocker is `on_dev`
 - Worker commit, stash, merge, or push
-- Orchestrator commit or stash while `wcp look` shows a live source-file lease
+- Orchestrator commit or stash while an issue is in `in-progress/`
 - Orchestrator implementing application source
 - `git add -A` / `git reset --hard` / `git checkout --` that discards siblings
   or unrelated dirty files

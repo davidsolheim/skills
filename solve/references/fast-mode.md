@@ -28,7 +28,7 @@ or double-claiming.
    Move the file to `in-review/` after that merge. No PR unless the user asked.
 5. Next wave **rebases on the new local `dev`**. `/prb` still owns `main`.
 
-The issue file is the claim board (WCP ticket lease). Git branches are backup + merge
+The issue file is the claim board (wcp ticket lease). Git branches are backup + merge
 surface — **never named after an agent**.
 
 Quality is unchanged from sequential: S0, hard-dep/conflict serialization,
@@ -169,7 +169,7 @@ Proceed unless direction confidence is low or the user asked for dry-run.
 Before spawn, follow [`multiplayer.md`](multiplayer.md):
 
 1. Confirm unclaimed (`open/` or expired `in-progress/`).
-2. Set `assignee`, `status: in-progress`, `lease_expires` now + 10 minutes, move to `in-progress/`.
+2. Set `assignee`, `status: in-progress`, and move the file to `in-progress/`.
 3. **Re-read immediately.** If `assignee` is not this run, abort this leaf.
 4. Graph status `claimed` → `implementing`.
 
@@ -245,7 +245,7 @@ issues are `ready_to_merge` or `failed`, and at least one is `ready_to_merge`.
 
 ### Commit in the worktree
 
-The worker left the worktree dirty. After that worker has exited, commit on the issue branch inside the worktree. Stage only that leaf’s paths. Do not stash. Then merge that commit into local `dev` in the main workspace. The main workspace waits until its `wcp look` shows no live source-file lease. Do not stash the main workspace to make the merge.
+The worker left the worktree dirty. After that worker has exited, commit on the issue branch inside the worktree. Stage only that leaf’s paths. Do not stash. Then merge that commit into local `dev` in the main workspace. The main workspace waits until `.wcp/issues/in-progress/` is empty. Do not stash the main workspace to make the merge.
 
 ### Merge
 
@@ -276,7 +276,7 @@ For each issue that landed:
 
 1. Solver: `status: in-review`, clear `lease_expires`, move to `in-review/`.
 2. Orchestrator launches one reviewer. Reviewer sets file `done`. Do not set Notion `done`.
-3. After reviewers exit and `wcp look` is empty, commit and write `commit`.
+3. After reviewers exit and `in-progress/` is empty, commit and write `dev`.
 
 Issues that failed merge stay `in-progress`/`blocked` with `reason`.
 Do not steal foreign leases.

@@ -14,7 +14,7 @@ description: >
 argument-hint: "[--draft] [--plan-only] [--no-epic] [--epic \"Title\"] [--max N]"
 ---
 
-# /issues — Research and file many execution-ready WCP issues
+# /issues — Research and file many execution-ready wcp issues
 
 Bulk intake skill. The user gives a **multi-item** description (list, residual
 backlog, brain dump, several related/unrelated problems). You investigate the
@@ -53,7 +53,7 @@ Direction conflicts: [`../issue/references/direction-conflict.md`](../issue/refe
   dependency or theme warrants it. Independent items stay flat and unlinked.
 - **Cheap-model ready**: each create leaf must pass the same create gate as
   `/issue` (plan, file map, AC, verify, drift, occupancy, assumptions).
-- **Occupancy (WCP)**: prefer leaves with **disjoint primary write paths** so
+- **Occupancy (wcp)**: prefer leaves with **disjoint primary write paths** so
   `/solve` can lease them in one wave ([`../docs/wcp.md`](../docs/wcp.md),
   [references/decomposition.md](references/decomposition.md)). Sharing a file
   is occupancy, not extra `blockedBy`.
@@ -65,7 +65,7 @@ Direction conflicts: [`../issue/references/direction-conflict.md`](../issue/refe
 - **No git commit, push, or PR. No product code changes.**
 - **Secrets**: never put tokens, env values, connection strings, or Doppler
   secrets in issue files (env **names** only).
-- **Do not call Linear.** Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert each Notion row ([`../docs/notion-issues.md`](../docs/notion-issues.md)).
+- Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md). Mirror each file to the tracker in `.wcp/tracker.md` when one is named. Skip when it is missing or `none`.
 - **Unassigned `open/` only**: do not set `assignee` or `in-progress` while filing. A hard dependency is `blocked/` with `reason: blocked by <id>`. There is no epic file.
 - **One current direction**: this dump wins over older unstarted tickets (and leftover dump bullets) that contradict it. Drop or retire the old direction — do not file both.
 
@@ -126,7 +126,7 @@ Search `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/`. Th
    - **Related, compatible** → create and name the other id in the body
    - **Full contradiction** with this dump’s direction, unstarted, no live lease → create the new leaf, then **retire** the old file (`canceled` + `reason`)
    - **Intra-batch contradiction** (dump still contains leftover X and new Y) → **drop X** (`action: drop-contradicted`); file Y only
-   - Live `in-progress` lease or `in-review` → do **not** cancel; plan `Conflict — needs you`
+   - Live `in-progress` with another assignee, or a file already in `done/` → do **not** cancel; plan `Conflict — needs you`
 4. `--draft` / `--plan-only`: show retire/drop in the plan; no status writes until a real file exists.
 
 ### Phase 3 — Shared codebase investigation
@@ -155,7 +155,7 @@ Investigate areas touched by the dump holistically:
 1. Grep distinctive strings from the whole dump.
 2. **Read** highest-signal files for each cluster of candidates (not grep-only).
 3. Trace UI → API → service → DB one level for likely roots.
-4. Note package boundaries (`app/`, `services/`, `agents/`).
+4. Note package boundaries (`inventright-com/`, `gateway-match/`, `agents/`).
 5. For each likely leaf, jot: primary paths, mirror pattern, contracts, verify cmds.
 6. Optional: `git log -n 5 -- path` only when it clarifies regressions.
 
@@ -242,7 +242,7 @@ Each **create** leaf uses the body structure in
 (same bar as `/issue`, plus batch metadata):
 
 1. Implementer contract (this leaf only; honor blockedBy)  
-2. Occupancy (WCP) — primary write path + symbol; sibling overlap  
+2. Occupancy (wcp) — primary write path + symbol; sibling overlap  
 3. Intensity stamp (`## Intensity` — Band + Why + Proof; [`../docs/intensity.md`](../docs/intensity.md))  
 4. Summary  
 5. User report (quote the specific bullet/fragment)  
@@ -289,7 +289,7 @@ For each leaf marked `create`, **do not file** if any fail:
 - [ ] Assumptions present when the source bullet was thin  
 - [ ] No secrets  
 - [ ] `## Intensity` stamp with a valid `Band:`  
-- [ ] `## Occupancy (WCP)` primary write path filled (or N/A: no application writes)
+- [ ] `## Occupancy (wcp)` primary write path filled (or N/A: no application writes)
 - [ ] Body self-contained (no “see sibling” as sole context)  
 - [ ] Single package ownership (or explicit integration AC)
 - [ ] Direction-conflict search ran; unstarted full contradictions have a retire plan (or drop-contradicted intra-batch)
@@ -303,7 +303,7 @@ Skip if `--draft` or `--plan-only`. Follow [`../docs/wcp-queue.md`](../docs/wcp-
 
 #### 6A. Leaves in filing order
 
-For each create leaf that passed the gate, write `.wcp/issues/open/<id>-<slug>.md` or `blocked/` when it has a hard dependency. Frontmatter `status` matches the folder. Empty `assignee`, `lease_expires`, and `commit`.
+For each create leaf that passed the gate, write `.wcp/issues/open/<id>-<slug>.md` or `blocked/` when it has a hard dependency. Frontmatter `status` matches the folder. Empty `assignee`, `dev`, and `main`.
 
 1. Do **not** set assignee or `in-progress`.
 2. On success: record `temp_id → id`. Upsert the Notion row at that status.
@@ -363,7 +363,7 @@ Then stop. Do not implement.
 - [ ] Connectivity not over-blocked (soft vs hard deps)  
 - [ ] Filing order: foundation before feature/polish  
 - [ ] Every create leaf passed Phase 5B create gate  
-- [ ] Occupancy (WCP) primary write path on every create leaf (or N/A)  
+- [ ] Occupancy (wcp) primary write path on every create leaf (or N/A)  
 - [ ] Every create leaf is self-contained (no sibling-only context)  
 - [ ] Every create leaf has real code map paths that exist now  
 - [ ] Step plan + file-by-file + do-not-touch present  
@@ -393,11 +393,11 @@ Then stop. Do not implement.
 - Asking for a tracker team or project; there is none to resolve  
 - Implementing fixes under this skill  
 - Inventing findings the user never mentioned (that’s `/project-review`)  
-- Mixing app vs services ownership in one leaf  
+- Mixing inventright-com vs gateway-match ownership in one leaf  
 - Filing thin shells “to fill in later” — cheap models will freestyle  
 - Shared research notes only in chat, not in each leaf body
 - Two leaves with the same primary write path when they could split
-- Minting `blockedBy` only because two leaves share a file (that is WCP occupancy)  
+- Minting `blockedBy` only because two leaves share a file (that is wcp occupancy)  
 
 ---
 

@@ -243,7 +243,7 @@ Create gate (fail closed — same as `/issue` Phase 5A):
 - [ ] Verification uses this repo’s scripts
 - [ ] Drift check ≥3 anchors
 - [ ] Assumptions filled when the finding was an idea or thin
-- [ ] `## Occupancy (WCP)` primary write path filled (or explicit N/A)
+- [ ] `## Occupancy (wcp)` primary write path filled (or explicit N/A)
 - [ ] Walk evidence: route + what you clicked/typed/saw
 - [ ] No secrets
 - [ ] Direction-conflict classified; retire plan or skip
@@ -308,7 +308,7 @@ Use [`references/handoff.md`](references/handoff.md). Then **stop.**
 4. Runtime proof: surface you actually drove + observed end state
    ([`../docs/prove-it-works.md`](../docs/prove-it-works.md)).
 5. Do-not-touch lists stay tight so `/solve` does not restyle the whole app.
-6. Fill **Occupancy (WCP)** (primary write path). Prefer disjoint paths so `/solve` can lease in one wave.
+6. Fill **Occupancy (wcp)** (primary write path). Prefer disjoint paths so `/solve` can lease in one wave.
 
 ---
 

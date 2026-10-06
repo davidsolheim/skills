@@ -81,7 +81,7 @@ The skills assume a professional full-stack product shop—not a single demo app
 | Skill | Role | Default git effect |
 |-------|------|--------------------|
 | [`map/`](./map/) | Map a codebase into an Obsidian vault: features, ranked vendor Stack, plus cross-project pattern pages for leapfrog | None (vault + local config only) |
-| [`water-cooler-protocol/`](./water-cooler-protocol/) | Occupancy leases on shared local `dev` ([watercoolerprotocol.com](https://watercoolerprotocol.com)). Wiring: [`docs/wcp.md`](./docs/wcp.md) | Never push while `WCP_AGENT` is set |
+| [`water-cooler-protocol/`](./water-cooler-protocol/) | Issue folders in `.wcp/issues/` for many agents on one local `dev` ([watercoolerprotocol.com](https://watercoolerprotocol.com)). Wiring: [`docs/wcp.md`](./docs/wcp.md) | Commit only when `in-progress/` is empty |
 
 **Branch convention (all skills):** integration branch is always lowercase **`dev`**; trunk is **`main`**. Never capital-`D` `Dev`.
 

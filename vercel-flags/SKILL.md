@@ -40,13 +40,13 @@ SDK with `@flags-sdk/vercel`, Flags Explorer, and `vercel flags`.
   `FLAGS_SECRET`, SDK keys (`vf_server_*` / `vf_client_*`), or connection
   strings. Pull via `vercel env pull` / dashboard; keep them in env only.
 - **Git branches**: long-lived remotes are `origin/main` and `origin/dev` ONLY.
-  After checks pass, push `origin/dev` only with the WCP export below. Shipping to
+  After checks pass, push `origin/dev` only with the wcp export below. Shipping to
   `main`/production needs explicit user approval via `/prb`. Confirm before
   production flag toggles unless the user already asked for them.
 - **Occupancy:** before editing this checkout, follow [`../docs/wcp.md`](../docs/wcp.md)
   and skill `water-cooler-protocol`. Name yourself, lease pre-existing files for the
-  edit burst, release before tests. Do not commit and do not stash while a source-file lease is live. `wcp look` before the session commit or push.
-  `unset WCP_AGENT WCP_NAME_TOKEN` immediately before `git push`. Commit `.wcp/issues/`. Do not commit `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
+  Read `.wcp/issues/in-progress/` and work around those paths. Do not commit or stash while an issue is in `in-progress/`.
+  Commit `.wcp/issues/`. Do not commit any other path under `.wcp/`.
 - **Queue**: eng work tracks in this repo’s Notion issues database and `.wcp/issues/` via `/issue`.
 - **Eval model**: prefer **server-side** evaluation (RSC / Route Handlers).
   Flags are **not** authorization — never use a flag alone as an authz gate.
@@ -183,8 +183,8 @@ requested that specific production change.
 5. Env pulled locally; secrets not committed.
 6. Preview/dev behavior verified (Explorer overrides when useful).
 7. Tests or smoke path cover both on/off (or variants).
-8. Run checks. If this session is the only writer, commit on the working branch only when `wcp look` shows no live source-file lease. Do not stash another writer's files.
-9. **`unset WCP_AGENT WCP_NAME_TOKEN`**, then `git push origin dev` after checks (no approval needed for `dev`).
+8. Run checks. If `.wcp/issues/in-progress/` is empty and this session has no further task, commit on the working branch. Do not stash another writer's files.
+9. `git push origin dev` after checks (no approval needed for `dev`).
 10. Do **not** merge/push `main` or change production flags without approval
     (`/prb` for main/prod ship; confirm for production toggles).
 

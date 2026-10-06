@@ -229,7 +229,7 @@ Prompt must include:
 - `SELECTION_PIN` = V1 leaf ids in filing order (do not refill from other projects)
 - `RUN_ID` = this start run
 - `claimed-by: start` with this `RUN_ID` is this run
-- Git contract: local `dev`, WCP occupancy ([`../docs/wcp.md`](../docs/wcp.md)), no push unless the user asked
+- Git contract: local `dev`, wcp occupancy ([`../docs/wcp.md`](../docs/wcp.md)), no push unless the user asked
 - Runtime proof: [`../docs/prove-it-works.md`](../docs/prove-it-works.md)
 
 `/start` must not write application source while the nested solve runs.

@@ -32,7 +32,7 @@ Ship **this session’s finished work** by:
 7. Babysitting every **5 minutes** for up to **15 minutes** total for CI + useful automated comments
 8. **Production DB migrations** when the ship includes them: discover **this repo’s** migrate procedure and run it at the **pre-merge production gate** (see Phase 3.5 and [`references/db-migrations.md`](references/db-migrations.md))
 9. **Merging the PR into `main`** only if the watch window ends with no useful automated feedback, CI is green (or never failed), and required production migrations have succeeded
-10. **Notion:** immediately after `origin/dev`, and again after the merge to `origin/main`, update this repo's issues database ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Status `done` is the main ship. Commit `.wcp/issues/` with the work ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)).
+10. **External tracker:** after `origin/dev`, and again after the merge to `origin/main`, mirror the ship when `.wcp/tracker.md` names a tool. Notion uses [`../docs/notion-issues.md`](../docs/notion-issues.md). `none` or a missing file means skip. Commit `.wcp/issues/` and `.wcp/tracker.md` with the work ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)).
 
 Default delivery **does** merge when the quiet window passes. Use `--no-merge` to stop after the watch without merging (and without applying production migrations unless the user explicitly asks).
 
@@ -49,11 +49,11 @@ The quiet babysit window and auto-merge logic start **only after** a clean local
 - **Session work only:** push commits that are already on local `dev` (or merge the session’s issue branch into local `dev` first if that is still the only place the work lives). Do not invent new features during `/prb` outside the review closed-loop fixes.
 - **No force-push to `main`.** Prefer normal push to `dev`. If `dev` needs rewrite, use `--force-with-lease` only after a clear reason and never against `main`.
 - **Never discard unrelated dirty files** (e.g. local hooks state, untracked scan dirs). Do not stage them. Commit `.wcp/issues/`. Do not commit `.wcp/RUN.md`, `.wcp/run.sqlite`, or sqlite wal/shm.
-- **WCP export:** this skill is the human push to `origin/dev` ([`../docs/wcp.md`](../docs/wcp.md)). `wcp look` before commit and before push; if a live source-file lease remains, wait or report. Do not stash that burst. The fixer names itself with `wcp name prb-fix`, uses the player verbs, and does not commit. The orchestrator commits only when `wcp look` is empty. **`unset WCP_AGENT WCP_NAME_TOKEN` immediately before every `git push`** (hooks refuse push while `WCP_AGENT` is set).
+- **wcp export:** this skill pushes to `origin/dev` ([`../docs/wcp.md`](../docs/wcp.md)). If any issue is in `.wcp/issues/in-progress/`, wait or report. Do not commit or stash that work. Commit `.wcp/issues/` with the ship. After the push, move those `done/` issues to `deployed-dev/` and write the sha in `dev`. After merge to `origin/main`, move them to `deployed-main/` and write the sha in `main`.
 - **Secrets:** never print Doppler/tokens/connection strings; never commit `.env`.
 - **Babysit ≠ silent ignore:** every CI failure and every useful bot/human review comment is actionable. Auto-merge is forbidden while those exist.
 - **Human veto:** if the user says stop/don’t merge in-session, cancel scheduled watches and do not merge.
-- **Notion status (hard rule when issues are in the ship):** collect the ship set from `.wcp/issues/` and the commits that will land ([`../docs/notion-issues.md`](../docs/notion-issues.md)). **Required after `origin/dev`:** write Dev SHA and the PR URL. Do **not** set `done` at PR open. **Required after merge to `origin/main`:** set Status `done` and Main SHA immediately. Skip a file another agent holds under a live lease. Do not call Linear.
+- **External tracker (when `.wcp/tracker.md` names one):** collect the ship set from `.wcp/issues/` and the commits that will land. **After `origin/dev`:** write the dev sha. Do not mark it shipped to main. **After merge to `origin/main`:** write the main sha. Skip when `tracker` is `none` or the file is missing. Notion's steps are [`../docs/notion-issues.md`](../docs/notion-issues.md). Skip an issue another agent still has in `in-progress/`.
 - **DB migrations follow the project (hard rule):** when the ship set includes schema/data migrations, discover and run **this repo’s** production migrate path from `AGENTS.md` / migration docs / `package.json` — do **not** invent Drizzle/Prisma/psql commands, Doppler project names, or configs. Prefer versioned `db:migrate` (or the repo’s documented equivalent). **Never** `db:push` / `drizzle-kit push` / `prisma db push` to production by default. **Never** print connection strings or Doppler secret values. **Never** auto-run content seeders as part of migrate. Full procedure: [`references/db-migrations.md`](references/db-migrations.md).
 - **Migrate before merge (default):** if production migrations are required for the ship, apply them **after** the quiet window passes and **before** `gh pr merge`, so production deploy does not race ahead of schema (additive/expand path). Destructive migrations **block** auto-merge until the user explicitly approves.
 - **Ship product build follows the project (hard rule):** when root `AGENTS.md` (or equivalent) documents a **required `/prb` ship product build** (e.g. rebuild + codesign a macOS `.app`), discover and run **that exact command** after Phase 1.6 and **before** `git push origin dev`. Re-run after babysit fix pushes when the ship still touches app code. Failure blocks push. Do **not** invent archive/notary steps not documented. Full procedure: [`references/ship-product-build.md`](references/ship-product-build.md).
@@ -196,8 +196,8 @@ while actionable findings remain:
 
   Spawn one prb-fixer (model grok-4.7) with the merged cycle markdown.
   Fixer writes sibling …-fixes.md and releases every source-file lease.
-  Orchestrator commits the product diff on local dev only when `wcp look`
-  shows no live source-file lease (never stage scratch, never stash), then
+  Orchestrator commits the product diff on local dev only when
+  `.wcp/issues/in-progress/` is empty (never stage scratch, never stash), then
   deletes that cycle’s scratch files.
 
   Re-run 1.5A on updated origin/main...dev
@@ -261,7 +261,7 @@ This does **not** replace runtime proof or GitHub CI babysit.
 - Project has no documented ship product build → set `SHIP_BUILD=n/a`, continue to 1D.
 - User passed `--skip-ship-build` → loud warning; set `SHIP_BUILD=skipped`; continue to 1D only if the user intentionally waived.
 
-### Required (example: the desktop app)
+### Required (example: LeetBridge macOS app)
 
 1. Confirm `SHIP_BUILD_CMD` from `AGENTS.md` (do not invent).
 2. Run from the git root with a long timeout (Release + codesign).
@@ -285,7 +285,6 @@ Do **not** commit build outputs (`dist/`, archives) unless the user explicitly a
 # - Phase 1C½ ship product build succeeded or n/a or explicitly skipped
 git merge-base --is-ancestor origin/main dev   # exit 0 required
 
-unset WCP_AGENT WCP_NAME_TOKEN
 git push -u origin dev
 ```
 
@@ -381,13 +380,13 @@ At t=0 immediately after PR open/push, and every **interval** minutes until **wa
 **If useful feedback found mid-window:**
 
 - **Do not merge**
-- Fix on local `dev`. A subagent fixer uses the player verbs in [`../docs/wcp.md`](../docs/wcp.md). Do not open a worktree on this checkout's WCP board.
+- Fix on local `dev`. A subagent fixer uses the player verbs in [`../docs/wcp.md`](../docs/wcp.md). Do not open a worktree on this checkout's wcp board.
 - Before re-pushing:
   1. `git fetch origin`, ensure local `main` matches `origin/main`, **merge `origin/main` into local `dev` again**
   2. **Re-run Phase 1.5** on the updated `origin/main...dev` (unless `--skip-review` for the whole run) using the same full rubric + overlay ([`references/local-code-review.md`](references/local-code-review.md) §8)
   3. **Re-run Phase 1.6** local compile + ship-set tests ([`references/local-compile.md`](references/local-compile.md))
   4. **Re-run Phase 1C½** ship product build when the project requires it
-  5. `unset WCP_AGENT WCP_NAME_TOKEN`, then `git push origin dev`
+  5. `git push origin dev`
 - **Reset or extend** the quiet clock: require a fresh quiet window of the full `watch-minutes` **or** at least one clean interval after the fix push—default: **restart the 15-minute quiet timer** from the fix push time
 - Continue babysitting; never merge with open useful threads or red CI
 
@@ -478,7 +477,6 @@ git checkout main
 git merge --ff-only origin/main || git reset --hard origin/main  # only if local main has no unique work
 git checkout dev
 git merge origin/main -m "Merge main into dev after /prb ship"
-unset WCP_AGENT WCP_NAME_TOKEN
 git push origin dev   # keep origin/dev ≥ main
 ```
 

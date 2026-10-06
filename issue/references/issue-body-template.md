@@ -29,7 +29,7 @@ Every leaf must be **self-contained** (no “see L1 / see epic”). See
 - Smallest complete change that meets **Acceptance criteria**. Mirror existing patterns; do not introduce new libraries or architectural layers unless this ticket says so.
 - Never commit secrets, `.env` values, or real credentials.
 
-## Occupancy (WCP)
+## Occupancy (wcp)
 
 Shared local `dev` may have other writers. Spec: [watercoolerprotocol.com](https://watercoolerprotocol.com). Skill: `water-cooler-protocol`.
 
@@ -39,7 +39,7 @@ Shared local `dev` may have other writers. Spec: [watercoolerprotocol.com](https
 - Barrels (lockfile / generated client / root schema): `<path>` or none
 - Sibling overlap: disjoint | shares `<path>` with L# / TEAM-n (occupancy serializes; mint `blockedBy` only if AC depends)
 
-Implementer: name yourself with `wcp name <id>` and export `WCP_AGENT` and `WCP_NAME_TOKEN`. Write the test first (`// WCP <id>: <path> …`) and do not claim it. Write a new file with no claim. For a file that already existed: look → acquire --test → write-ok → re-read disk → edit → release. Never rewind sibling hunks. Never push `origin/dev`.
+Implementer: read `.wcp/issues/in-progress/` and work around the paths listed there. Add each path you write to this issue's `files`. Move this issue to `done/` when the writing is finished. Do not commit while any issue is in `in-progress/`. Never rewind sibling hunks. If a file already has uncommitted changes, read the issue that lists it and keep that issue's `acceptance`.
 
 Docs-only / no source edit: `- N/A: no application writes`.
 
@@ -279,7 +279,7 @@ blocker instead of filing a pretend-ready ticket.
 
 ### Section priority when time-boxed
 
-Never skip: Intensity, Occupancy (WCP), Summary, Current/Expected, Code map, Step-by-step plan,
+Never skip: Intensity, Occupancy (wcp), Summary, Current/Expected, Code map, Step-by-step plan,
 File-by-file, Acceptance criteria, Verification, Drift check, Assumptions.
 
 May shorten: Code anchors (if truly trivial), Test plan automated cases

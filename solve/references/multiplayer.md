@@ -1,48 +1,49 @@
 # Ticket claim (`/solve` + `/identify`)
 
-The queue is `.wcp/issues/`. Contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md). Verbs: skill `water-cooler-protocol`, section Issues.
+The queue is `.wcp/issues/`. Contract: [`../../docs/wcp-queue.md`](../../docs/wcp-queue.md) and skill `water-cooler-protocol`.
 
-Do not call Linear. Do not post `claimed-by` comments.
+Do not call Linear. Do not post claim comments.
 
-Claims are WCP ticket leases. Status lives on the issue file (`open`, `in-progress`, `in-review`, `done`, `blocked`, `canceled`). After a status write, Notion mirrors the file ([`../../docs/notion-issues.md`](../../docs/notion-issues.md)). Do not set Notion `done` from `/solve`.
+Status is the folder: `open`, `in-progress`, `done`, `deployed-dev`, `deployed-main`, `blocked`, `canceled`. An old `in-review/` file is finished writing. Move it to `done/`.
+
+After a file write, mirror to the tracker in `.wcp/tracker.md` when one is named. Skip when it is missing or `none`.
 
 ## Unclaimed vs claimed
 
-**Unclaimed:** file is in `open/`, or `in-progress/` with `lease_expires` in the past.
+**Unclaimed:** the file is in `open/`, or it is in `in-progress/` and the agent is gone.
 
-**Claimed by us:** `in-progress/`, `assignee` is this agent, `lease_expires` is in the future.
+**Claimed by us:** `in-progress/` and `assignee` is this agent.
 
-**Claimed by other:** `in-progress/`, `assignee` is someone else, `lease_expires` is in the future. Skip. Do not implement.
+**Claimed by other:** `in-progress/` and `assignee` is someone else. Skip. Read its `files` and do not take those paths.
 
 ## Claim
 
 Before any product edit on that ticket:
 
 1. The leaf is eligible ([`eligibility.md`](eligibility.md)) and unclaimed.
-2. Claim with the player skill: set `assignee`, `status: in-progress`, `lease_expires` to now + 10 minutes UTC, move to `in-progress/`.
-3. Re-read. If `assignee` is not you, abort. Do not code. Pick another leaf.
-4. Renew before `lease_expires` while you are still writing the issue file or about to write source. Drop the source-file lease before tests. The ticket lease is separate.
+2. Set `assignee`, set `status: in-progress`, and move the file to `in-progress/`.
+3. Re-read. If `assignee` is not you, stop. Do not code. Pick another leaf.
 
-`/solve all`: if every remaining leaf is held by someone else under a live lease, do not drain those. Work unclaimed leaves only.
+`/solve all` and `/solve today`: if every remaining leaf is held by someone else, do not take those. Work unclaimed leaves only.
 
 ## Close
 
-The solver does not commit and does not stash. When acceptance is met, the solver sets `status: in-review`, clears `lease_expires`, and moves the file to `in-review/`. File `in-review` is the review state. It is not proof the work is on `dev` by itself; the commit check stays.
+The solver does not commit and does not stash. When `acceptance` is met, set `status: done` and move the file to `done/YYYY/MM/DD/` from `created`.
 
-The orchestrator launches one reviewer per file in `in-review/`. The reviewer checks security, accessibility, functionality, and aesthetics, fixes failures under a file lease, and sets `status: done`. The reviewer does not commit.
+If you edit a file that already has uncommitted changes, read the `in-progress/` or `done/` issue that lists that path and the other paths in its `files`. Keep the behavior its `acceptance` describes.
 
-After that reviewer has exited and `wcp look` shows no live source-file lease, the orchestrator commits the work, writes that hash into `commit`, and commits the issue file.
+If anything is still in `in-progress/`, stop. Do not commit. If `in-progress/` is empty and this run has no further task, the orchestrator commits the tree and writes that sha into `dev` on each `done/` issue from that commit.
 
-On failure before review: leave `in-progress` if you still hold it, or `blocked` with `reason` when a human has to answer. The reviewer is the one who sets `done`.
+On failure: leave the file `in-progress` if you still hold it, or move it to `blocked/` with `reason` when a human has to answer.
 
 ## `/identify`
 
-Claim only the leaf you are about to hand to `/solve`, using the same ticket lease. On abort, reclaim your own unstarted claim back to `open/` (clear `assignee` and `lease_expires`).
+Claim only the leaf you are about to hand to `/solve`, the same way. On abort, move your own unstarted claim back to `open/` and clear `assignee`.
 
 ## `/prb` and `/yeet`
 
-Do not update an external tracker from `/solve`. The issue file already holds `commit` when `/solve` closed it. Include `.wcp/issues/` in the ship commit.
+Do not push from `/solve`. Include `.wcp/issues/` in the ship commit. `deployed-dev/` and `deployed-main/` happen when those commits are actually on those branches.
 
 ## `/issues` and `/issue`
 
-File into `open/` unassigned. Never set `in-progress` while filing.
+File into `open/` with an empty `assignee`. Do not move a new file to `in-progress/` while filing.

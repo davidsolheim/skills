@@ -16,7 +16,7 @@ Follow [`../../docs/notion-issues.md`](../../docs/notion-issues.md). Title is th
 
 ## Queue
 
-Write each V1 leaf as a file in DEST `.wcp/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). If DEST has `.WCP/` and no `.wcp/`, write under `.WCP/issues/` instead. Create `open/`, `in-progress/`, `in-review/`, `done/`, `canceled/`, and `blocked/` when they are missing. Do not create `.wcp/` beside `.WCP/`. Ids are the next number under that issues directory. There is no epic file.
+Write each V1 leaf as a file in DEST `.wcp/issues/` ([`../../docs/wcp-queue.md`](../../docs/wcp-queue.md)). Create `open/`, `in-progress/`, `done/`, `deployed-dev/`, `deployed-main/`, `canceled/`, and `blocked/` when they are missing. Ids are the next number under that issues directory. There is no epic file.
 
 ## What to ticket (V1 only)
 
@@ -58,7 +58,7 @@ Create gate (fail closed) — same as `/issue` 5A. Paths must exist in DEST now
 
 Filing:
 
-- `status: open`, empty `assignee` and `lease_expires`, file in `open/`
+- `status: open`, empty `assignee`, file in `open/`
 - Notion Status `open` after the file write
 - `priority`: identity and blocking schema are high; core features are high or normal; polish is normal or low
 - A hard dependency is a file in `blocked/` with `reason: blocked by <id>` and Notion Status `blocked`

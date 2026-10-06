@@ -33,7 +33,7 @@ Lowest-issue-number order is wrong when:
 | `/solve N` (`N ≥ 2`) | **Yes**, before first claim |
 | `/solve all` | **Yes**, before first claim |
 | `/solve` with `SCOPE` (implicit `all`) | **Yes**, on the in-scope leaf set only |
-| `/solve today` / any `SHARED_DEV` (default parallel) | **Yes**, on the in-scope leaf set only. File overlap is **WCP occupancy** (next wave), not a `blocked/` relation |
+| `/solve today` / any `SHARED_DEV` (default parallel) | **Yes**, on the in-scope leaf set only. File overlap is **wcp occupancy** (next wave), not a `blocked/` relation |
 | Any parallel run (`N ≥ 2` / `all` / scoped, unless `seq`) | **Yes** (F1 inventory + this analysis before workers) |
 | `/identify` | **Thin** subset only — tag, skip full-obsolete, promote migrations when a conflict exists. No scratch files. Do not call Linear. See identify `references/guidance.md`. |
 

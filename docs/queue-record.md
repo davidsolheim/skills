@@ -7,5 +7,5 @@ The issue file under `.wcp/issues/` is the record. Notion mirrors it after the f
 | Excuse | What to do |
 |--------|------------|
 | "File a Linear issue per /prb finding" | No. Scratch markdown is the gate record. |
-| "Post a claim comment" | No. Claim is the WCP ticket lease. |
+| "Post a claim comment" | No. Claim is the wcp ticket lease. |
 | "Post a second note for the same ship" | No. One Dev SHA and one Main SHA on the row. |

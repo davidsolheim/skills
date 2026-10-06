@@ -74,7 +74,7 @@ Mode is fixed for the whole run. Report it in the handoff.
    do not beat an explicit user ticket of the opposite intent.
 7. **Code-pin required** for every filed leaf. No zero-anchor polish tickets.
 8. **Queue-shaped for solve.** Foundation-first filing order + `blocked/` with `reason: blocked by <id>` when hard deps exist ([`references/dependency-ordering.md`](references/dependency-ordering.md)).
-9. **Default file to `.wcp/issues/` and Notion.** `--draft` is opt-out. Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then upsert Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Do not call Linear. Deep files **only** from `issue-candidates/final/`.
+9. **Default file to `.wcp/issues/`.** `--draft` is opt-out. Write files per [`../docs/wcp-queue.md`](../docs/wcp-queue.md), then mirror each file when `.wcp/tracker.md` names a tracker. Skip when it is missing or `none`. Deep files **only** from `issue-candidates/final/`.
 10. **Scratch lifecycle.** **Filed (issue ids verified) → delete** the run’s `project-review-<RUN_ID>` temp dir. **Not filed** (`--draft`, Notion failure, partial publish) → **keep** the temp dir and put its absolute path in the handoff. Never delete while intended `final/` bodies are only on disk.
 11. **Do not claim work.** New leaves stay `open` and unassigned. That is `/solve`’s job.
 12. **No implementation.** No app code edits, no `/solve`, no push/PR under this skill.
@@ -300,7 +300,7 @@ Prefer writing `issue-candidates/final/*.md`.
 - [ ] Verification section (commands + manual steps)
 - [ ] Runtime proof filled when in-scope (drive path; visual reference or n/a)
 - [ ] Code map + drift check
-- [ ] `## Occupancy (WCP)` primary write path filled (or explicit N/A)
+- [ ] `## Occupancy (wcp)` primary write path filled (or explicit N/A)
 - [ ] Out of scope / do not change
 - [ ] Taste fully concretized when applicable
 - [ ] Title follows conventions
@@ -388,7 +388,7 @@ These exist so tickets survive the `/solve` implement→review loop:
 6. Explicit “do not change” lists prevent scope expansion.
 7. Code map + drift check required for filed leaves.
 8. Write for another agent: paths, symbols, AC beat vague product prose.
-9. Fill **Occupancy (WCP)** on every leaf (primary write path). Prefer disjoint paths across the batch ([`../docs/wcp.md`](../docs/wcp.md)).
+9. Fill **Occupancy (wcp)** on every leaf (primary write path). Prefer disjoint paths across the batch ([`../docs/wcp.md`](../docs/wcp.md)).
 
 ---
 

@@ -89,17 +89,17 @@ Must not contain `first-run: starter-onboard`. Must include Notion, Product,
 Secrets (`<slug>` / `development`), Database, Auth, Conventions, and:
 
 ```markdown
-## Water Cooler Protocol
+## wcp
 
-This checkout may have many coding agents on one local `dev` working tree.
+This checkout may have many coding agents on one local `dev` working tree. The issue files are the protocol. There is no daemon.
 
 - Skill: `water-cooler-protocol`
-- Start a run: `wcp init --arch "<aim of this session>" --branch dev`
-- Each agent names itself with `wcp name <id>` and exports `WCP_AGENT` and `WCP_NAME_TOKEN`
-- Agents write tests and new files directly. They `wcp acquire` only a file that already existed, and only after a test names it. They do not push, reset HEAD, or rewind sibling edits
-- Occupancy (`.wcp/RUN.md`, `.wcp/run.sqlite`, wal, shm) is gitignored. Do not commit it. Commit `.wcp/issues/`. If the checkout has `.WCP/` and no `.wcp/`, that legacy folder is the queue. Do not rename it during a run.
-- Only the orchestrator runs `git commit`, and only when `wcp look` shows no live source-file lease. Workers do not commit or stash.
-- On start, read `.wcp/issues/open`, `in-progress`, and `in-review`. Reclaim expired `in-progress` tickets. Do not reclaim `in-review`. Do not copy the backlog onto `RUN.md`. Load the skill for claim, renew, close, cancel, and block. Search `canceled/` and `blocked/` before filing the same work again
+- `in-progress/` means an agent is editing that issue on this machine. Read those files and work around the paths they list.
+- Move your issue to `done/` when the writing is finished. Do not commit while any issue is in `in-progress/`.
+- When `in-progress/` is empty and you have no further task, commit, push `dev` to `origin/dev`, and move those `done/` issues to `deployed-dev/`.
+- `deployed-main/` is only for a commit that is on `origin/main`.
+- Commit `.wcp/issues/` and `.wcp/tracker.md`. Do not commit any other path under `.wcp/`. Do not reset, checkout, or stash another agent's work.
+- External tracking is optional. `.wcp/tracker.md` is `none` until the user names `notion`, `linear`, `jira`, or another tool. A named tracker gets the same updates.
 ```
 
 ## README.md (rewrite)

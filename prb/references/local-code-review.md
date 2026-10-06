@@ -269,8 +269,8 @@ loop:
   spawn prb-fixer (model grok-4.7) with merged c${C}.md as the contract
   fixer writes sibling prb-review-${RUN_ID}-c${C}-fixes.md
   orchestrator:
-    - confirm product diff is on local dev and the fixer has released its leases
-    - `wcp look`; if a source-file lease is live, wait
+    - confirm product diff is on local dev
+    - read `.wcp/issues/in-progress/`; if any issue is there, wait
     - commit product files only (HEREDOC; never stage $scratch_dir; do not stash)
     - rm that cycle’s scratch JSON/md (including fixes.md after copying
       a 5–10 line “what changed” into orchestrator memory for the Phase 5 report)
@@ -294,14 +294,11 @@ Fix every item under **Actionable findings**. Root cause, not a plaster.
 A fix that leaves a sibling hole (ACL still widened on another path, validate-source instead of validate-rendered) is not done.
 Add or update tests when the defect needs them. Do not nit-hunt.
 Do not call Linear. Do not commit. Do not stash. Do not push. Do not stage scratch files.
-Release every source-file lease before you stop. The orchestrator commits when `wcp look` is empty.
+The orchestrator commits when `.wcp/issues/in-progress/` is empty.
 
 Work on local **dev** only.
 
-Occupancy: name yourself. Prefer `prb-fix`. `wcp name prb-fix --json`, then export `WCP_AGENT` and `WCP_NAME_TOKEN`. Read skill
-`water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md).
-Write tests and new files with no claim. For a pre-existing file: look → acquire --test → write-ok → re-read disk → edit → release. Never rewind.
-Never push (orchestrator unsets `WCP_AGENT` before `git push`).
+Occupancy: read skill `water-cooler-protocol` and [`../../docs/wcp.md`](../../docs/wcp.md). Read `.wcp/issues/in-progress/` and work around those paths. There is no `wcp` command. Never rewind. If a file already has uncommitted changes, read the issue that lists it and keep that issue's `acceptance`.
 
 When done, append to <abs path to …-c${C}-fixes.md>:
 - Finding id → what you changed (path + one sentence)

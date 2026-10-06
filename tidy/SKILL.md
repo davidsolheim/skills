@@ -30,10 +30,10 @@ push, or open PRs.
 - **Cooldown: 7 days** per issue unless overridden. Ledger + stamp:
   [`references/ledger.md`](references/ledger.md).
 - **Quality bar** = `/issue` (same as Identify upgrades). Do not invent a
-  second template. When thickening, fill **Occupancy (WCP)** from that
+  second template. When thickening, fill **Occupancy (wcp)** from that
   template ([`../docs/wcp.md`](../docs/wcp.md)). Sharing a file is occupancy,
   not a reason to block the ticket.
-- **Status** matches the queue: `done` when a work commit exists and acceptance is met. `in-review` is a real status. `canceled` for a high-confidence duplicate or obsolete ticket, with `reason`. `blocked` only for a real dependency.
+- **Status** matches the folder. `done` means the writing is finished. `deployed-dev` means the commit is on `origin/dev`. `deployed-main` means it is on `origin/main`. `canceled` needs `reason`. `blocked` is only a real dependency.
 - **High-confidence writes apply immediately**, including Cancel/Duplicate.
   Low-confidence closes are listed, not applied. Rules:
   [`references/actions.md`](references/actions.md).
@@ -43,7 +43,7 @@ push, or open PRs.
   questions; ask once at the end.
 - **No implement, no assign-for-solve, no `claimed-by:`.**
 - **Secrets:** env **names** only.
-- **Do not call Linear.** Edit the issue files, then update Notion ([`../docs/notion-issues.md`](../docs/notion-issues.md)). Inventory is `open/`, `in-progress/`, and `blocked/`. Skip `done/` and `canceled/` unless the user names that id. Skip a live lease held by someone else. A file whose commit is on `origin/main` is Notion `done`. A file whose commit is only on `origin/dev` is Notion `in-review`.
+- Edit the issue files first. Mirror the change when `.wcp/tracker.md` names a tracker. Skip when it is missing or `none`. Inventory is `open/`, `in-progress/`, and `blocked/`. Skip `done/`, `deployed-dev/`, `deployed-main/`, and `canceled/` unless the user names that id. Do not tidy an `in-progress/` issue whose `assignee` is someone else.
 
 ## Trigger phrases
 
@@ -93,7 +93,7 @@ lives in `$SOLVE_SKILL_DIR/references/eligibility.md`.
 
 If **issue** is missing, still do status/dup/rollup; skip body upgrades and
 mark those as not upgraded. If **solve** is missing, still skip anything with
-a live WCP lease or ticket lease held by someone else; fall back to
+a live wcp lease or ticket lease held by someone else; fall back to
 `$HOME/.grok/skills/solve/references/eligibility.md` for the inventory fetch.
 
 ---
@@ -128,7 +128,7 @@ Otherwise list `open/`, `in-progress/`, and `blocked/`. Skip a live lease held b
 | Condition | Action |
 |-----------|--------|
 | `PINNED_ID` set and this is not that issue | Ignore (out of scope; never listed) |
-| Live WCP lease held by someone else, or live ticket lease (`assignee` + unexpired `lease_expires`) held by someone else | **Skip claimed** — no writes, no stamp |
+| `in-progress/` whose `assignee` is someone else | **Skip claimed** — no writes |
 | Last `tidy-pass` < 7 days and not `FORCE` and not pinned | **Skip cooldown** |
 | Else | **Due** |
 

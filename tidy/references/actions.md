@@ -78,7 +78,7 @@ Tidy applies it to **every due** issue).
 
 **Ready** (no body write) if all exist: code map of real paths, checklist AC,
 repo verification commands, ≥3 drift anchors, ordered plan or file-by-file
-list, and `## Occupancy (WCP)` with a primary write path (or explicit N/A
+list, and `## Occupancy (wcp)` with a primary write path (or explicit N/A
 when the leaf writes no application files). Missing occupancy is thin.
 
 **Thin** → investigate (read-only), update the **existing** issue. Do not
@@ -102,6 +102,6 @@ Do not set Blocked. Still stamp `needs-you` so the weekly cooldown applies.
 
 ## Claimed issues
 
-If a live WCP lease is held by someone else, or a live ticket lease
+If a live wcp lease is held by someone else, or a live ticket lease
 (`assignee` + unexpired `lease_expires`) is held by someone else: **no
 actions in this file**. Caller skips.

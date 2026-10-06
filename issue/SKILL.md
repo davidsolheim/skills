@@ -11,7 +11,7 @@ description: >
   multi-item dumps.
 ---
 
-# /issue — Investigate and file one execution-ready WCP issue
+# /issue — Investigate and file one execution-ready wcp issue
 
 Rapid-fire intake skill. The user gives **one** short description. You deeply
 investigate the current repo, then write **one** file in `.wcp/issues/open/`
@@ -32,7 +32,7 @@ Intensity stamp: [`../docs/intensity.md`](../docs/intensity.md) — `/solve` and
 
 - **One description → one `.wcp/issues/` file** per invocation unless the user explicitly batches multiple.
 - **Speed of interaction, depth of ticket**: keep the user conversation short; put thoroughness in the issue file.
-- **Cheap-model ready**: every filed issue must include code map, contracts, step-by-step plan, file-by-file changes, AC, verification, drift check, Occupancy (WCP), and pre-decided assumptions. Thin tickets fail the create gate.
+- **Cheap-model ready**: every filed issue must include code map, contracts, step-by-step plan, file-by-file changes, AC, verification, drift check, Occupancy (wcp), and pre-decided assumptions. Thin tickets fail the create gate.
 - **Do not ask clarifying questions** unless a safety-critical ambiguity would create a wrong ticket. Prefer stating assumptions in the issue body. There is no team or project to resolve.
 - **No git commit, push, or PR.**
 - **No code changes** unless the user explicitly asks for a fix in the same turn (then this skill does not apply).
@@ -60,7 +60,7 @@ Follow phases in order. Parallelize reads when possible.
 
 ### Phase 1 — Queue
 
-The queue is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Notion status for the same file is [`../docs/notion-issues.md`](../docs/notion-issues.md). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing.
+The queue is `.wcp/issues/` in this checkout ([`../docs/wcp-queue.md`](../docs/wcp-queue.md)). Do not resolve a team or project. Do not ask where to file. Search `open/`, `in-progress/`, and `blocked/` for duplicates before writing. After the file write, mirror to the tracker in `.wcp/tracker.md` when one is named.
 
 ### Phase 2 — Duplicate / overlap / direction-conflict check
 
@@ -127,7 +127,7 @@ Set from Phase 0. User-stated urgency wins.
 Use the full structure in [references/issue-body-template.md](references/issue-body-template.md). Every filed issue **must** include:
 
 1. **Implementer contract** — scope lock; follow the plan; drift-then-implement
-2. **Occupancy (WCP)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
+2. **Occupancy (wcp)** — primary write path + symbol; disjoint vs sibling overlap ([`../docs/wcp.md`](../docs/wcp.md))
 3. **Intensity** — `## Intensity` with `Band:` `light|standard|heavy|critical`, one-line Why, Proof `on|n/a` ([`../docs/intensity.md`](../docs/intensity.md)). Classify after research; fail closed (bump up when unsure). Intensity does not come from a priority number. Do not key off ticket length.
 4. **Summary** — 2–4 sentences, product + technical
 5. **User report** — quoted or paraphrased original description
@@ -167,7 +167,7 @@ Write for another agent that is **less capable than you**. Specific paths, symbo
 - [ ] No secrets in the body
 - [ ] Title is specific
 - [ ] `## Intensity` stamp present with a valid `Band:` (`light` `standard` `heavy` `critical`)
-- [ ] `## Occupancy (WCP)` primary write path filled (or explicit N/A: no application writes)
+- [ ] `## Occupancy (wcp)` primary write path filled (or explicit N/A: no application writes)
 - [ ] Direction-conflict search ran (actionable states + surface queries)
 - [ ] Unstarted full contradictions have a retire plan (Canceled/Duplicate after create), or the ticket is not filed
 
@@ -176,11 +176,11 @@ If the gate fails: investigate more, or paste the draft in chat and say what is 
 #### 5B. Write the file
 
 1. Next id per [`../docs/wcp-queue.md`](../docs/wcp-queue.md).
-2. Write `.wcp/issues/open/<id>-<slug>.md` with frontmatter `status: open`, empty `assignee`, `lease_expires`, `commit`, and `reason`, plus `priority`, `scope`, `acceptance`, `files: []`, and `created`.
+2. Write `.wcp/issues/open/<id>-<slug>.md` with frontmatter `status: open`, empty `assignee`, `dev`, `main`, and `reason`, plus `acceptance`, `files: []`, and `created`.
 3. The body is the execution-ready contract from Phase 4.
 4. Do not assign. Do not set `in-progress`. Do not commit product code. Leave the file in the worktree.
 5. If the write fails, report the error and paste the body.
-6. Upsert the Notion row at Status `open` ([`../docs/notion-issues.md`](../docs/notion-issues.md)). If Notion fails, the file still stands; say so.
+6. If `.wcp/tracker.md` names a tracker, mirror the new issue there. Notion uses [`../docs/notion-issues.md`](../docs/notion-issues.md). `none` or a missing file means skip. If the mirror fails, the file still stands; say so.
 
 #### 5C. Retire contradicted unstarted issues
 
@@ -239,7 +239,7 @@ When the user sends multiple issues back-to-back:
 - [ ] Unstarted contradicted issues retired after create (or needs-you if claimed / In Review)
 - [ ] Create gate (Phase 5A) passed
 - [ ] Intensity stamp valid (`## Intensity` / `Band:`)
-- [ ] Occupancy (WCP) primary write path filled (or N/A)
+- [ ] Occupancy (wcp) primary write path filled (or N/A)
 - [ ] Code map lists real paths that exist in the workspace right now
 - [ ] Contracts / mirror pattern captured when applicable
 - [ ] Step-by-step plan + file-by-file changes present
@@ -272,7 +272,7 @@ When the user sends multiple issues back-to-back:
 - Mega-tickets that should have been `/issues` splits
 - “See related ticket for context” as a substitute for a self-contained body
 - Filing without `## Intensity` / `Band:`
-- Filing without `## Occupancy (WCP)` (or explicit N/A)
+- Filing without `## Occupancy (wcp)` (or explicit N/A)
 - Classifying intensity from ticket length or a priority number alone
 
 ---
