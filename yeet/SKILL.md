@@ -233,7 +233,7 @@ Skip a thread whose newest reply already cites a fix SHA that is on `origin/main
 
 Read once as soon as production is Ready. Then poll every 30–60 seconds until **15 minutes** after that Ready. If a review-agent check was still running at that mark, wait until it finishes or **10 more minutes**, whichever comes first.
 
-Fix on the first in-scope batch. Do not sit out the rest of the window before fixing. After that follow-up ship’s production build is Ready, watch the new PR the same way. Cap **two** follow-up ships. Findings after that cap are reported and left.
+Fix the first in-scope batch as soon as it appears. Do not sit out the rest of the window before fixing. After that follow-up ship’s production build is Ready, watch the new PR the same way, and read any new in-scope comments on the earlier PRs of this yeet. Repeat. There is no follow-up count. Stop when a window ends with no new in-scope finding.
 
 Prefer a `monitor` that prints only `ACTION_REQUIRED` (new in-scope finding) or `DONE` (window over, nothing in scope). Do not print each poll. Do not emit the yeet report before this phase ends.
 
@@ -242,7 +242,7 @@ Prefer a `monitor` that prints only `ACTION_REQUIRED` (new in-scope finding) or 
 A fix is a **new ship** of new commits. It is not a push of the merge commit.
 
 1. `git fetch origin`. Fast-forward local `main` to `origin/main`. Check out `dev`. Merge `origin/main` into `dev`.
-2. Fix the defect against the current tree. Do not apply a stale hunk blindly. Edit only what those findings require. Follow [`../docs/wcp.md`](../docs/wcp.md). Read `in-progress/` before the commit. Do not commit another writer’s work.
+2. Fix the defect against the current tree. Do not apply a stale hunk blindly. Do not undo behavior this yeet already pushed. If the comment asks for that undo, reply with the reason, do not edit, and resolve when the reply succeeds. Edit only what the remaining findings require. Follow [`../docs/wcp.md`](../docs/wcp.md). Read `in-progress/` before the commit. Do not commit another writer’s work.
 3. One commit for the batch. Subject names the PR and the tags (`fix: PR #N P2 …`).
 4. `git push origin dev`. This push is required.
 5. Open a **new** PR `main` ← `dev` (the previous PR is merged). Run Phases 2.5 through 4.5 on it. Phase 3 runs only when the fix touches schema.
@@ -268,7 +268,7 @@ If a shipped issue file is still `open` or `in-progress` and its work commit is 
 **Runtime proof:** driven `<path>` → `<observed>` | n/a | blocked
 **Merge:** merged @ <sha> | blocked (<reason>)
 **Build:** preview Ready @ <sha> · production Ready @ <sha> | failed (`<url>`) | timeout | skipped
-**Review:** none | fixed <P0×n P1×n P2×n> in #<follow-up> @ <sha> | left <P3 or untagged count> | skipped (--skip-review-watch) | blocked (<reason>)
+**Review:** none | fixed <P0×n P1×n P2×n> in #<prs> @ <shas> | left <count and why> | skipped (--skip-review-watch) | blocked (<reason>)
 **Migrations:** none | applied production (`<config>`) | blocked | skipped
 **Notion:** done on 0123 | dev SHA only | none | skipped (live lease) | skipped (build failed)
 **Local:** main synced to origin/main; no merge-commit re-push | fix pushed @ <sha>
